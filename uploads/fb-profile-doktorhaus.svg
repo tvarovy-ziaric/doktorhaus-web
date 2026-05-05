@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="DoktorHaus profilovy symbol">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fafbf9"/>
+      <stop offset="1" stop-color="#edf1ee"/>
+    </linearGradient>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0 L0 0 0 56" fill="none" stroke="#365e57" stroke-width="1" opacity="0.06"/>
+    </pattern>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="430" fill="#e1e9e5" opacity="0.72" stroke="#d9dfdb" stroke-width="4"/>
+  <circle cx="512" cy="512" r="348" fill="#fbfcfb" opacity="0.9"/>
+  <circle cx="512" cy="512" r="348" fill="url(#grid)" opacity="0.6"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M278 418 L512 208 L746 418" stroke="#1c1f23" stroke-width="26"/>
+    <path d="M324 436 L324 744 L700 744 L700 436" stroke="#1c1f23" stroke-width="26"/>
+    <path d="M196 516 L330 516 L374 430 L444 758 L522 482 L598 638 L690 606 L828 668" stroke="#365e57" stroke-width="26"/>
+  </g>
+</svg>
