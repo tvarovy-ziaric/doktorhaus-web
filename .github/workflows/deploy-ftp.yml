@@ -2,6 +2,30 @@ name: Deploy website to FTP
 
 on:
   workflow_dispatch:
+    inputs:
+      protocol:
+        description: FTP protocol
+        required: true
+        default: ftp
+        type: choice
+        options:
+          - ftp
+          - ftps
+          - ftps-legacy
+      port:
+        description: FTP port
+        required: true
+        default: "21"
+        type: string
+      log_level:
+        description: Deploy log level
+        required: true
+        default: standard
+        type: choice
+        options:
+          - minimal
+          - standard
+          - verbose
 
 jobs:
   deploy:
@@ -40,10 +64,15 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          protocol: ftps
+          port: ${{ inputs.port }}
+          protocol: ${{ inputs.protocol }}
+          security: loose
+          timeout: 60000
+          log-level: ${{ inputs.log_level }}
           exclude: |
             **/.git*
             **/.git*/**
+            **/.github/**
             **/node_modules/**
             api/public-help.config.php
             data/public-help.json
