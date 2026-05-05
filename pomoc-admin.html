@@ -126,6 +126,22 @@
       </label>
     </aside>
   </section>
+
+  <section class="container section-tight admin-list-section">
+    <div class="section-heading">
+      <p class="eyebrow">Správa príspevkov</p>
+      <h2>Skryť alebo obnoviť zverejnené odpovede</h2>
+    </div>
+    <div class="admin-list-actions">
+      <button class="btn" id="load-posts-btn" type="button">Načítať príspevky</button>
+      <p class="form-status" id="admin-list-status" role="status"></p>
+    </div>
+    <div class="admin-post-list" id="admin-post-list">
+      <article class="admin-post-card is-empty">
+        <p>Zadajte Admin PIN vyššie a načítajte príspevky.</p>
+      </article>
+    </div>
+  </section>
 </main>
 
 <footer id="footer"></footer>
@@ -141,6 +157,9 @@
   const publishBtn = document.getElementById("publish-btn");
   const imageFiles = document.getElementById("image-files");
   const imageRights = document.getElementById("image-rights");
+  const loadPostsBtn = document.getElementById("load-posts-btn");
+  const adminList = document.getElementById("admin-post-list");
+  const adminListStatus = document.getElementById("admin-list-status");
   let lastSourceUrl = "";
 
   const fields = {
@@ -155,6 +174,25 @@
   function setStatus(message, isError = false) {
     statusEl.textContent = message;
     statusEl.classList.toggle("is-error", isError);
+  }
+
+  function setListStatus(message, isError = false) {
+    adminListStatus.textContent = message;
+    adminListStatus.classList.toggle("is-error", isError);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
+
+  function currentPin() {
+    return new FormData(form).get("pin");
   }
 
   function readDraft() {
@@ -235,8 +273,102 @@
       }
       setStatus("Príspevok je zverejnený v sekcii Pomoc verejnosti.");
       publishBtn.disabled = true;
+      loadAdminPosts();
     } catch (error) {
       setStatus(error.message, true);
+    }
+  });
+
+  function renderAdminPosts(items) {
+    if (!items.length) {
+      adminList.innerHTML = `
+        <article class="admin-post-card is-empty">
+          <p>Zatiaľ nie sú uložené žiadne príspevky.</p>
+        </article>
+      `;
+      return;
+    }
+
+    adminList.innerHTML = items.map(item => {
+      const isHidden = item.status === "hidden";
+      const actionLabel = isHidden ? "Obnoviť" : "Skryť";
+      const nextStatus = isHidden ? "published" : "hidden";
+      return `
+        <article class="admin-post-card ${isHidden ? "is-hidden" : ""}">
+          <div>
+            <div class="admin-post-meta">
+              <span>${escapeHtml(item.category || "Odpoveď z praxe")}</span>
+              <span>${isHidden ? "Skryté" : "Zverejnené"}</span>
+            </div>
+            <h3>${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.summary)}</p>
+          </div>
+          <button class="btn ${isHidden ? "" : "danger"}" type="button" data-id="${escapeHtml(item.id)}" data-status="${nextStatus}">
+            ${actionLabel}
+          </button>
+        </article>
+      `;
+    }).join("");
+  }
+
+  async function postAdminAction(payload) {
+    const response = await fetch("api/public-help.php", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "Akcia sa nepodarila.");
+    }
+    return result;
+  }
+
+  async function loadAdminPosts() {
+    const pin = currentPin();
+    if (!pin) {
+      setListStatus("Najprv zadajte Admin PIN.", true);
+      return;
+    }
+
+    setListStatus("Načítavam príspevky...");
+    try {
+      const result = await postAdminAction({action: "admin-list", pin});
+      renderAdminPosts(result.items || []);
+      setListStatus("Príspevky sú načítané.");
+    } catch (error) {
+      setListStatus(error.message, true);
+    }
+  }
+
+  loadPostsBtn.addEventListener("click", loadAdminPosts);
+
+  adminList.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-id]");
+    if (!button) {
+      return;
+    }
+
+    const pin = currentPin();
+    if (!pin) {
+      setListStatus("Najprv zadajte Admin PIN.", true);
+      return;
+    }
+
+    button.disabled = true;
+    setListStatus(button.dataset.status === "hidden" ? "Skrývam príspevok..." : "Obnovujem príspevok...");
+    try {
+      await postAdminAction({
+        action: "set-status",
+        pin,
+        id: button.dataset.id,
+        status: button.dataset.status
+      });
+      await loadAdminPosts();
+      setListStatus(button.dataset.status === "hidden" ? "Príspevok je skrytý." : "Príspevok je znovu zverejnený.");
+    } catch (error) {
+      button.disabled = false;
+      setListStatus(error.message, true);
     }
   });
 </script>

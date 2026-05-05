@@ -277,6 +277,43 @@ if (($payload['action'] ?? '') === 'generate') {
     respond(200, ['ok' => true, 'draft' => $draft]);
 }
 
+if (($payload['action'] ?? '') === 'admin-list') {
+    $items = load_items($dataFile);
+    usort($items, fn($a, $b) => strcmp((string)($b['publishedAt'] ?? ''), (string)($a['publishedAt'] ?? '')));
+    respond(200, ['ok' => true, 'items' => $items]);
+}
+
+if (($payload['action'] ?? '') === 'set-status') {
+    $id = clean_text((string)($payload['id'] ?? ''), 40);
+    $status = clean_text((string)($payload['status'] ?? ''), 20);
+    if ($id === '' || !in_array($status, ['published', 'hidden'], true)) {
+        respond(422, ['ok' => false, 'error' => 'Neplatná zmena stavu.']);
+    }
+
+    $items = load_items($dataFile);
+    $updatedItem = null;
+    foreach ($items as &$item) {
+        if (($item['id'] ?? '') === $id) {
+            $item['status'] = $status;
+            if ($status === 'hidden') {
+                $item['hiddenAt'] = date('c');
+            } else {
+                unset($item['hiddenAt']);
+            }
+            $updatedItem = $item;
+            break;
+        }
+    }
+    unset($item);
+
+    if ($updatedItem === null) {
+        respond(404, ['ok' => false, 'error' => 'Príspevok sa nenašiel.']);
+    }
+
+    save_items($dataFile, $items);
+    respond(200, ['ok' => true, 'item' => $updatedItem]);
+}
+
 if (($payload['action'] ?? '') === 'publish') {
     $items = load_items($dataFile);
     $draft = is_array($payload['draft'] ?? null) ? $payload['draft'] : [];
