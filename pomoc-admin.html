@@ -233,6 +233,23 @@
     publishBtn.disabled = !fields.title.value || !fields.answer.value;
   }
 
+  function resetEntryForm(message = "") {
+    const pin = currentPin();
+    form.reset();
+    form.elements.pin.value = pin || "";
+    Object.values(fields).forEach(field => field.value = "");
+    lastSourceUrl = "";
+    editingId = "";
+    editActions.hidden = true;
+    imageFiles.disabled = false;
+    imageRights.disabled = false;
+    publishBtn.disabled = true;
+    saveEditBtn.disabled = false;
+    if (message) {
+      setStatus(message);
+    }
+  }
+
   function setEditMode(item) {
     editingId = item.id || "";
     writeDraft(item);
@@ -306,8 +323,7 @@
       if (!response.ok || !result.ok) {
         throw new Error(result.error || "Príspevok sa nepodarilo zverejniť.");
       }
-      setStatus("Príspevok je zverejnený v sekcii Pomoc verejnosti.");
-      publishBtn.disabled = true;
+      resetEntryForm("Príspevok je zverejnený v sekcii Pomoc verejnosti.");
       loadAdminPosts();
     } catch (error) {
       setStatus(error.message, true);
@@ -436,7 +452,7 @@
         id: editingId,
         draft: readDraft()
       });
-      clearEditMode();
+      resetEntryForm();
       await loadAdminPosts();
       setStatus("Zmeny sú uložené.");
     } catch (error) {
