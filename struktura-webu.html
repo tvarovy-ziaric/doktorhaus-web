@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vizuálna štruktúra webu DoktorHaus</title>
+    <meta name="description" content="Prehľadná vizuálna mapa stránok webu DoktorHaus podľa súborovej štruktúry projektu.">
+    <link rel="stylesheet" href="styles/style.css?v=10">
+  </head>
+  <body>
+    <header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+    <main>
+      <section class="hero structure-hero">
+        <div class="container">
+          <p class="eyebrow">Mapa webu</p>
+          <h1>Prehľadná vizuálna štruktúra stránok</h1>
+          <p>
+            Praktický pohľad na to, ako sú jednotlivé HTML stránky, podstránky,
+            články a technické súbory usporiadané v tomto webe.
+          </p>
+        </div>
+      </section>
+
+      <section class="container">
+        <div class="site-map">
+          <article class="site-node site-root">
+            <span class="node-label">Vstupný bod</span>
+            <h2><a href="index.html">index.html</a></h2>
+            <p>Rozdeľuje návštevníkov podľa situácie a vedie ich k službám alebo konzultácii.</p>
+          </article>
+
+          <div class="site-branches">
+            <article class="site-column">
+              <h2>Kupujem nehnuteľnosť</h2>
+              <a href="kupujem-nehnutelnost.html" class="site-card main-card">
+                <strong>Kupujem nehnuteľnosť</strong>
+                <span>Hlavná cesta pre kupujúceho.</span>
+              </a>
+              <div class="link-stack">
+                <a href="checklist.html">Rýchly technický checklist</a>
+                <a href="obhliadka-domu-15-minut.html">Obhliadka domu za 15 minút</a>
+                <a href="ako-sa-pripravit-na-obhliadku.html">Ako sa pripraviť na obhliadku</a>
+                <a href="co-sa-kupujuci-pytaju-pri-obhliadke.html">Čo sa kupujúci pýtajú pri obhliadke</a>
+                <a href="praskliny-na-dome.html">Praskliny na dome</a>
+                <a href="vlhkost-v-starom-dome.html">Vlhkosť v starom dome</a>
+                <a href="strecha-stareho-domu.html">Strecha starého domu</a>
+                <a href="stary-vs-zrekonstruovany-dom.html">Starý vs. zrekonštruovaný dom</a>
+                <a href="dokumentacia-k-domu.html">Dokumentácia k domu</a>
+                <a href="elektroinstalacia-v-starom-dome.html">Elektroinštalácia v starom dome</a>
+              </div>
+            </article>
+
+            <article class="site-column">
+              <h2>Predávam nehnuteľnosť</h2>
+              <a href="predavam-nehnutelnost.html" class="site-card main-card">
+                <strong>Predávam nehnuteľnosť</strong>
+                <span>Hlavná cesta pre predávajúceho.</span>
+              </a>
+              <div class="link-stack">
+                <a href="co-kupujuci-nepovedia-nahlas.html">Čo kupujúci nepovedia nahlas</a>
+                <a href="opravy-pred-predajom-domu.html">Opravy pred predajom domu</a>
+                <a href="kedy-technicky-stav-ovplyvnuje-cenu.html">Kedy technický stav ovplyvňuje cenu</a>
+                <a href="ako-sa-pripravit-na-znalca.html">Ako sa pripraviť na znalca</a>
+                <a href="preco-sa-problemy-otvaraju-az-po-rezervacii.html">Prečo sa problémy otvárajú až po rezervácii</a>
+              </div>
+            </article>
+
+            <article class="site-column">
+              <h2>Služby a kontakt</h2>
+              <a href="priebeh-inspekcie.html" class="site-card main-card">
+                <strong>Priebeh inšpekcie</strong>
+                <span>Kroky a očakávania.</span>
+              </a>
+              <div class="link-stack">
+                <a href="baliky-inspekcie.html">Balíky technickej inšpekcie</a>
+                <a href="konzultacia.html">Konzultácia</a>
+                <a href="legal-disclaimer.html">Rozsah technickej inšpekcie</a>
+                <a href="rychly_technicky_checklist.pdf">PDF checklist</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="container structure-assets">
+        <h2>Technické súbory projektu</h2>
+        <div class="asset-grid">
+          <article>
+            <strong>JSS/</strong>
+            <p>Zdieľaný header a footer načítavaný cez fetch.</p>
+          </article>
+          <article>
+            <strong>styles/</strong>
+            <p>Spoločný vizuálny štýl webu.</p>
+          </article>
+          <article>
+            <strong>icons/</strong>
+            <p>Ikony a obrázky pre úvodné voľby a priebeh služby.</p>
+          </article>
+          <article>
+            <strong>.htaccess</strong>
+            <p>Nastavenie serverového správania webu.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+  </body>
+</html>

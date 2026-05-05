@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomoc verejnosti: odborné odpovede z praxe | DoktorHaus</title>
+  <meta name="description" content="Výber odborných odpovedí DoktorHaus na otázky z verejných diskusií o starších domoch, vlhkosti, prasklinách, streche, rekonštrukcii a technickom stave nehnuteľností.">
+  <link rel="stylesheet" href="styles/style.css?v=12">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Pomoc verejnosti</p>
+        <h1>Odpovede z diskusií o starších domoch</h1>
+        <p>
+          Vybrané odborné reakcie na otázky, ktoré sa objavili vo verejných
+          diskusiách. Texty sú upravené tak, aby chránili súkromie ľudí a zároveň
+          pomohli ďalším majiteľom, kupujúcim a predávajúcim.
+        </p>
+      </div>
+
+      <aside class="trust-note">
+        <strong>Vždy s odkazom na pôvodný kontext</strong>
+        <p>
+          Pri zverejnených odpovediach nájdete aj preklik na pôvodnú verejnú
+          konverzáciu, ak je dostupná.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="container section-tight">
+    <div class="section-heading">
+      <p class="eyebrow">Odpovede z praxe</p>
+      <h2>Čo sa ľudia pýtajú pri domoch a rekonštrukciách</h2>
+    </div>
+
+    <div class="public-help-list" id="public-help-list">
+      <article class="public-help-card is-empty">
+        <p>Načítavam odpovede...</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="container cta home-cta">
+    <div>
+      <strong>Riešite podobnú otázku pri svojom dome?</strong>
+      <p>
+        Krátka konzultácia často stačí na to, aby bolo jasné, čo je bežný stav,
+        čo je riziko a kedy má zmysel osobná obhliadka.
+      </p>
+    </div>
+    <div class="cta-actions">
+      <a href="konzultacia.html" class="btn primary">Začať konzultáciou</a>
+      <a href="riesim-problem-v-dome.html" class="btn">Riešim problém v dome</a>
+    </div>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+
+<script>
+  const list = document.getElementById("public-help-list");
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
+
+  function renderItem(item) {
+    const tags = Array.isArray(item.tags) && item.tags.length
+      ? `<div class="help-tags">${item.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`
+      : "";
+    const images = Array.isArray(item.images) && item.images.length
+      ? `
+        <div class="help-gallery">
+          ${item.images.map(image => `
+            <a href="${escapeHtml(image.src)}" target="_blank" rel="noopener noreferrer">
+              <img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt || "Fotografia k odbornej odpovedi")}" loading="lazy">
+            </a>
+          `).join("")}
+        </div>
+      `
+      : "";
+    const source = item.sourceUrl
+      ? `<a href="${escapeHtml(item.sourceUrl)}" class="source-link" target="_blank" rel="noopener noreferrer">Overiť v pôvodnej diskusii</a>`
+      : "";
+
+    return `
+      <article class="public-help-card">
+        <div class="help-card-head">
+          <span>${escapeHtml(item.category || "Odpoveď z praxe")}</span>
+          ${source}
+        </div>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p class="help-summary">${escapeHtml(item.summary)}</p>
+        ${images}
+        <div class="help-answer">${escapeHtml(item.answer)}</div>
+        ${item.takeaway ? `<p class="help-takeaway"><strong>Čo si z toho odniesť:</strong> ${escapeHtml(item.takeaway)}</p>` : ""}
+        ${tags}
+      </article>
+    `;
+  }
+
+  fetch("api/public-help.php?action=list")
+    .then(response => response.json())
+    .then(result => {
+      if (!result.ok || !result.items.length) {
+        list.innerHTML = `
+          <article class="public-help-card is-empty">
+            <h3>Prvé odpovede pripravujeme</h3>
+            <p>Táto sekcia bude postupne zbierať overiteľné odpovede z verejných diskusií.</p>
+          </article>
+        `;
+        return;
+      }
+      list.innerHTML = result.items.map(renderItem).join("");
+    })
+    .catch(() => {
+      list.innerHTML = `
+        <article class="public-help-card is-empty">
+          <h3>Odpovede sa nepodarilo načítať</h3>
+          <p>Skúste stránku obnoviť neskôr.</p>
+        </article>
+      `;
+    });
+</script>
+
+</body>
+</html>

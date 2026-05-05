@@ -1,0 +1,23 @@
+# Local secrets
+api/public-help.config.php
+.env
+.env.*
+
+# Runtime content created on hosting
+data/public-help.json
+uploads/pomoc-verejnosti/*
+!uploads/pomoc-verejnosti/.gitkeep
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Generated/dependency folders
+node_modules/
+vendor/
+
+# Old nested repository / local scratch copy
+web doktorhaus/

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technická istota pri kúpe a predaji domu</title>
+  <meta name="description" content="Nezávislý technický pohľad pre ľudí, ktorí kupujú alebo predávajú dom a chcú mať pokoj v rozhodovaní.">
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+
+<body>
+
+<header>
+  <div class="container">
+    <strong>Technický pohľad na domy a byty</strong>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Aby sa veci uzatvárali s pokojom</h1>
+      <p>
+        Nezávislý technický pohľad pre ľudí, ktorí kupujú alebo predávajú dom
+        a chcú mať prehľad a istotu predtým, než sa podpíšu zmluvy.
+      </p>
+    </div>
+  </section>
+
+  <section class="container choices">
+
+    <article class="card">
+      <h2>Kupujem nehnuteľnosť</h2>
+      <p>
+        Chcem vedieť, na čo si dať pozor pri obhliadke a čo sa zvyčajne rieši až neskôr –
+        cez znalca, banku alebo právnika.
+      </p>
+      <a href="kupujem-nehnutelnost.html" class="btn primary">
+        Idem ako kupujúci
+      </a>
+    </article>
+
+    <article class="card">
+      <h2>Predávam nehnuteľnosť</h2>
+      <p>
+        Chcem mať pokoj po predaji a nechcem byť neskôr tlačený do zľavy
+        kvôli veciam, o ktorých som netušil.
+      </p>
+      <a href="predavam-nehnutelnost.html" class="btn">
+        Idem ako predávajúci
+      </a>
+    </article>
+
+  </section>
+
+  <section class="container trust">
+    <p>
+      Nejde o realitnú kanceláriu ani o hľadanie chýb.
+      Ide o nezávislú technickú orientáciu, ktorá vám dá informácie,
+      aby ste sa mohli rozhodovať v pokoji a s kontrolou.
+    </p>
+  </section>
+
+  <!--
+SEKCIA: Ako prebieha technická inšpekcia
+Umiestnenie: medzi blokom "trust" a záverečným CTA
+Cieľ: znížiť neistotu a nastaviť očakávania ešte pred kontaktom
+-->
+
+<section class="container">
+  <h2>Ako prebieha technická inšpekcia</h2>
+  <p>
+    Technická inšpekcia má jasný priebeh a pravidlá.
+    Cieľom nie je rýchla kontrola,
+    ale zmysluplný výstup, na ktorom sa dá stavať rozhodnutie.
+  </p>
+  <a href="priebeh-inspekcie.html" class="btn">
+    Pozrieť priebeh inšpekcie
+  </a>
+  <a href="baliky-inspekcie.html" class="btn">
+  Prehľad balíkov inšpekcie
+  </a>
+</section>
+  
+  <section class="container cta">
+    <strong>Nie ste si istý, kam patríte?</strong>
+    <p>
+      Krátka konzultácia často stačí na to, aby bolo jasné,
+      čo má zmysel riešiť a čo nie.
+    </p>
+    <a href="konzultacia.html" class="btn primary">
+      Nezáväzná konzultácia
+    </a>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <p style="font-size:0.85rem; color: var(--muted);">
+  Technická inšpekcia nie je znaleckým ani statickým posudkom.
+  <a href="legal-disclaimer.html">Viac o rozsahu</a>
+    </p>
+    © 2026 · Nezávislý technický pohľad
+  </div>
+</footer>
+
+</body>
+</html>

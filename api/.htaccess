@@ -1,0 +1,7 @@
+<Files "public-help.config.php">
+  Require all denied
+</Files>
+
+<Files "public-help.config.example.php">
+  Require all denied
+</Files>

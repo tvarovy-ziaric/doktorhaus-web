@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin: Pomoc verejnosti | DoktorHaus</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="styles/style.css?v=12">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow">Interné publikovanie</p>
+      <h1>Pridať odpoveď z verejnej diskusie</h1>
+      <p>
+        Vložte odkaz na pôvodnú konverzáciu, stručný opis otázky a svoju odbornú
+        odpoveď. Návrh pred zverejnením ešte upravíte.
+      </p>
+    </div>
+  </section>
+
+  <section class="container admin-layout">
+    <form class="admin-form" id="public-help-form">
+      <label>
+        Admin PIN
+        <input type="password" name="pin" autocomplete="current-password" required>
+      </label>
+
+      <label>
+        Link na pôvodnú FB konverzáciu
+        <input type="url" name="sourceUrl" placeholder="https://www.facebook.com/..." required>
+      </label>
+
+      <div class="form-row">
+        <label>
+          Téma
+          <input type="text" name="topic" placeholder="Vlhkosť v starom dome" required>
+        </label>
+        <label>
+          Kategória
+          <input type="text" name="category" placeholder="Vlhkosť">
+        </label>
+      </div>
+
+      <label>
+        Otázka alebo situácia z diskusie
+        <textarea name="question" rows="5" placeholder="Stručne opíšte problém bez osobných údajov." required></textarea>
+      </label>
+
+      <label>
+        Môj komentár / odborná odpoveď
+        <textarea name="expertComment" rows="8" placeholder="Sem vložte svoj FB komentár alebo poznámky." required></textarea>
+      </label>
+
+      <label>
+        Ďalšie relevantné komentáre
+        <textarea name="extraComments" rows="4" placeholder="Voliteľné. Len to, čo je dôležité pre kontext."></textarea>
+      </label>
+
+      <label>
+        Tagy
+        <input type="text" name="tags" placeholder="vlhkosť, sokel, starý dom">
+      </label>
+
+      <label>
+        Fotky k príspevku
+        <input type="file" name="images" id="image-files" accept="image/jpeg,image/png,image/webp" multiple>
+        <small>Voliteľné. Maximálne 5 fotiek, každá do 5 MB.</small>
+      </label>
+
+      <label class="check-field">
+        <input type="checkbox" id="image-rights">
+        <span>Mám právo použiť nahrané fotky a neobsahujú citlivé osobné údaje.</span>
+      </label>
+
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Vygenerovať návrh</button>
+        <button class="btn" id="publish-btn" type="button" disabled>Zverejniť</button>
+      </div>
+      <p class="form-status" id="form-status" role="status"></p>
+    </form>
+
+    <aside class="draft-panel" aria-label="Návrh príspevku">
+      <p class="eyebrow">Návrh</p>
+      <label>
+        Nadpis
+        <input type="text" id="draft-title">
+      </label>
+      <label>
+        Stručná situácia
+        <textarea id="draft-summary" rows="5"></textarea>
+      </label>
+      <label>
+        Odpoveď
+        <textarea id="draft-answer" rows="9"></textarea>
+      </label>
+      <label>
+        Záver pre čitateľa
+        <textarea id="draft-takeaway" rows="4"></textarea>
+      </label>
+      <label>
+        Kategória
+        <input type="text" id="draft-category">
+      </label>
+      <label>
+        Tagy
+        <input type="text" id="draft-tags">
+      </label>
+    </aside>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+
+<script>
+  const form = document.getElementById("public-help-form");
+  const statusEl = document.getElementById("form-status");
+  const publishBtn = document.getElementById("publish-btn");
+  const imageFiles = document.getElementById("image-files");
+  const imageRights = document.getElementById("image-rights");
+  let lastSourceUrl = "";
+
+  const fields = {
+    title: document.getElementById("draft-title"),
+    summary: document.getElementById("draft-summary"),
+    answer: document.getElementById("draft-answer"),
+    takeaway: document.getElementById("draft-takeaway"),
+    category: document.getElementById("draft-category"),
+    tags: document.getElementById("draft-tags")
+  };
+
+  function setStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.classList.toggle("is-error", isError);
+  }
+
+  function readDraft() {
+    return {
+      title: fields.title.value.trim(),
+      summary: fields.summary.value.trim(),
+      answer: fields.answer.value.trim(),
+      takeaway: fields.takeaway.value.trim(),
+      category: fields.category.value.trim(),
+      tags: fields.tags.value.split(",").map(tag => tag.trim()).filter(Boolean),
+      sourceUrl: lastSourceUrl
+    };
+  }
+
+  function writeDraft(draft) {
+    fields.title.value = draft.title || "";
+    fields.summary.value = draft.summary || "";
+    fields.answer.value = draft.answer || "";
+    fields.takeaway.value = draft.takeaway || "";
+    fields.category.value = draft.category || "";
+    fields.tags.value = Array.isArray(draft.tags) ? draft.tags.join(", ") : "";
+    publishBtn.disabled = !fields.title.value || !fields.answer.value;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    publishBtn.disabled = true;
+    setStatus("Generujem návrh...");
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.action = "generate";
+    lastSourceUrl = payload.sourceUrl;
+
+    try {
+      const response = await fetch("api/public-help.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Návrh sa nepodarilo vytvoriť.");
+      }
+      writeDraft(result.draft);
+      setStatus("Návrh je pripravený na kontrolu.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
+  publishBtn.addEventListener("click", async () => {
+    const pin = new FormData(form).get("pin");
+    const draft = readDraft();
+    if (imageFiles.files.length > 5) {
+      setStatus("Nahrajte najviac 5 fotiek.", true);
+      return;
+    }
+    if (imageFiles.files.length && !imageRights.checked) {
+      setStatus("Pred publikovaním fotiek potvrďte právo na ich použitie.", true);
+      return;
+    }
+
+    setStatus("Zverejňujem príspevok...");
+    const publishData = new FormData();
+    publishData.append("action", "publish");
+    publishData.append("pin", pin);
+    publishData.append("draft", JSON.stringify(draft));
+    Array.from(imageFiles.files).forEach(file => publishData.append("images[]", file));
+
+    try {
+      const response = await fetch("api/public-help.php", {
+        method: "POST",
+        body: publishData
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Príspevok sa nepodarilo zverejniť.");
+      }
+      setStatus("Príspevok je zverejnený v sekcii Pomoc verejnosti.");
+      publishBtn.disabled = true;
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+</script>
+
+</body>
+</html>
