@@ -314,6 +314,45 @@ if (($payload['action'] ?? '') === 'set-status') {
     respond(200, ['ok' => true, 'item' => $updatedItem]);
 }
 
+if (($payload['action'] ?? '') === 'update') {
+    $id = clean_text((string)($payload['id'] ?? ''), 40);
+    $draft = is_array($payload['draft'] ?? null) ? $payload['draft'] : [];
+    if ($id === '') {
+        respond(422, ['ok' => false, 'error' => 'Chýba ID príspevku.']);
+    }
+
+    $items = load_items($dataFile);
+    $updatedItem = null;
+    foreach ($items as &$item) {
+        if (($item['id'] ?? '') === $id) {
+            $title = clean_text((string)($draft['title'] ?? ''), 120);
+            $answer = clean_text((string)($draft['answer'] ?? ''), 2200);
+            if ($title === '' || $answer === '') {
+                respond(422, ['ok' => false, 'error' => 'Názov a odpoveď sú povinné.']);
+            }
+
+            $item['title'] = $title;
+            $item['summary'] = clean_text((string)($draft['summary'] ?? ''), 900);
+            $item['answer'] = $answer;
+            $item['category'] = clean_text((string)($draft['category'] ?? 'Odpoveď z praxe'), 70);
+            $item['takeaway'] = clean_text((string)($draft['takeaway'] ?? ''), 450);
+            $item['tags'] = array_values(array_filter(array_map(fn($tag) => clean_text((string)$tag, 40), $draft['tags'] ?? [])));
+            $item['sourceUrl'] = filter_var((string)($draft['sourceUrl'] ?? ''), FILTER_VALIDATE_URL) ?: '';
+            $item['updatedAt'] = date('c');
+            $updatedItem = $item;
+            break;
+        }
+    }
+    unset($item);
+
+    if ($updatedItem === null) {
+        respond(404, ['ok' => false, 'error' => 'Príspevok sa nenašiel.']);
+    }
+
+    save_items($dataFile, $items);
+    respond(200, ['ok' => true, 'item' => $updatedItem]);
+}
+
 if (($payload['action'] ?? '') === 'publish') {
     $items = load_items($dataFile);
     $draft = is_array($payload['draft'] ?? null) ? $payload['draft'] : [];

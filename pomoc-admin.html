@@ -124,6 +124,14 @@
         Tagy
         <input type="text" id="draft-tags">
       </label>
+      <label>
+        Zdrojový link
+        <input type="url" id="draft-source-url">
+      </label>
+      <div class="form-actions edit-actions" id="edit-actions" hidden>
+        <button class="btn primary" id="save-edit-btn" type="button">Uložiť zmeny</button>
+        <button class="btn" id="cancel-edit-btn" type="button">Zrušiť úpravu</button>
+      </div>
     </aside>
   </section>
 
@@ -160,7 +168,12 @@
   const loadPostsBtn = document.getElementById("load-posts-btn");
   const adminList = document.getElementById("admin-post-list");
   const adminListStatus = document.getElementById("admin-list-status");
+  const editActions = document.getElementById("edit-actions");
+  const saveEditBtn = document.getElementById("save-edit-btn");
+  const cancelEditBtn = document.getElementById("cancel-edit-btn");
   let lastSourceUrl = "";
+  let editingId = "";
+  let adminItems = [];
 
   const fields = {
     title: document.getElementById("draft-title"),
@@ -168,7 +181,8 @@
     answer: document.getElementById("draft-answer"),
     takeaway: document.getElementById("draft-takeaway"),
     category: document.getElementById("draft-category"),
-    tags: document.getElementById("draft-tags")
+    tags: document.getElementById("draft-tags"),
+    sourceUrl: document.getElementById("draft-source-url")
   };
 
   function setStatus(message, isError = false) {
@@ -203,18 +217,39 @@
       takeaway: fields.takeaway.value.trim(),
       category: fields.category.value.trim(),
       tags: fields.tags.value.split(",").map(tag => tag.trim()).filter(Boolean),
-      sourceUrl: lastSourceUrl
+      sourceUrl: fields.sourceUrl.value.trim() || lastSourceUrl
     };
   }
 
   function writeDraft(draft) {
+    lastSourceUrl = draft.sourceUrl || lastSourceUrl;
     fields.title.value = draft.title || "";
     fields.summary.value = draft.summary || "";
     fields.answer.value = draft.answer || "";
     fields.takeaway.value = draft.takeaway || "";
     fields.category.value = draft.category || "";
     fields.tags.value = Array.isArray(draft.tags) ? draft.tags.join(", ") : "";
+    fields.sourceUrl.value = draft.sourceUrl || "";
     publishBtn.disabled = !fields.title.value || !fields.answer.value;
+  }
+
+  function setEditMode(item) {
+    editingId = item.id || "";
+    writeDraft(item);
+    editActions.hidden = !editingId;
+    publishBtn.disabled = true;
+    imageFiles.disabled = Boolean(editingId);
+    imageRights.disabled = Boolean(editingId);
+    setStatus("Upravujete existujúci príspevok. Fotky ostanú bez zmeny.");
+    document.querySelector(".draft-panel").scrollIntoView({behavior: "smooth", block: "start"});
+  }
+
+  function clearEditMode() {
+    editingId = "";
+    editActions.hidden = true;
+    imageFiles.disabled = false;
+    imageRights.disabled = false;
+    setStatus("Úprava zrušená.");
   }
 
   form.addEventListener("submit", async (event) => {
@@ -303,9 +338,12 @@
             <h3>${escapeHtml(item.title)}</h3>
             <p>${escapeHtml(item.summary)}</p>
           </div>
-          <button class="btn ${isHidden ? "" : "danger"}" type="button" data-id="${escapeHtml(item.id)}" data-status="${nextStatus}">
-            ${actionLabel}
-          </button>
+          <div class="admin-post-actions">
+            <button class="btn" type="button" data-edit-id="${escapeHtml(item.id)}">Upraviť</button>
+            <button class="btn ${isHidden ? "" : "danger"}" type="button" data-id="${escapeHtml(item.id)}" data-status="${nextStatus}">
+              ${actionLabel}
+            </button>
+          </div>
         </article>
       `;
     }).join("");
@@ -334,7 +372,8 @@
     setListStatus("Načítavam príspevky...");
     try {
       const result = await postAdminAction({action: "admin-list", pin});
-      renderAdminPosts(result.items || []);
+      adminItems = result.items || [];
+      renderAdminPosts(adminItems);
       setListStatus("Príspevky sú načítané.");
     } catch (error) {
       setListStatus(error.message, true);
@@ -344,6 +383,15 @@
   loadPostsBtn.addEventListener("click", loadAdminPosts);
 
   adminList.addEventListener("click", async (event) => {
+    const editButton = event.target.closest("button[data-edit-id]");
+    if (editButton) {
+      const item = adminItems.find(entry => entry.id === editButton.dataset.editId);
+      if (item) {
+        setEditMode(item);
+      }
+      return;
+    }
+
     const button = event.target.closest("button[data-id]");
     if (!button) {
       return;
@@ -371,6 +419,34 @@
       setListStatus(error.message, true);
     }
   });
+
+  saveEditBtn.addEventListener("click", async () => {
+    const pin = currentPin();
+    if (!pin || !editingId) {
+      setStatus("Najprv zadajte Admin PIN a vyberte príspevok na úpravu.", true);
+      return;
+    }
+
+    saveEditBtn.disabled = true;
+    setStatus("Ukladám zmeny...");
+    try {
+      await postAdminAction({
+        action: "update",
+        pin,
+        id: editingId,
+        draft: readDraft()
+      });
+      clearEditMode();
+      await loadAdminPosts();
+      setStatus("Zmeny sú uložené.");
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      saveEditBtn.disabled = false;
+    }
+  });
+
+  cancelEditBtn.addEventListener("click", clearEditMode);
 </script>
 
 </body>

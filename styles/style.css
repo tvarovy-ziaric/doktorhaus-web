@@ -1232,7 +1232,10 @@ footer {
   padding: 0.18rem 0.55rem;
 }
 
-.admin-post-card .btn {
+.admin-post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   justify-self: start;
 }
 
@@ -1370,6 +1373,10 @@ footer {
 
   .admin-post-card {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-post-actions {
+    justify-self: end;
   }
 }
 
