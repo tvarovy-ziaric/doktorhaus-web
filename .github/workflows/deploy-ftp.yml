@@ -38,6 +38,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
       - name: Check FTP secrets
         shell: bash
         env:
@@ -57,23 +60,45 @@ jobs:
             exit 1
           fi
 
-      - name: Upload files by FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          port: ${{ inputs.port }}
-          protocol: ${{ inputs.protocol }}
-          security: loose
-          timeout: 60000
-          log-level: ${{ inputs.log_level }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            api/public-help.config.php
-            data/public-help.json
-            uploads/pomoc-verejnosti/**
+      - name: Upload files by lftp
+        shell: bash
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+          FTP_PROTOCOL: ${{ inputs.protocol }}
+          FTP_PORT: ${{ inputs.port }}
+        run: |
+          set -euo pipefail
+
+          if [ "$FTP_PROTOCOL" = "ftp" ]; then
+            LFTP_SSL="false"
+            LFTP_URL="ftp://$FTP_SERVER:$FTP_PORT"
+          elif [ "$FTP_PROTOCOL" = "ftps" ]; then
+            LFTP_SSL="true"
+            LFTP_URL="ftp://$FTP_SERVER:$FTP_PORT"
+          else
+            LFTP_SSL="true"
+            LFTP_URL="ftps://$FTP_SERVER:$FTP_PORT"
+          fi
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$LFTP_URL" <<EOF
+          set ftp:ssl-allow $LFTP_SSL
+          set ftp:ssl-force $LFTP_SSL
+          set ftp:ssl-protect-data $LFTP_SSL
+          set ssl:verify-certificate no
+          set ftp:passive-mode on
+          set net:timeout 30
+          set net:max-retries 3
+          set net:reconnect-interval-base 5
+          mirror --reverse --verbose --only-newer --parallel=1 \
+            --exclude-glob .git/ \
+            --exclude-glob .github/ \
+            --exclude-glob node_modules/ \
+            --exclude api/public-help.config.php \
+            --exclude data/public-help.json \
+            --exclude-glob uploads/pomoc-verejnosti/* \
+            ./ "$FTP_SERVER_DIR"
+          bye
+          EOF
