@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 003 - P204 - Vlhkost pri sokli</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#dce2e6"/>
+  <path d="M170 190h860v430H170z" fill="#fbfcfb"/>
+  <path d="M170 545h860v75H170z" fill="#b8c8c2"/>
+  <path d="M270 430c90 35 160 28 235 0s152-48 255-8 140 46 210 20v178H270z" fill="#6f8d86" opacity=".75"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 003</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P204 - Vlhkost pri sokli</text>
+</svg>

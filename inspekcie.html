@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inšpekcie nehnuteľností | DoktorHaus</title>
+  <meta name="description" content="Vstup do výstupov z technickej inšpekcie nehnuteľnosti. Vzorová inšpekcia je verejná, klient po zadaní PINu uvidí svoju inšpekciu.">
+  <link rel="stylesheet" href="styles/style.css?v=13">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+
+  <section class="hero inspection-list-hero">
+    <div class="container">
+      <p class="eyebrow">Klientsky výstup</p>
+      <h1>Inšpekcie nehnuteľností</h1>
+      <p>
+        Jednoduché miesto, kde sú pokope správy, dokumenty, virtuálne prehliadky
+        a video výstupy z technickej inšpekcie. Verejne je dostupná iba vzorová
+        ukážka, klientsky výstup sa zobrazí až po zadaní PINu.
+      </p>
+      <div class="hero-actions">
+        <a href="inspekcia-vzor.html" class="btn primary">Otvoriť vzorovú inšpekciu</a>
+        <a href="priebeh-inspekcie.html" class="btn">Ako prebieha inšpekcia</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="container section-tight">
+    <div class="section-heading">
+      <p class="eyebrow">Ukážka</p>
+      <h2>Verejne dostupná vzorová inšpekcia</h2>
+    </div>
+
+    <div class="inspection-list">
+      <article class="inspection-card is-open">
+        <div class="inspection-card-main">
+          <div class="inspection-status">Odomknuté</div>
+          <h3>Vzorová inšpekcia nehnuteľnosti</h3>
+          <p>
+            Okres Krupina. Ukážka toho, ako môže vyzerať odovzdanie výstupov
+            po technickej inšpekcii rozsiahlejšej nehnuteľnosti.
+          </p>
+          <div class="inspection-meta">
+            <span>3 domy</span>
+            <span>20 ha pozemkov</span>
+            <span>Panoraven</span>
+            <span>YouTube</span>
+          </div>
+        </div>
+        <a href="inspekcia-vzor.html" class="btn primary">Pozrieť výstupy</a>
+      </article>
+
+      <article class="inspection-card pin-entry-card">
+        <div class="inspection-card-main">
+          <div class="inspection-status">Súkromný vstup</div>
+          <h3>Mám PIN k svojej inšpekcii</h3>
+          <p>
+            Zadajte PIN z emailu. Po overení sa zobrazia dokumenty, prehliadky
+            a video výstupy pripravené k vašej nehnuteľnosti.
+          </p>
+          <div class="inspection-meta">
+            <span>6-miestny PIN</span>
+            <span>bez verejného zoznamu</span>
+            <span>odoslanie až po schválení</span>
+          </div>
+        </div>
+        <form class="pin-preview-form" id="inspection-pin-form" action="#" method="post">
+          <label for="inspection-pin">PIN</label>
+          <div>
+            <input id="inspection-pin" name="pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" autocomplete="one-time-code" required>
+            <button class="btn primary" type="submit">Otvoriť</button>
+          </div>
+          <p class="form-status" id="inspection-pin-status" role="status"></p>
+        </form>
+      </article>
+    </div>
+  </section>
+
+  <section class="container section-tight private-inspection-section" id="private-inspection" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">Odomknuté výstupy</p>
+      <h2 id="private-inspection-title">Vaša inšpekcia</h2>
+    </div>
+    <div class="private-inspection-card">
+      <p id="private-inspection-summary"></p>
+      <div class="inspection-meta" id="private-inspection-meta"></div>
+      <div class="media-grid private-media-grid" id="private-media-grid"></div>
+      <div class="photo-gallery-block" id="private-photo-block" hidden>
+        <div class="photo-gallery-heading">
+          <div>
+            <p class="eyebrow">Fotodokumentácia</p>
+            <h3>Fotogaléria nálezov</h3>
+          </div>
+          <p>Fotky sú číslované podľa správy a pomenované podľa ID nálezu.</p>
+        </div>
+        <div class="photo-grid" id="private-photo-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container split-section trust-section">
+    <div>
+      <p class="eyebrow">Pre klienta</p>
+      <h2>Jeden link namiesto posielania súborov po častiach</h2>
+      <p>
+        Cieľom tejto časti webu je, aby klient po inšpekcii nemusel hľadať
+        dokumenty, videá a prehliadky v rôznych správach. Dostane jeden link na
+        túto stránku, PIN a po jeho zadaní uvidí iba výstupy svojej inšpekcie.
+      </p>
+    </div>
+    <div class="trust-note">
+      <strong>Verejná ukážka ostáva otvorená</strong>
+      <p>
+        Vzorová inšpekcia slúži ako ukážka služby. Skutočné klientské výstupy
+        sa nezobrazujú vo verejnom zozname a odomknú sa len správnym PINom.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+
+<script>
+  const pinForm = document.getElementById("inspection-pin-form");
+  const pinStatus = document.getElementById("inspection-pin-status");
+  const privateSection = document.getElementById("private-inspection");
+  const privateTitle = document.getElementById("private-inspection-title");
+  const privateSummary = document.getElementById("private-inspection-summary");
+  const privateMeta = document.getElementById("private-inspection-meta");
+  const privateMediaGrid = document.getElementById("private-media-grid");
+  const privatePhotoBlock = document.getElementById("private-photo-block");
+  const privatePhotoGrid = document.getElementById("private-photo-grid");
+
+  function setPinStatus(message, isError = false) {
+    pinStatus.textContent = message;
+    pinStatus.classList.toggle("is-error", isError);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
+
+  function mediaCard(label, description, href, icon, action = "Otvoriť") {
+    if (!href) {
+      return "";
+    }
+    return `
+      <a class="media-card" href="${escapeHtml(href)}" target="_blank" rel="noopener">
+        <span class="media-icon" aria-hidden="true">${escapeHtml(icon)}</span>
+        <span class="media-copy">
+          <strong>${escapeHtml(label)}</strong>
+          <small>${escapeHtml(description)}</small>
+        </span>
+        <span class="media-action">${escapeHtml(action)}</span>
+      </a>
+    `;
+  }
+
+  function renderInspection(inspection) {
+    const media = inspection.media || {};
+    privateTitle.textContent = inspection.title || "Vaša inšpekcia";
+    privateSummary.textContent = inspection.summary || "Výstupy pripravené k vašej inšpekcii.";
+    privateMeta.innerHTML = [
+      inspection.location,
+      media.reportUrl ? "PDF správa" : "",
+      media.docsUrl ? "Google Docs" : "",
+      media.panoravenUrl ? "Panoraven" : "",
+      media.videoHdUrl ? "YouTube" : "",
+      media.video360Url ? "360 video" : "",
+      inspection.photos?.length ? "Fotogaléria" : ""
+    ].filter(Boolean).map(item => `<span>${escapeHtml(item)}</span>`).join("");
+
+    privateMediaGrid.innerHTML = [
+      mediaCard("Inšpekčná správa", "Písomný výstup z obhliadky.", media.reportUrl, "PDF"),
+      mediaCard("Google Docs dokument", "Doplnkový dokument k inšpekcii.", media.docsUrl, "DOC"),
+      mediaCard("Virtuálna prehliadka", "Panoraven alebo iný externý 360 výstup.", media.panoravenUrl, "360"),
+      mediaCard("Dron video Full HD", "Video výstup z obletu.", media.videoHdUrl, "HD"),
+      mediaCard("Dron video v 360 formáte", "360 video otvorené v prehrávači služby.", media.video360Url, "VR", "Otvoriť")
+    ].join("");
+
+    if (inspection.photos?.length) {
+      privatePhotoBlock.hidden = false;
+      privatePhotoGrid.innerHTML = inspection.photos.map(photo => `
+        <a class="photo-thumb" href="${escapeHtml(photo.full)}" target="_blank" rel="noopener">
+          <img src="${escapeHtml(photo.thumb || photo.full)}" alt="${escapeHtml(`${photo.number || ""} - ${photo.title || ""}`)}">
+          <span><strong>${escapeHtml(photo.number || "Foto")}</strong><small>${escapeHtml(photo.title || "")}</small></span>
+        </a>
+      `).join("");
+    } else {
+      privatePhotoBlock.hidden = true;
+      privatePhotoGrid.innerHTML = "";
+    }
+
+    privateSection.hidden = false;
+    privateSection.scrollIntoView({behavior: "smooth", block: "start"});
+  }
+
+  pinForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const pin = new FormData(pinForm).get("pin");
+    setPinStatus("Overujem PIN...");
+    try {
+      const response = await fetch("api/inspections.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "unlock", pin})
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Inšpekciu sa nepodarilo odomknúť.");
+      }
+      renderInspection(result.inspection);
+      setPinStatus("Inšpekcia je odomknutá.");
+    } catch (error) {
+      privateSection.hidden = true;
+      setPinStatus(error.message, true);
+    }
+  });
+</script>
+
+</body>
+</html>

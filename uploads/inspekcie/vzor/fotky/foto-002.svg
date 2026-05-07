@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 002 - P118 - Odvodnenie strechy</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#e7e4dc"/>
+  <path d="M0 610h1200v190H0z" fill="#d3d8d2"/>
+  <path d="M175 245h850v105H175z" fill="#365e57"/>
+  <path d="M225 350h750v215H225z" fill="#fbfcfb"/>
+  <path d="M930 350h42v260h-42z" fill="#8a6d4e"/>
+  <path d="M910 610h82v42h-82z" fill="#8a6d4e"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 002</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P118 - Odvodnenie strechy</text>
+</svg>

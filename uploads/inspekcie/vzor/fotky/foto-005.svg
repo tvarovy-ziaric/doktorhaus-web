@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 005 - P309 - Detail komina</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#dde6e1"/>
+  <path d="M0 600h1200v200H0z" fill="#cbd8d1"/>
+  <path d="M170 570 600 310l430 260H170z" fill="#365e57"/>
+  <path d="M705 220h95v230h-95z" fill="#8a6d4e"/>
+  <path d="M690 195h125v35H690z" fill="#6d5840"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 005</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P309 - Detail komina</text>
+</svg>

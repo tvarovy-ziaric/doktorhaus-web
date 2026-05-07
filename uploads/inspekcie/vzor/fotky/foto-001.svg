@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 001 - P102 - Krov typicky</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#dfe7e3"/>
+  <path d="M0 595h1200v205H0z" fill="#c9d7d0"/>
+  <path d="M120 560 600 250l480 310H930L600 360 270 560z" fill="#365e57"/>
+  <path d="M250 560h700v95H250z" fill="#fbfcfb"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 001</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P102 - Krov typicky</text>
+</svg>

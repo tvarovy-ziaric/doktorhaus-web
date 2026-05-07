@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vzorová inšpekcia nehnuteľnosti | DoktorHaus</title>
+  <meta name="description" content="Vzorová stránka technickej inšpekcie nehnuteľnosti s odkazmi na správu, dokument, virtuálnu prehliadku a video výstupy.">
+  <link rel="stylesheet" href="styles/style.css?v=13">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+
+  <section class="hero inspection-hero">
+    <div class="container inspection-hero-grid">
+      <div>
+        <p class="eyebrow">Vzorový klientsky portál</p>
+        <h1>Vzorová inšpekcia nehnuteľnosti</h1>
+        <p>
+          Okres Krupina. Ukážka toho, ako môžu byť po technickej inšpekcii
+          odovzdané dokumenty, prehliadky a video výstupy na jednom mieste.
+        </p>
+        <div class="hero-actions">
+          <a href="#vystupy" class="btn primary">Pozrieť výstupy</a>
+          <a href="inspekcie.html" class="btn">Späť na inšpekcie</a>
+        </div>
+      </div>
+
+      <aside class="inspection-summary" aria-label="Základné údaje">
+        <dl>
+          <div>
+            <dt>Nehnuteľnosť</dt>
+            <dd>3 domy a rozsiahly pozemok</dd>
+          </div>
+          <div>
+            <dt>Lokalita</dt>
+            <dd>okres Krupina</dd>
+          </div>
+          <div>
+            <dt>Rozsah</dt>
+            <dd>exteriér, dokumenty, dron výstupy</dd>
+          </div>
+          <div>
+            <dt>Prístup</dt>
+            <dd>verejná ukážka bez PINu</dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
+  </section>
+
+  <section class="container inspection-notice">
+    <strong>Placeholder verzia</strong>
+    <p>
+      Odkazy sú zatiaľ len návrhové. Po spracovaní reálnych dát sa vymenia za
+      finálnu správu, Google Docs dokument, Panoraven prehliadku a YouTube videá.
+    </p>
+  </section>
+
+  <section class="container section-tight" id="vystupy">
+    <div class="section-heading">
+      <p class="eyebrow">Výstupy</p>
+      <h2>Všetky médiá z inšpekcie</h2>
+    </div>
+
+    <div class="media-grid">
+      <a class="media-card primary-media" href="uploads/inspekcie/vzor/inspekcna-sprava-260603-i.pdf" target="_blank" rel="noopener">
+        <span class="media-icon" aria-hidden="true">PDF</span>
+        <span class="media-copy">
+          <strong>Inšpekčná správa</strong>
+          <small>Písomný výstup z obhliadky s hlavnými zisteniami a odporúčaniami.</small>
+        </span>
+        <span class="media-action">Otvoriť v novom okne</span>
+      </a>
+
+      <a class="media-card" href="https://docs.google.com/document/d/1uKjbhZQlS6Q8DXpdCk125RF6ST-uAlqDrmMGQkI_gDE/preview" data-media-modal="document" data-media-title="Google Docs dokument">
+        <span class="media-icon" aria-hidden="true">DOC</span>
+        <span class="media-copy">
+          <strong>Google Docs dokument</strong>
+          <small>Pracovný alebo doplnkový dokument s poznámkami a prílohami.</small>
+        </span>
+        <span class="media-action">Otvoriť dokument</span>
+      </a>
+
+      <a class="media-card" href="https://panoraven.com/en/embed/tjMp9l5zOi" data-media-modal="panoraven" data-media-title="Virtuálna prehliadka exteriéru">
+        <span class="media-icon" aria-hidden="true">360</span>
+        <span class="media-copy">
+          <strong>Virtuálna prehliadka exteriéru</strong>
+          <small>Panoraven prehliadka areálu, troch domov a približne 20 ha pozemkov.</small>
+        </span>
+        <span class="media-action">Otvoriť prehliadku</span>
+      </a>
+
+      <a class="media-card" href="https://www.youtube.com/embed/ZkJKzqEPgUA" data-media-modal="youtube" data-media-title="Dron video Full HD">
+        <span class="media-icon" aria-hidden="true">HD</span>
+        <span class="media-copy">
+          <strong>Dron video Full HD</strong>
+          <small>Klasické video z náletu dronom pre rýchlu orientáciu v priestore.</small>
+        </span>
+        <span class="media-action">Prehrať video</span>
+      </a>
+
+      <a class="media-card" href="https://youtu.be/uK9J9i3GeaI" target="_blank" rel="noopener">
+        <span class="media-icon" aria-hidden="true">VR</span>
+        <span class="media-copy">
+          <strong>Dron video v 360 formáte</strong>
+          <small>Priestorové video vhodné na detailnejšie prezeranie okolia a väzieb v teréne.</small>
+        </span>
+        <span class="media-action">Otvoriť YouTube</span>
+      </a>
+    </div>
+
+    <div class="photo-gallery-block" aria-label="Fotogaléria nálezov">
+      <div class="photo-gallery-heading">
+        <div>
+          <p class="eyebrow">Fotodokumentácia</p>
+          <h3>Fotogaléria nálezov</h3>
+        </div>
+        <p>Ukážkové fotografie sú číslované podľa správy a pomenované podľa ID nálezu.</p>
+      </div>
+
+      <div class="photo-grid">
+        <button class="photo-thumb" type="button" data-photo-index="0">
+          <img src="uploads/inspekcie/vzor/fotky/foto-001.svg" alt="Foto 001 - P102 - Krov typický">
+          <span><strong>Foto 001</strong><small>P102 - Krov typický</small></span>
+        </button>
+        <button class="photo-thumb" type="button" data-photo-index="1">
+          <img src="uploads/inspekcie/vzor/fotky/foto-002.svg" alt="Foto 002 - P118 - Odvodnenie strechy">
+          <span><strong>Foto 002</strong><small>P118 - Odvodnenie strechy</small></span>
+        </button>
+        <button class="photo-thumb" type="button" data-photo-index="2">
+          <img src="uploads/inspekcie/vzor/fotky/foto-003.svg" alt="Foto 003 - P204 - Vlhkosť pri sokli">
+          <span><strong>Foto 003</strong><small>P204 - Vlhkosť pri sokli</small></span>
+        </button>
+        <button class="photo-thumb" type="button" data-photo-index="3">
+          <img src="uploads/inspekcie/vzor/fotky/foto-004.svg" alt="Foto 004 - P231 - Prasklina muriva">
+          <span><strong>Foto 004</strong><small>P231 - Prasklina muriva</small></span>
+        </button>
+        <button class="photo-thumb" type="button" data-photo-index="4">
+          <img src="uploads/inspekcie/vzor/fotky/foto-005.svg" alt="Foto 005 - P309 - Detail komína">
+          <span><strong>Foto 005</strong><small>P309 - Detail komína</small></span>
+        </button>
+        <button class="photo-thumb" type="button" data-photo-index="5">
+          <img src="uploads/inspekcie/vzor/fotky/foto-006.svg" alt="Foto 006 - P411 - Terén pri objekte">
+          <span><strong>Foto 006</strong><small>P411 - Terén pri objekte</small></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="container split-section">
+    <div>
+      <p class="eyebrow">Kontext nehnuteľnosti</p>
+      <h2>Rozsiahlejšia nehnuteľnosť vyžaduje prehľadné odovzdanie</h2>
+      <p>
+        Pri areáli s viacerými objektmi a veľkým pozemkom nestačí poslať jeden
+        súbor bez súvislostí. Preto sú dokumenty, video a virtuálna prehliadka
+        zoradené podľa toho, ako ich klient prirodzene používa pri rozhodovaní.
+      </p>
+    </div>
+    <div class="topic-list">
+      <span>Najprv správa a písomné závery</span>
+      <span>Potom doplnkový pracovný dokument</span>
+      <span>Následne priestorová orientácia cez Panoraven</span>
+      <span>Nakoniec video výstupy z dronu</span>
+    </div>
+  </section>
+
+  <section class="container section-tight">
+    <div class="section-heading">
+      <p class="eyebrow">Ako sa to bude používať</p>
+      <h2>Ostrá verzia sa zobrazí až po zadaní PINu</h2>
+    </div>
+    <div class="process-mini">
+      <article>
+        <span>1</span>
+        <strong>Spracovanie dát</strong>
+        <p>Doplnia sa iba tie výstupy, ktoré pri danej nehnuteľnosti vznikli.</p>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Schválenie v backoffice</strong>
+        <p>PIN sa vygeneruje až po ručnom potvrdení, že výstupy sú pripravené.</p>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Email klientovi</strong>
+        <p>Klient dostane poďakovanie, link na inšpekcie a 6-miestny PIN.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="container cta home-cta">
+    <div>
+      <strong>Chcete vidieť, čo môže klient dostať po inšpekcii?</strong>
+      <p>
+        Táto ukážka slúži ako verejný príklad výstupu. Skutočné klientské stránky
+        sa zobrazia až po zadaní správneho PINu.
+      </p>
+    </div>
+    <div class="cta-actions">
+      <a href="konzultacia.html" class="btn primary">Dohodnúť konzultáciu</a>
+      <a href="baliky-inspekcie.html" class="btn">Pozrieť balíky</a>
+    </div>
+  </section>
+
+</main>
+
+<div class="media-modal" id="mediaModal" aria-hidden="true">
+  <div class="media-modal-backdrop" data-media-close></div>
+  <section class="media-modal-panel" role="dialog" aria-modal="true" aria-labelledby="mediaModalTitle">
+    <div class="media-modal-header">
+      <h2 id="mediaModalTitle">Video</h2>
+      <div class="media-modal-actions">
+        <button type="button" class="media-modal-control" data-media-maximize aria-label="Zväčšiť okno">Zväčšiť</button>
+        <button type="button" class="media-modal-control" data-media-close aria-label="Zavrieť video">Zavrieť</button>
+      </div>
+    </div>
+    <div class="media-modal-frame">
+      <iframe id="mediaModalFrame" title="Mediálny prehrávač" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; magnetometer; picture-in-picture; web-share; xr-spatial-tracking" allowfullscreen></iframe>
+    </div>
+  </section>
+</div>
+
+<div class="photo-modal" id="photoModal" aria-hidden="true">
+  <div class="photo-modal-backdrop" data-photo-close></div>
+  <section class="photo-modal-panel" role="dialog" aria-modal="true" aria-labelledby="photoModalTitle">
+    <div class="photo-modal-header">
+      <div>
+        <p id="photoModalNumber">Foto 001</p>
+        <h2 id="photoModalTitle">P102 - Krov typický</h2>
+      </div>
+      <button type="button" class="media-modal-control" data-photo-close aria-label="Zavrieť fotogalériu">Späť</button>
+    </div>
+    <div class="photo-modal-view">
+      <button type="button" class="photo-nav photo-nav-prev" data-photo-prev aria-label="Predchádzajúca fotografia">‹</button>
+      <img id="photoModalImage" src="uploads/inspekcie/vzor/fotky/foto-001.svg" alt="Foto 001 - P102 - Krov typický">
+      <button type="button" class="photo-nav photo-nav-next" data-photo-next aria-label="Ďalšia fotografia">›</button>
+    </div>
+  </section>
+</div>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+<script>
+  const modal = document.getElementById("mediaModal");
+  const modalFrame = document.getElementById("mediaModalFrame");
+  const modalTitle = document.getElementById("mediaModalTitle");
+  const modalPanel = modal.querySelector(".media-modal-panel");
+
+  function closeMediaModal() {
+    modal.setAttribute("aria-hidden", "true");
+    modal.classList.remove("is-open");
+    modalPanel.classList.remove("is-maximized", "is-document");
+    maximizeButton.textContent = "Zväčšiť";
+    maximizeButton.setAttribute("aria-label", "Zväčšiť okno");
+    modalFrame.removeAttribute("src");
+  }
+
+  document.querySelectorAll("[data-media-modal]").forEach(link => {
+    link.addEventListener("click", event => {
+      event.preventDefault();
+      modalTitle.textContent = link.dataset.mediaTitle || "Video";
+      modalPanel.classList.toggle("is-document", link.dataset.mediaModal === "document");
+      modalFrame.src = link.dataset.mediaModal === "youtube" ? `${link.href}?autoplay=1&rel=0` : link.href;
+      modal.setAttribute("aria-hidden", "false");
+      modal.classList.add("is-open");
+    });
+  });
+
+  document.querySelectorAll("[data-media-close]").forEach(button => {
+    button.addEventListener("click", closeMediaModal);
+  });
+
+  const maximizeButton = document.querySelector("[data-media-maximize]");
+
+  maximizeButton.addEventListener("click", () => {
+    const isMaximized = modalPanel.classList.toggle("is-maximized");
+    maximizeButton.textContent = isMaximized ? "Zmenšiť" : "Zväčšiť";
+    maximizeButton.setAttribute("aria-label", isMaximized ? "Zmenšiť okno" : "Zväčšiť okno");
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && modal.classList.contains("is-open")) {
+      closeMediaModal();
+    }
+  });
+
+  const photos = [
+    {
+      number: "Foto 001",
+      title: "P102 - Krov typický",
+      src: "uploads/inspekcie/vzor/fotky/foto-001.svg",
+      alt: "Foto 001 - P102 - Krov typický"
+    },
+    {
+      number: "Foto 002",
+      title: "P118 - Odvodnenie strechy",
+      src: "uploads/inspekcie/vzor/fotky/foto-002.svg",
+      alt: "Foto 002 - P118 - Odvodnenie strechy"
+    },
+    {
+      number: "Foto 003",
+      title: "P204 - Vlhkosť pri sokli",
+      src: "uploads/inspekcie/vzor/fotky/foto-003.svg",
+      alt: "Foto 003 - P204 - Vlhkosť pri sokli"
+    },
+    {
+      number: "Foto 004",
+      title: "P231 - Prasklina muriva",
+      src: "uploads/inspekcie/vzor/fotky/foto-004.svg",
+      alt: "Foto 004 - P231 - Prasklina muriva"
+    },
+    {
+      number: "Foto 005",
+      title: "P309 - Detail komína",
+      src: "uploads/inspekcie/vzor/fotky/foto-005.svg",
+      alt: "Foto 005 - P309 - Detail komína"
+    },
+    {
+      number: "Foto 006",
+      title: "P411 - Terén pri objekte",
+      src: "uploads/inspekcie/vzor/fotky/foto-006.svg",
+      alt: "Foto 006 - P411 - Terén pri objekte"
+    }
+  ];
+
+  const photoModal = document.getElementById("photoModal");
+  const photoModalImage = document.getElementById("photoModalImage");
+  const photoModalNumber = document.getElementById("photoModalNumber");
+  const photoModalTitle = document.getElementById("photoModalTitle");
+  let activePhotoIndex = 0;
+
+  function showPhoto(index) {
+    activePhotoIndex = (index + photos.length) % photos.length;
+    const photo = photos[activePhotoIndex];
+    photoModalImage.src = photo.src;
+    photoModalImage.alt = photo.alt;
+    photoModalNumber.textContent = photo.number;
+    photoModalTitle.textContent = photo.title;
+  }
+
+  function openPhotoModal(index) {
+    showPhoto(index);
+    photoModal.setAttribute("aria-hidden", "false");
+    photoModal.classList.add("is-open");
+  }
+
+  function closePhotoModal() {
+    photoModal.setAttribute("aria-hidden", "true");
+    photoModal.classList.remove("is-open");
+  }
+
+  document.querySelectorAll("[data-photo-index]").forEach(button => {
+    button.addEventListener("click", () => openPhotoModal(Number(button.dataset.photoIndex)));
+  });
+
+  document.querySelector("[data-photo-prev]").addEventListener("click", () => showPhoto(activePhotoIndex - 1));
+  document.querySelector("[data-photo-next]").addEventListener("click", () => showPhoto(activePhotoIndex + 1));
+
+  document.querySelectorAll("[data-photo-close]").forEach(button => {
+    button.addEventListener("click", closePhotoModal);
+  });
+
+  document.addEventListener("keydown", event => {
+    if (!photoModal.classList.contains("is-open")) {
+      return;
+    }
+    if (event.key === "Escape") {
+      closePhotoModal();
+    }
+    if (event.key === "ArrowLeft") {
+      showPhoto(activePhotoIndex - 1);
+    }
+    if (event.key === "ArrowRight") {
+      showPhoto(activePhotoIndex + 1);
+    }
+  });
+</script>
+
+</body>
+</html>

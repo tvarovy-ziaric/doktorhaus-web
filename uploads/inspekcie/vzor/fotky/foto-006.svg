@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 006 - P411 - Teren pri objekte</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#e3e8ea"/>
+  <path d="M0 520c150-60 275-50 430 5s285 58 430 10 235-42 340 15v250H0z" fill="#8aa097"/>
+  <path d="M130 565c130-35 275-22 425 28s305 52 515-10v217H130z" fill="#c5d4cd"/>
+  <path d="M770 385h220v145H770z" fill="#fbfcfb"/>
+  <path d="M740 385 880 285l140 100H740z" fill="#365e57"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 006</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P411 - Teren pri objekte</text>
+</svg>

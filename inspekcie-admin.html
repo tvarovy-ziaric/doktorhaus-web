@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin: Inšpekcie | DoktorHaus</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="styles/style.css?v=13">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow">Interné odovzdanie výstupov</p>
+      <h1>Backoffice inšpekcií</h1>
+      <p>
+        Pripravte klientsky výstup, vložte linky na dokumenty a médiá, potom
+        ručne potvrďte pripravenosť. Až vtedy systém vygeneruje PIN.
+      </p>
+    </div>
+  </section>
+
+  <section class="container admin-layout">
+    <form class="admin-form" id="inspection-form">
+      <input type="hidden" name="id" id="inspection-id">
+
+      <label>
+        Admin PIN
+        <input type="password" name="adminPin" autocomplete="current-password" required>
+      </label>
+
+      <label>
+        Názov inšpekcie
+        <input type="text" name="title" placeholder="Rodinný dom, okres Krupina" required>
+      </label>
+
+      <div class="form-row">
+        <label>
+          Lokalita
+          <input type="text" name="location" placeholder="okres Krupina">
+        </label>
+        <label>
+          Email klienta
+          <input type="email" name="clientEmail" placeholder="klient@example.com">
+        </label>
+      </div>
+
+      <label>
+        Krátky opis pre klienta
+        <textarea name="summary" rows="4" placeholder="Stručne, čo klient na stránke nájde."></textarea>
+      </label>
+
+      <div class="form-row">
+        <label>
+          PDF správa
+          <input type="text" name="reportUrl" placeholder="uploads/inspekcie/.../sprava.pdf">
+        </label>
+        <label>
+          Google Docs
+          <input type="url" name="docsUrl" placeholder="https://docs.google.com/...">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Panoraven embed
+          <input type="url" name="panoravenUrl" placeholder="https://panoraven.com/en/embed/...">
+        </label>
+        <label>
+          YouTube Full HD
+          <input type="url" name="videoHdUrl" placeholder="https://youtu.be/...">
+        </label>
+      </div>
+
+      <label>
+        YouTube 360 video
+        <input type="url" name="video360Url" placeholder="https://youtu.be/...">
+      </label>
+
+      <label>
+        Fotogaléria JSON
+        <textarea name="photosJson" rows="7" placeholder='[{"number":"Foto 001","title":"P102 - Krov typický","thumb":"uploads/inspekcie/.../001.jpg","full":"uploads/inspekcie/.../001.jpg"}]'></textarea>
+        <small>Voliteľné. Každá fotka: number, title, thumb, full.</small>
+      </label>
+
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Uložiť koncept</button>
+        <button class="btn" id="new-inspection-btn" type="button">Nová inšpekcia</button>
+      </div>
+      <p class="form-status" id="inspection-status" role="status"></p>
+    </form>
+
+    <aside class="draft-panel" aria-label="Email pre klienta">
+      <p class="eyebrow">Prístup</p>
+      <label>
+        Link pre klienta
+        <input type="text" id="client-link" readonly value="inspekcie.html">
+      </label>
+      <label>
+        Vygenerovaný PIN
+        <input type="text" id="generated-pin" readonly placeholder="PIN vznikne po potvrdení pripravenosti">
+      </label>
+      <label>
+        Text emailu
+        <textarea id="email-text" rows="11" readonly></textarea>
+      </label>
+      <div class="form-actions">
+        <button class="btn" id="copy-email-btn" type="button">Kopírovať text</button>
+      </div>
+    </aside>
+  </section>
+
+  <section class="container section-tight admin-list-section">
+    <div class="section-heading">
+      <p class="eyebrow">Správa inšpekcií</p>
+      <h2>Koncepty, pripravené výstupy a odoslané PINy</h2>
+    </div>
+    <div class="admin-list-actions">
+      <button class="btn" id="load-inspections-btn" type="button">Načítať inšpekcie</button>
+      <p class="form-status" id="inspection-list-status" role="status"></p>
+    </div>
+    <div class="admin-post-list" id="inspection-list">
+      <article class="admin-post-card is-empty">
+        <p>Zadajte Admin PIN vyššie a načítajte inšpekcie.</p>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+
+<script>
+  const form = document.getElementById("inspection-form");
+  const statusEl = document.getElementById("inspection-status");
+  const listStatus = document.getElementById("inspection-list-status");
+  const inspectionList = document.getElementById("inspection-list");
+  const loadBtn = document.getElementById("load-inspections-btn");
+  const newBtn = document.getElementById("new-inspection-btn");
+  const clientLink = document.getElementById("client-link");
+  const generatedPin = document.getElementById("generated-pin");
+  const emailText = document.getElementById("email-text");
+  const copyEmailBtn = document.getElementById("copy-email-btn");
+  let inspections = [];
+
+  function setStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.classList.toggle("is-error", isError);
+  }
+
+  function setListStatus(message, isError = false) {
+    listStatus.textContent = message;
+    listStatus.classList.toggle("is-error", isError);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
+
+  function adminPin() {
+    return new FormData(form).get("adminPin") || "";
+  }
+
+  async function api(payload) {
+    const response = await fetch("api/inspections.php", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      const error = new Error(result.error || "Akcia sa nepodarila.");
+      error.result = result;
+      throw error;
+    }
+    return result;
+  }
+
+  function readInspection() {
+    const data = new FormData(form);
+    let photos = [];
+    const rawPhotos = String(data.get("photosJson") || "").trim();
+    if (rawPhotos) {
+      photos = JSON.parse(rawPhotos);
+      if (!Array.isArray(photos)) {
+        throw new Error("Fotogaléria musí byť JSON pole.");
+      }
+    }
+
+    return {
+      title: data.get("title"),
+      location: data.get("location"),
+      clientEmail: data.get("clientEmail"),
+      summary: data.get("summary"),
+      media: {
+        reportUrl: data.get("reportUrl"),
+        docsUrl: data.get("docsUrl"),
+        panoravenUrl: data.get("panoravenUrl"),
+        videoHdUrl: data.get("videoHdUrl"),
+        video360Url: data.get("video360Url")
+      },
+      photos
+    };
+  }
+
+  function writeInspection(item) {
+    form.elements.id.value = item.id || "";
+    form.elements.title.value = item.title || "";
+    form.elements.location.value = item.location || "";
+    form.elements.clientEmail.value = item.clientEmail || "";
+    form.elements.summary.value = item.summary || "";
+    form.elements.reportUrl.value = item.media?.reportUrl || "";
+    form.elements.docsUrl.value = item.media?.docsUrl || "";
+    form.elements.panoravenUrl.value = item.media?.panoravenUrl || "";
+    form.elements.videoHdUrl.value = item.media?.videoHdUrl || "";
+    form.elements.video360Url.value = item.media?.video360Url || "";
+    form.elements.photosJson.value = item.photos?.length ? JSON.stringify(item.photos, null, 2) : "";
+    generatedPin.value = item.pin || "";
+    emailText.value = "";
+    setStatus(item.id ? "Inšpekcia je načítaná na úpravu." : "");
+    form.scrollIntoView({behavior: "smooth", block: "start"});
+  }
+
+  function resetForm() {
+    const pin = adminPin();
+    form.reset();
+    form.elements.adminPin.value = pin;
+    form.elements.id.value = "";
+    generatedPin.value = "";
+    emailText.value = "";
+    setStatus("Pripravený nový koncept.");
+  }
+
+  function statusLabel(status) {
+    return {
+      draft: "Koncept",
+      ready: "Pripravené",
+      sent: "Odoslané"
+    }[status] || status || "Koncept";
+  }
+
+  function renderList(items) {
+    if (!items.length) {
+      inspectionList.innerHTML = `<article class="admin-post-card is-empty"><p>Zatiaľ nie sú uložené žiadne inšpekcie.</p></article>`;
+      return;
+    }
+
+    inspectionList.innerHTML = items.map(item => `
+      <article class="admin-post-card">
+        <div>
+          <div class="admin-post-meta">
+            <span>${escapeHtml(statusLabel(item.status))}</span>
+            <span>${escapeHtml(item.location || "bez lokality")}</span>
+            ${item.pin ? `<span>PIN ${escapeHtml(item.pin)}</span>` : "<span>bez PINu</span>"}
+          </div>
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.summary || item.clientEmail || "Bez stručného opisu.")}</p>
+        </div>
+        <div class="admin-post-actions">
+          <button class="btn" type="button" data-edit="${escapeHtml(item.id)}">Upraviť</button>
+          <button class="btn" type="button" data-ready="${escapeHtml(item.id)}">Pripravené / PIN</button>
+          <button class="btn primary" type="button" data-send="${escapeHtml(item.id)}">Poslať email</button>
+          <button class="btn danger" type="button" data-draft="${escapeHtml(item.id)}">Vrátiť do konceptu</button>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  async function loadInspections() {
+    if (!adminPin()) {
+      setListStatus("Najprv zadajte Admin PIN.", true);
+      return;
+    }
+
+    setListStatus("Načítavam inšpekcie...");
+    try {
+      const result = await api({action: "admin-list", adminPin: adminPin()});
+      inspections = result.items || [];
+      clientLink.value = result.inspectionLink || "inspekcie.html";
+      renderList(inspections);
+      setListStatus("Inšpekcie sú načítané.");
+    } catch (error) {
+      setListStatus(error.message, true);
+    }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setStatus("Ukladám inšpekciu...");
+    try {
+      const result = await api({
+        action: "save",
+        adminPin: adminPin(),
+        id: form.elements.id.value,
+        inspection: readInspection()
+      });
+      writeInspection(result.item);
+      await loadInspections();
+      setStatus("Inšpekcia je uložená ako koncept.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
+  inspectionList.addEventListener("click", async (event) => {
+    const editId = event.target.closest("[data-edit]")?.dataset.edit;
+    const readyId = event.target.closest("[data-ready]")?.dataset.ready;
+    const sendId = event.target.closest("[data-send]")?.dataset.send;
+    const draftId = event.target.closest("[data-draft]")?.dataset.draft;
+
+    if (editId) {
+      const item = inspections.find(entry => entry.id === editId);
+      if (item) {
+        writeInspection(item);
+      }
+      return;
+    }
+
+    const actionId = readyId || sendId || draftId;
+    if (!actionId) {
+      return;
+    }
+
+    const action = readyId ? "mark-ready" : sendId ? "send-email" : "set-draft";
+    setListStatus("Vykonávam akciu...");
+    try {
+      const result = await api({action, adminPin: adminPin(), id: actionId});
+      if (result.emailText) {
+        emailText.value = result.emailText;
+      }
+      if (result.item?.pin) {
+        generatedPin.value = result.item.pin;
+      }
+      await loadInspections();
+      setListStatus(action === "send-email" ? "Email bol odoslaný." : "Stav inšpekcie je aktualizovaný.");
+    } catch (error) {
+      if (error.result?.emailText) {
+        emailText.value = error.result.emailText;
+      }
+      setListStatus(error.message, true);
+    }
+  });
+
+  newBtn.addEventListener("click", resetForm);
+  loadBtn.addEventListener("click", loadInspections);
+
+  copyEmailBtn.addEventListener("click", async () => {
+    if (!emailText.value.trim()) {
+      setStatus("Najprv vygenerujte PIN alebo odošlite email.", true);
+      return;
+    }
+    await navigator.clipboard.writeText(emailText.value);
+    setStatus("Text emailu je skopírovaný.");
+  });
+</script>
+
+</body>
+</html>

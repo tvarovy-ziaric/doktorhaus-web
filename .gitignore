@@ -5,6 +5,7 @@ api/public-help.config.php
 
 # Runtime content created on hosting
 data/public-help.json
+data/inspections.json
 uploads/pomoc-verejnosti/*
 !uploads/pomoc-verejnosti/.gitkeep
 

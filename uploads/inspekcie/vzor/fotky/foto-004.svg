@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Foto 004 - P231 - Prasklina muriva</title>
+  <desc id="desc">Placeholder fotografia pre vzorovu galeriu nalezov.</desc>
+  <rect width="1200" height="800" fill="#e5e1d8"/>
+  <path d="M245 150h710v500H245z" fill="#fbfcfb"/>
+  <path d="M610 170 565 280l55 55-75 86 62 59-42 160" fill="none" stroke="#8c2d2d" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M245 650h710v50H245z" fill="#c9d7d0"/>
+  <text x="70" y="115" fill="#1c1f23" font-family="Arial, sans-serif" font-size="42" font-weight="700">Foto 004</text>
+  <text x="70" y="170" fill="#365e57" font-family="Arial, sans-serif" font-size="34" font-weight="700">P231 - Prasklina muriva</text>
+</svg>
