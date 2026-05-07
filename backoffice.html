@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V7SRNH0776"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-V7SRNH0776');
+</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backoffice | DoktorHaus</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="styles/style.css?v=14">
+</head>
+
+<body>
+
+<header id="header"></header>
+<script>
+  fetch("JSS/header.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("header").innerHTML = data);
+</script>
+
+<main>
+  <section class="hero backoffice-hero">
+    <div class="container">
+      <p class="eyebrow">Interný vstup</p>
+      <h1>Backoffice DoktorHaus</h1>
+      <p>
+        Jeden vstup pre interné nástroje webu. Používa rovnaký globálny PIN ako
+        publikovanie odpovedí v sekcii Pomoc verejnosti.
+      </p>
+    </div>
+  </section>
+
+  <section class="container backoffice-shell">
+    <form class="admin-form backoffice-login" id="backoffice-login">
+      <label>
+        Globálny PIN
+        <input type="password" name="pin" autocomplete="current-password" required>
+      </label>
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Vstúpiť do backoffice</button>
+      </div>
+      <p class="form-status" id="backoffice-status" role="status"></p>
+    </form>
+
+    <section class="backoffice-dashboard" id="backoffice-dashboard" hidden>
+      <div class="section-heading">
+        <p class="eyebrow">Moduly</p>
+        <h2>Čo chcete spravovať</h2>
+      </div>
+
+      <div class="backoffice-grid">
+        <article class="backoffice-module">
+          <div>
+            <span>Obsah</span>
+            <h3>Pomoc verejnosti</h3>
+            <p>Pridávanie, úprava, skrytie a obnovenie odborných odpovedí z verejných diskusií.</p>
+          </div>
+          <a class="btn primary" href="pomoc-admin.html">Otvoriť modul</a>
+        </article>
+
+        <article class="backoffice-module">
+          <div>
+            <span>Klientske výstupy</span>
+            <h3>Inšpekcie</h3>
+            <p>Príprava výstupov, médií, fotogalérie, generovanie PINu a odoslanie emailu klientovi.</p>
+          </div>
+          <a class="btn primary" href="inspekcie-admin.html">Otvoriť modul</a>
+        </article>
+
+        <article class="backoffice-module is-planned">
+          <div>
+            <span>Pripravené na rozšírenie</span>
+            <h3>Budúce moduly</h3>
+            <p>Miesto pre ďalšie interné nástroje: upload súborov, knižnica médií, šablóny emailov alebo konfigurácia služieb.</p>
+          </div>
+          <button class="btn" type="button" disabled>Pripravuje sa</button>
+        </article>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<script>
+  fetch("JSS/footer.html")
+    .then(res => res.text())
+    .then(data => document.getElementById("footer").innerHTML = data);
+</script>
+
+<script>
+  const loginForm = document.getElementById("backoffice-login");
+  const dashboard = document.getElementById("backoffice-dashboard");
+  const statusEl = document.getElementById("backoffice-status");
+  const sessionKey = "doktorhausBackofficeUnlocked";
+
+  function setStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.classList.toggle("is-error", isError);
+  }
+
+  function unlockUi() {
+    loginForm.hidden = true;
+    dashboard.hidden = false;
+  }
+
+  if (sessionStorage.getItem(sessionKey) === "1") {
+    unlockUi();
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const pin = new FormData(loginForm).get("pin");
+    setStatus("Overujem PIN...");
+    try {
+      const response = await fetch("api/backoffice.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({pin})
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "PIN sa nepodarilo overiť.");
+      }
+      sessionStorage.setItem(sessionKey, "1");
+      unlockUi();
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+</script>
+
+</body>
+</html>

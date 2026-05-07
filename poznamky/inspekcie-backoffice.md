@@ -9,6 +9,7 @@
 - PIN sa má vygenerovať až po ručnom potvrdení v backoffice, že výstupy sú pripravené.
 - Nie každá inšpekcia musí obsahovať všetky typy médií. Pri bytoch napríklad nemusí existovať oblet dronom alebo 360 video.
 - Fotogaléria má byť voliteľná súčasť výstupu. Fotky majú byť číslované podľa PDF správy a pomenované podľa ID nálezu, napríklad `Foto 001` a `P102 - Krov typický`.
+- Globálny vstup do interných nástrojov je `backoffice.html`. Používa rovnaký PIN ako existujúci admin pre Pomoc verejnosti.
 
 ## Backoffice stav
 

@@ -5,3 +5,11 @@
 <Files "public-help.config.example.php">
   Require all denied
 </Files>
+
+<Files "inspections.config.php">
+  Require all denied
+</Files>
+
+<Files "inspections.config.example.php">
+  Require all denied
+</Files>
