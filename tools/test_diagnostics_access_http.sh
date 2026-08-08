@@ -15,6 +15,7 @@ cleanup() {
     kill "$server_pid" >/dev/null 2>&1 || true
     wait "$server_pid" >/dev/null 2>&1 || true
   fi
+  chmod -R u+w -- "$test_root" >/dev/null 2>&1 || true
   rm -rf -- "$test_root"
 }
 trap cleanup EXIT

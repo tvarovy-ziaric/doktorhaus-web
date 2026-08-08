@@ -75,6 +75,9 @@ final class DiagnosticsClientSession
             !session_set_cookie_params(self::cookieParameters($this->cookieSecure))) {
             throw new DiagnosticsAccessException('ACCESS_CONFIG', 'The PHP session cookie policy cannot be enforced.');
         }
+        if (session_cache_limiter('') === false || session_cache_limiter() !== '') {
+            throw new DiagnosticsAccessException('ACCESS_CONFIG', 'The PHP session cache policy cannot be enforced.');
+        }
         $cookie = session_get_cookie_params();
         if (($cookie['lifetime'] ?? null) !== 0 || ($cookie['path'] ?? null) !== '/' ||
             ($cookie['secure'] ?? null) !== $this->cookieSecure || ($cookie['httponly'] ?? null) !== true ||
