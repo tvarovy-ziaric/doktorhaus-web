@@ -607,7 +607,7 @@ final class DiagnosticsStorage
     /** @return mixed */
     private function withLock(string $lockName, callable $callback)
     {
-        if (preg_match('/^[A-Za-z0-9.-]+$/D', $lockName) !== 1) {
+        if (preg_match('/^[A-Za-z0-9._-]+$/D', $lockName) !== 1) {
             throw new DiagnosticsStorageException('STORAGE_LOCK', 'The storage lock name is invalid.');
         }
         $locksRoot = $this->ensureDirectory($this->root . DIRECTORY_SEPARATOR . 'locks', 0700);
