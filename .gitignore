@@ -1,5 +1,7 @@
 # Local secrets
 api/public-help.config.php
+api/inspections.config.php
+api/diagnostics.config.php
 .env
 .env.*
 

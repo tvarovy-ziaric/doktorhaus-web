@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Neopisuje hotovú implementáciu a v tomto kroku nemení správanie webu.
+Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Od kroku 3 opisuje aj izolovanú runtime storage foundation; tá stále nemení správanie klientského portálu.
 
 Základný tok informácií je:
 
@@ -18,8 +18,9 @@ SafetyCulture zostáva zdrojom terénneho zberu a surových záznamov. Diagnosti
 6. [REPORT_CONTRACT.md](REPORT_CONTRACT.md) – obsah a pravidlá klientského reportu.
 7. [SECURITY_MODEL.md](SECURITY_MODEL.md) – dnešný prototyp a cieľová ochrana klientskych dát.
 8. [WORKFLOW.md](WORKFLOW.md) – manuálny MVP tok a budúce napojenie na SafetyCulture.
-9. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
-10. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
+9. [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md) – filesystem storage, atomické drafty, immutable publish a bezpečnostné hranice.
+10. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
+11. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
 
 ## Pravidlo zmeny
 
@@ -47,6 +48,8 @@ python tools/test_diagnostics_contracts.py
 
 Stdlib lint nie je všeobecný JSON Schema engine. Schémy sú normatívny štruktúrny kontrakt; lint dopĺňa referenčnú integritu, grafové, finančné, QA a bezpečnostné invarianty.
 
-## Rozsah po kroku 2
+## Runtime storage foundation po kroku 3
 
-Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, autentifikáciu, upload, SafetyCulture API ani webhook. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie webu.
+`api/lib/diagnostics/` implementuje PHP úložisko draft `inspection.json`/`diagnosis.json` dokumentov a nemenných publikovaných report packages. Používa explicitný root mimo webrootu, atomické zápisy, per-object locks, optimistic revision, strict paths, symlink kontroly, SHA-256 a staging + atomic rename publish. Samostatný runner je `tools/test_diagnostics_storage.php`.
+
+Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, autentifikáciu, PIN hashing, session, rate limiting, CSRF, autorizované HTTP doručovanie médií, audit, upload, SafetyCulture API ani webhook. Storage úspech nie je schema/domain validácia ani odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie webu.

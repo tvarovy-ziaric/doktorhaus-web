@@ -119,6 +119,10 @@ Po approve sa obsah tejto verzie neupravuje. Zmena vyžaduje novú draft verziu 
 
 Server sprístupní iba approved report version a jej povolené médiá. Publish zaznamená čas, publikovanú verziu a access policy. Vrátenie pracovnej inspection do draftu nesmie potichu meniť už publikovaný snapshot; withdraw je samostatná auditovaná akcia.
 
+Od kroku 3 môže storage vrstva nainštalovať iba manifest so stavom `published`, s `approved_by`, `approved_at` a `published_at`. Predpokladá, že oprávnený workflow už vytvoril tieto auditné fakty; sama ich nevytvára. Balík kopíruje do stagingu, znovu overí paths, symlinky, veľkosti a SHA-256 a atomicky ho premenuje na novú `reports/<report-id>/<version>` cestu. Existujúca verzia sa nikdy neprepisuje.
+
+Doménový lint, plná schema validácia, inspector QA a auditovaný `APPROVE` musia prebehnúť pred volaním storage install. Úspešný install ešte neznamená klientsky prístup: auth/session a autorizované HTTP doručenie zostávajú samostatný budúci krok.
+
 ### 10. Client PIN
 
 Po publish sa vydá alebo aktivuje klientsky prístup. Server uloží hash PINu, aplikuje rate limiting a po úspešnom overení vytvorí scope-limited session pre konkrétny report. PIN sa neposiela spolu s reportovým obsahom v jednom verejnom kanáli bez vedomého rozhodnutia.

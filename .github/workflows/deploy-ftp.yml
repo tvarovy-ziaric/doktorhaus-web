@@ -97,7 +97,10 @@ jobs:
             --exclude-glob .github/ \
             --exclude-glob node_modules/ \
             --exclude api/public-help.config.php \
+            --exclude api/inspections.config.php \
+            --exclude api/diagnostics.config.php \
             --exclude data/public-help.json \
+            --exclude data/inspections.json \
             --exclude-glob uploads/pomoc-verejnosti/* \
             ./ "$FTP_SERVER_DIR"
           bye

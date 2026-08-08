@@ -28,12 +28,13 @@ Cieľom je rozšíriť existujúci web DoktorHaus o diagnostickú vrstvu bez pre
 - Dáta sa ukladajú ako jedno JSON pole v runtime súbore `data/inspections.json`. Zápis používa `LOCK_EX`; produkčná databáza neexistuje.
 - Klientsky `unlock` prehľadá záznamy podľa PINu a vráti záznam iba v stave `ready` alebo `sent`.
 - `api/.htaccess` blokuje priame načítanie konfiguračných PHP súborov. `data/.htaccess` blokuje celý adresár. `uploads/.htaccess` blokuje vykonanie PHP, ale nebráni priamemu načítaniu obrázkov a dokumentov.
+- Izolovaný modul `api/lib/diagnostics/` od kroku 3 poskytuje filesystem storage pre diagnostické drafty a immutable report packages. Nie je napojený na legacy endpoint ani na HTTP route a produkčný root vyžaduje mimo webrootu.
 
 ### Nasadenie
 
 - `.github/workflows/deploy-ftp.yml` je ručne spúšťaný GitHub Actions workflow. Checkoutnutý strom zrkadlí cez `lftp` na FTP/FTPS hosting.
-- Workflow explicitne chráni runtime dáta a uploady modulu Pomoc verejnosti, ale nemá zodpovedajúce výnimky pre `api/inspections.config.php`, `data/inspections.json` ani budúce súkromné médiá inšpekcií.
-- `.gitignore` ignoruje `data/inspections.json`, ale podľa aktuálneho súboru neignoruje `api/inspections.config.php`. To je nesúlad, ktorý treba vyriešiť pred produkčným ukladaním tajomstiev do tohto súboru.
+- Workflow explicitne chráni runtime dáta a uploady modulu Pomoc verejnosti a od kroku 3 aj `api/inspections.config.php`, `api/diagnostics.config.php` a `data/inspections.json`.
+- `.gitignore` ignoruje oba lokálne inspections/diagnostics configy aj legacy runtime JSON. Diagnostický storage root nemá byť súčasťou checkoutu ani FTP mirroru.
 
 ## Cieľová logická architektúra
 
@@ -62,6 +63,8 @@ Od kroku 2 je štruktúrny kontrakt vyjadrený cez JSON Schema Draft 2020-12 v `
 Z vybranej, schválenej verzie zostaví klientsky rozhodovací pohľad. Report je projekcia diagnostických dát, nie druhé miesto, kde sa ručne vytvára diagnóza. Publikovaná verzia je nemenný snapshot; doplnenie merania vytvorí novú verziu.
 
 Nemennosť pripravuje versioned manifest: `reports/<report-id>/<version>/manifest.json` referencuje samostatný `inspection.json`, `diagnosis.json` a médiá relatívnymi cestami a SHA-256. Manifest nie je gigantický blob ani renderer output.
+
+Krok 3 túto fyzickú hranicu implementuje cez staging pod rovnakým storage rootom, kontrolované streamujúce kopírovanie, opakovanú hash verifikáciu a atomický rename na dovtedy neexistujúcu verziu. Publikovaný adresár nemá overwrite API. Podrobnosti a prevádzkové predpoklady sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
 
 ### 6. Autorizačná a publikačná vrstva
 
@@ -110,6 +113,18 @@ Existujúci klientsky vstup `inspekcie.html`, backoffice a globálny vizuálny j
 - SafetyCulture API, webhook alebo automatickú diagnostiku;
 - zmenu existujúceho HTML, PHP, CSS, JS alebo deploy workflow.
 
+## Čo zavádza krok 3
+
+- explicitne konfigurovaný diagnostický storage root bez fallbacku pod webroot;
+- atomické draft JSON zápisy s lockom a optimistic `storage_revision`;
+- runtime sanity kontrolu ID a document type bez predstierania plnej schema validácie;
+- strict manifest paths, zákaz symlinkov a streaming SHA-256/size verifikáciu;
+- staging a immutable inštaláciu iba `published` report version;
+- interné read/resolve metódy bez HTTP sprístupnenia;
+- ignore, Apache a FTP hardening pre lokálne configy a legacy runtime dáta.
+
+Krok 3 stále nezavádza auth, PIN, session, role, rate limiting, CSRF, audit, renderer ani autorizované media delivery. Existujúci `api/inspections.php`, `inspekcie.html` a `inspekcie-admin.html` zostávajú nezmenené.
+
 ## Rozhodnutia uzavreté kontraktom 1.0.0
 
 - stabilné prefixované ID s 16–32 lowercase hex znakmi a oddeleným `display_code`;
@@ -123,8 +138,8 @@ Existujúci klientsky vstup `inspekcie.html`, backoffice a globálny vizuálny j
 
 ## Zostávajúce architektonické rozhodnutia
 
-1. Či MVP runtime zostane na oddelených JSON súboroch alebo neskôr použije databázu.
-2. Fyzický mechanizmus immutable publish: atomické vytvorenie adresára, storage a zálohy.
+1. Ako dlho MVP runtime zostane na oddelených JSON súboroch a kedy bude odôvodnená databáza.
+2. Produkčný filesystem/object storage, zálohy, restore test, retencia a overenie atomic rename/flock semantics hostingu.
 3. Konkrétna interná identita, role a auditné úložisko pre `APPROVE`.
 4. Cieľové úložisko a autorizované doručovanie privátnych médií.
 5. Politika klientskych session, expirácie, obnovy a zrušenia prístupu.

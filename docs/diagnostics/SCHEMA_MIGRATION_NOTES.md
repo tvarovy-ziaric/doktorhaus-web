@@ -6,6 +6,12 @@ Krok 2 neprináša produkčnú migráciu. Existujúci runtime `data/inspections.
 
 Legacy portál sa nesmie automaticky považovať za diagnosis source of truth. Jeho záznam opisuje odovzdanie klientskych médií, nie auditovateľné diagnostické uvažovanie.
 
+## Stav po kroku 3
+
+Nový modul `api/lib/diagnostics/` pridáva izolované filesystem úložisko pre budúce `inspection.json`, `diagnosis.json` a immutable report packages. Nie je migrátorom a nečíta ani nemení `data/inspections.json`. Existujúci `api/inspections.php`, `inspekcie.html`, `inspekcie-admin.html` a stavy `draft / ready / sent` zostávajú nedotknuté.
+
+Storage install akceptuje iba package, ktorého manifest už nesie stav `published` a approval/publish metadata. Tieto polia nesmú vzniknúť automatickým mapovaním legacy `ready` alebo `sent`; vytvorí ich až budúci autorizovaný QA/APPROVE/publish workflow. Nové úložisko zároveň neposkytuje PIN, session ani klientsky media endpoint, preto zatiaľ nie je dôvod presmerovať legacy klientsky portál.
+
 ## Čo obsahuje legacy záznam
 
 Aktuálny PHP model pracuje približne s:

@@ -13,3 +13,11 @@
 <Files "inspections.config.example.php">
   Require all denied
 </Files>
+
+<Files "diagnostics.config.php">
+  Require all denied
+</Files>
+
+<Files "diagnostics.config.example.php">
+  Require all denied
+</Files>

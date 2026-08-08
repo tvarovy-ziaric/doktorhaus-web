@@ -34,8 +34,8 @@ Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie a
 ### Konfigurácia a deploy
 
 - `api/.htaccess` blokuje priame načítanie lokálnych config súborov.
-- `.gitignore` ignoruje `data/inspections.json`, ale aktuálne neuvádza `api/inspections.config.php`, hoci ide o lokálny secret config.
-- FTP workflow má výnimky pre runtime dáta modulu Pomoc verejnosti, nie však ekvivalenty pre inšpekcie. Lokálne runtime súbory alebo privátne uploady by mohol mirror podľa stavu workspace preniesť alebo prepísať.
+- `.gitignore` od kroku 3 ignoruje `data/inspections.json`, `api/inspections.config.php` aj `api/diagnostics.config.php`.
+- FTP workflow od kroku 3 explicitne vylučuje oba lokálne configy a legacy `data/inspections.json`. Nový diagnostický runtime root musí byť mimo checkoutu a webrootu, takže ho mirror nespravuje.
 - Endpointy nastavujú JSON content type a `X-Content-Type-Options: nosniff`; komplexnejšia politika security headers nie je v tomto module definovaná.
 
 ## Identifikované riziká
@@ -47,7 +47,7 @@ Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie a
 5. Zdieľaný globálny Admin PIN neposkytuje identitu, role, odvolanie konkrétneho prístupu ani audit approvera.
 6. Neexistuje expirácia/revokácia klientského prístupu ani invalidácia pri vrátení reportu do draftu.
 7. `ready` sprístupňuje dáta, ale nie je viazané na nemennú, auditovanú report version.
-8. Deploy a ignore pravidlá nie sú úplne zosúladené s inspections runtime a secrets.
+8. Produkčné umiestnenie, backup, restore a retencia nového storage rootu ešte nie sú overené na cieľovom hostingu.
 9. Ochrana `data/` a configs závisí od webservera; pri migrácii mimo Apache môže prestať platiť.
 10. Externé médiá môžu mať verejné alebo širšie oprávnenia než klientsky report.
 11. Chýba audit prístupov, zmien, schválenia, publikovania, stiahnutia a zrušenia prístupu.
@@ -108,6 +108,14 @@ Preferovaný model:
 - externá služba sa použije iba s nastavením prístupu zodpovedajúcim client-private klasifikácii.
 
 Kontrakt 1.0.0 pripravuje túto hranicu bez implementácie auth: každé evidence a manifest file má explicitnú privacy `public`, `client_private` alebo `internal`; `media_reference` je interná referencia, nie požiadavka na verejnú URL; manifest path musí byť relatívny bez `..`, absolútnej cesty alebo URL. Domain lint blokuje http(s) reference pri client_private/internal evidence kódom `E_PRIVATE_PUBLIC_URL`.
+
+## Storage hardening od kroku 3
+
+`api/lib/diagnostics/` ukladá diagnostické dáta do explicitného absolútneho rootu a pri známom `DOCUMENT_ROOT` odmietne root vo webroote. Draft zápisy používajú lock, temporary file na rovnakom filesystéme, flush/fsync podľa platformy, re-read a rename. Publikovaný package vznikne iba cez nový staging adresár, kontrolovaný copy, druhú hash verifikáciu a atomický rename bez overwrite.
+
+Manifest paths sa nenormalizujú z nebezpečného na bezpečný tvar. Vrstva odmieta traversal, absolute/drive/UNC/URL paths, backslash, NUL, prázdne segmenty, symlink súbory a symlink adresáre. Deklarovaný obsah kontroluje streamujúcim SHA-256 a voliteľnou veľkosťou; neočakávaný regular file blokuje inštaláciu.
+
+Tieto vlastnosti chránia filesystem integritu, nie prístup klienta. Storage API nevytvára PIN, session, admin oprávnenie, CSRF ochranu, audit ani HTTP/media endpoint. Volajúca vrstva musí overiť oprávnenie pred každým read/resolve a nesmie vrátiť internú filesystem cestu klientovi. Reziduálna TOCTOU hranica predpokladá privátny storage root vo výhradnom vlastníctve aplikačného používateľa; podrobnosti sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
 
 ## Schválenie, verzia a audit
 
