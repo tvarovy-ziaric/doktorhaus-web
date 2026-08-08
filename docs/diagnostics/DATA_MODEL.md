@@ -2,8 +2,9 @@
 
 ## Zásady
 
-- Model je koncepčný. Neurčuje databázové tabuľky ani JSON Schema.
-- Každý objekt má stabilné, neprázdne `id`, ktoré sa nemení medzi úpravami. Formát ID je otvorené rozhodnutie.
+- Model zostáva nezávislý od databázy. Jeho strojovo čitateľný kontrakt určuje JSON Schema Draft 2020-12 verzie `1.0.0` v `schemas/`.
+- Každý doménový objekt má stabilné interné `id` vo formáte `<prefix>_<hex>`, kde hex obsahuje 16–32 lowercase znakov. Prefixy sú `prop`, `insp`, `obs`, `ev`, `issue`, `hyp`, `ver`, `rec`, `imp`, `rel`, `rpt` a `rptv`.
+- Interné ID nenesie poradie ani význam. Voliteľný `display_code`, napríklad `DI-001`, je čitateľný iba v kontexte reportu a nie je globálnym identifikátorom.
 - Zdrojové fakty a odborné závery sú oddelené. Text reportu nie je primárnym úložiskom diagnózy.
 - Referencie musia smerovať na objekt v rovnakom vlastníckom kontexte, pokiaľ dokument výslovne nepovoľuje vzťah naprieč inšpekciami.
 - Odstránenie objektu s referenciami nesmie potichu vytvoriť neplatné väzby. Produkčné pravidlá archivácie sa určia neskôr.
@@ -13,6 +14,8 @@
 `property` je koreň dlhodobej evidencie nehnuteľnosti. `inspection` patrí jednej property a predstavuje konkrétnu obhliadku alebo následnú kontrolu. Observation, evidence a diagnostické objekty patria inspection, aby bolo zrejmé, pri akej udalosti vznikli. Report patrí inspection a obsahuje verzie publikovaného výstupu.
 
 Property môže mať viac inspections. Následná inspection môže odkazovať na predchádzajúcu, ale jej pozorovania a dôkazy zostávajú samostatné.
+
+Actor je v kontrakte zámerne iba lightweight workflow reference (`id`, `display_name`, `role`), nie autentifikačná identita. Kontaktné údaje klienta zostávajú mimo diagnostických schém.
 
 ## Entity
 
@@ -40,8 +43,8 @@ Jedna vykonaná obhliadka alebo následná kontrola.
 - `performed_at`, `inspectors`;
 - `scope`: čo bolo predmetom kontroly;
 - `limitations`: neprístupné časti, podmienky a obmedzenia metódy;
-- `source_system`, `source_inspection_id`, `source_imported_at`;
-- `status`: pracovný stav spracovania, nie klientsky risk;
+- `provenance`: source kind/system/inspection a dostupné importné metadáta;
+- `processing_status`: imported, normalized, diagnostic_draft, qa_pending, qa_blocked alebo approved;
 - `previous_inspection_id`: voliteľná väzba na predchádzajúcu kontrolu;
 - `created_at`, `updated_at`.
 
@@ -55,7 +58,7 @@ Priamo pozorovaný, zmeraný alebo zo zdroja prevzatý fakt bez tvrdenia o prí�
 - `area`: miesto alebo stavebná časť;
 - `observed_at`, `observed_by`;
 - `measurement`: voliteľná hodnota, jednotka, metóda a podmienky;
-- `source_reference`: odkaz na SafetyCulture položku, PDF stranu alebo iný pôvod;
+- `provenance`: pôvod vrátane source item ID a hash, ak je dostupný;
 - `limitations`: čo pozorovanie nevie potvrdiť;
 - `status`: active, corrected, superseded alebo budúci číselník.
 
@@ -66,13 +69,13 @@ Jedno pozorovanie môže podporovať viac issues. Jeden issue môže zoskupovať
 Dohľadateľný nosič alebo záznam, ktorý možno pripojiť k pozorovaniu, hypotéze, issue alebo overeniu.
 
 - `id`, `inspection_id`;
-- `evidence_type`: photo, video, document, measurement, sensor_series, note alebo iný číselník;
+- `evidence_type`: photo, video, thermal_image, measurement_record, document, sensor_series, audio, note, drone_photo, photo_360 alebo other;
 - `title`, `description`;
 - `captured_at`, `captured_by`;
 - `source_reference` a voliteľný checksum/verzia zdroja;
 - `media_reference`: interný privátny identifikátor, nie nutne verejná URL;
 - `metadata`: typ súboru, rozmery, jednotky alebo technické údaje;
-- `privacy`: klasifikácia prístupu;
+- `privacy`: povinne a explicitne public, client_private alebo internal; default sa nepoužíva ako runtime rozhodnutie;
 - `status`.
 
 Evidence nie je automaticky dôkazom príčiny. Význam supporting alebo contradicting vzniká až vo väzbe ku konkrétnemu tvrdeniu.
@@ -81,24 +84,22 @@ Evidence nie je automaticky dôkazom príčiny. Význam supporting alebo contrad
 
 Odborne zoskupený problém, ktorý môže združovať viac prejavov jednej súvislosti. Pätnásť flagged položiek môže vytvoriť päť issues.
 
-Povinné doménové polia:
+Povinné doménové polia kontraktu:
 
 - `id`, `inspection_id`;
-- `title`, `category`, `affected_area`, `summary`;
+- `title`, kontrolovaná `category`, `category_label` pri other, `affected_areas[]`, `summary`;
 - `severity`: S1–S5;
 - `likelihood`: L1–L5;
 - `urgency`: U1–U5;
 - `priority`: P1–P5;
 - `confidence`: miera istoty diagnostického tvrdenia;
 - `deterioration_rate`: stable, slow, progressive, rapid, unknown;
-- `short_term_risk_level`, `short_term_risk_description`;
-- `long_term_risk_level`, `long_term_risk_description`;
-- `safety_impact`, `structural_impact`, `moisture_impact`, `health_impact`, `durability_impact`, `usability_impact`, `financial_impact`;
-- `cost_escalation_risk`;
-- `estimated_cost_min`, `estimated_cost_expected`, `estimated_cost_max`, `cost_estimate_confidence`;
+- štruktúrované `short_term_risk` a `long_term_risk` s level, description a horizon;
+- samostatné impact objects pre safety, structural, moisture, health, durability, usability a financial;
+- štruktúrované `cost_estimate` a `cost_escalation`;
 - `status`.
 
-K nákladom patria aj `cost_assumptions`, `cost_scope`, `cost_exclusions` a mena. Skóre musí mať odôvodnenie alebo odkaz na hodnotené fakty. Issue neobsahuje príčinu ako potvrdený fakt, ak ju nepotvrdzuje stav hypotézy a evidence.
+Každá score os má samostatné rationale. Likelihood má navyše explicitný subject a subject kind, aby lint vedel bez NLP rozlíšiť pozorovaný stav, budúcu udalosť a hypotetický mechanizmus. Issue neobsahuje príčinu ako potvrdený fakt, ak ju nepotvrdzuje stav hypotézy a evidence.
 
 ### `hypothesis`
 
@@ -170,11 +171,11 @@ Samotná relation nesmie predstierať potvrdenú kauzalitu. Typ a confidence mus
 - `confidence`;
 - odkaz na supporting observations/evidence.
 
-Ploché polia na issue sú povinný kontrakt pre jednoduchú spotrebu. Kolekcia impact objektov poskytuje odôvodnenie a časový kontext. Pri implementácii schémy treba určiť, či sa ploché hodnoty generujú z impact objektov alebo naopak; nesmú sa ručne rozchádzať.
+Impact objects sú jediný source of truth. Každý issue musí mať presne sedem jedinečných dimensions. Kontrakt 1.0.0 nepoužíva duplicitné manuálne impact summary polia; budúci frontend si môže vytvoriť odvodený cache iba s kontrolou proti source objects.
 
 ### `report` a `report_version`
 
-`report` je identita klientského výstupu pre inspection. `report_version` je nemenný publikovateľný snapshot.
+`report` je identita klientského výstupu pre inspection. `report_version` je nemenný publikovateľný snapshot reprezentovaný versioned manifestom, nie jedným gigantickým JSON blobom.
 
 `report`:
 
@@ -195,20 +196,21 @@ Ploché polia na issue sú povinný kontrakt pre jednoduchú spotrebu. Kolekcia 
 - `generated_at` a identifikátor verzie kontraktu/renderera, keď bude existovať;
 - `limitations_snapshot` a `unverified_items_snapshot`.
 
+Manifest obsahuje relatívne interné paths, SHA-256, content type, privacy a role minimálne inspection_data, diagnosis_data, media, attachment, source_report alebo other. Publikovaná verzia sa fyzicky pripravuje ako nový adresár `reports/<report-id>/<version>/`; zmena inplace je zakázaná.
+
 v1.0 je prvý schválený výstup. v1.1 dopĺňa meranie alebo dôkaz bez zásadnej zmeny charakteru. v2.0 označuje významnú následnú kontrolu, kontrolu po sanácii alebo podstatnú zmenu záverov. Publikovaná verzia sa neupravuje na mieste.
 
 ## Many-to-many väzby
 
-Nasledujúce väzby sú doménovo potrebné, aj keď ich budúci fyzický formát ostáva otvorený:
+Väzby majú explicitné link objects s vlastným `rel_` ID, typom/rolou, rationale alebo relevance note, časom, actorom a stavom. Kontrakt obsahuje:
 
-- observation ↔ evidence: jeden záber alebo meracia séria môže zachytiť viac observations; observation môže mať viac evidence;
-- diagnostic_issue ↔ observation: issue zoskupuje viac observations; observation môže byť relevantné pre viac issues;
-- diagnostic_issue ↔ evidence: priame podklady k rozsahu alebo následku issue;
-- hypothesis ↔ evidence: väzba nesie rolu `supporting` alebo `contradicting` a voliteľné vysvetlenie významu;
-- verification ↔ hypothesis a verification ↔ diagnostic_issue: jedno overenie môže rozlišovať viac hypotéz alebo issues;
-- verification ↔ evidence: overenie môže použiť vstupné evidence a vytvoriť nové evidence;
-- recommendation ↔ diagnostic_issue: jedna spoločná akcia môže riešiť viac issues a issue môže mať viac recommendations;
-- report_version ↔ diagnostic_issue/recommendation/evidence: verzia vyberá presný schválený súbor položiek alebo uchová ich snapshot.
+- `observation_evidence_links`;
+- `issue_observation_links` a `issue_evidence_links`;
+- `hypothesis_evidence_links` s rolou supporting alebo contradicting;
+- `verification_issue_links`, `verification_hypothesis_links` a `verification_evidence_links`;
+- `recommendation_issue_links` a `recommendation_hypothesis_links`;
+- smerové `recommendation_dependencies` s typom precedes, requires alebo blocks_until_completed;
+- `issue_relations`.
 
 Každá väzba má vlastný pôvod, autora/čas vytvorenia, voliteľné odôvodnenie a stav, ak jej význam môže byť predmetom QA.
 
@@ -222,14 +224,15 @@ Každá väzba má vlastný pôvod, autora/čas vytvorenia, voliteľné odôvodn
 - Klientsky prístup patrí reportu/report version, nie property ako celku. PIN nesmie automaticky odomknúť iné inspections tej istej property.
 - Kontaktné údaje klienta nepatria do diagnostických tvrdení a majú byť oddelené od publikovaného obsahu.
 
-## Otvorené rozhodnutia pred JSON Schema
+## Provenance a idempotency
 
-- konečný formát ID a externých referencií;
-- povolené číselníky kategórií, oblastí a statusov;
-- spoločná stupnica `confidence` a impact/risk levels;
-- presný model meraní a jednotiek;
-- reprezentácia väzieb ako samostatných objektov alebo polí referencií;
-- zdroj pravdy medzi plochými impact poľami a kolekciou `impact`;
-- spôsob snapshotovania report version;
-- pravidlá archivácie, supersede a opravy chybných zdrojových údajov;
-- hranica osobných údajov medzi property, inspection a samostatným klientskym profilom.
+Inspection, importované observations a evidence používajú reusable provenance object. Pre SafetyCulture je trojica `source_system + source_inspection_id + source_item_id` prirodzený idempotency key, ak source item ID existuje. Celý import má `import_id`, `imported_at` a `source_hash`. JSON Schema nevie vynútiť unikátnosť naprieč kolekciami; duplicate key je blocking domain error `E_DUPLICATE_IDEMPOTENCY_KEY`.
+
+## Zostávajúce dátové rozhodnutia
+
+- persistence a indexovanie kontraktov v MVP;
+- mechanizmus opravy/supersede zdrojovej chyby bez straty provenance;
+- verzovanie a publikovanie číselníkov po kontrakte 1.0.0;
+- hranica samostatného klientského profilu a presná retention policy;
+- budúci model agregovaných reportových cost totals bez dvojitého započítania;
+- spôsob bezpečnej atomickej tvorby immutable report package.

@@ -107,6 +107,8 @@ Preferovaný model:
 - logy a chybové správy neobsahujú PIN, session token ani citlivú URL;
 - externá služba sa použije iba s nastavením prístupu zodpovedajúcim client-private klasifikácii.
 
+Kontrakt 1.0.0 pripravuje túto hranicu bez implementácie auth: každé evidence a manifest file má explicitnú privacy `public`, `client_private` alebo `internal`; `media_reference` je interná referencia, nie požiadavka na verejnú URL; manifest path musí byť relatívny bez `..`, absolútnej cesty alebo URL. Domain lint blokuje http(s) reference pri client_private/internal evidence kódom `E_PRIVATE_PUBLIC_URL`.
+
 ## Schválenie, verzia a audit
 
 - Draft ani in-review dáta nie sú klientovi dostupné.

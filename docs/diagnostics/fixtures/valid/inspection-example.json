@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "inspection",
+  "id": "insp_2222222222222222",
+  "property": {
+    "id": "prop_2222222222222222",
+    "display_name": "Anonymizovaný starší rodinný dom – diagnostický príklad",
+    "property_type": "house",
+    "location": {
+      "country_code": "SK",
+      "region": "Banskobystrický kraj",
+      "district": "anonymizovaný okres"
+    }
+  },
+  "inspection": {
+    "property_id": "prop_2222222222222222",
+    "inspection_type": "initial",
+    "performed_at": "2026-06-03T08:30:00+02:00",
+    "processing_status": "diagnostic_draft",
+    "scope": [
+      "Vizuálna kontrola dostupných častí exteriéru a pivnice.",
+      "Orientačné prístrojové meranie povrchu muriva v pivnici.",
+      "Dokumentovanie dažďového zvodu, vlhkostných prejavov a deformácie muriva."
+    ],
+    "limitations": [
+      "Kontrola bola nedeštruktívna a bez sondy podložia.",
+      "Aktivita deformácie nebola overovaná časovým monitoringom."
+    ],
+    "actor_ids": ["inspector_example"],
+    "provenance": {
+      "source_kind": "safetyculture",
+      "source_system": "SafetyCulture",
+      "source_inspection_id": "SC-INSP-260603-A",
+      "source_reference": "SafetyCulture PDF export 260603-A",
+      "imported_at": "2026-06-04T10:00:00+02:00",
+      "source_updated_at": "2026-06-03T12:15:00+02:00",
+      "source_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "actors": [
+    {
+      "id": "inspector_example",
+      "display_name": "Inšpektor DoktorHaus",
+      "role": "inspector"
+    }
+  ],
+  "observations": [
+    {
+      "id": "obs_2222222222222221",
+      "display_code": "OBS-001",
+      "inspection_id": "insp_2222222222222222",
+      "statement": "Dažďový zvod na severnej fasáde je ukončený voľne pri päte obvodovej steny bez preukázaného odvedenia vody ďalej od objektu.",
+      "type": "visual",
+      "area": {
+        "area_type": "exterior",
+        "label": "severná fasáda pri vstupnej bráne",
+        "orientation": "sever"
+      },
+      "status": "active",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "item-downpipe-01",
+        "source_reference": "PDF strana 12, položka Exteriér/Dažďové zvody",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "2222222222222221222222222222222122222222222222212222222222222221"
+      },
+      "observed_at": "2026-06-03T08:45:00+02:00",
+      "observed_by": "inspector_example",
+      "limitations": ["Správanie vody počas intenzívneho dažďa nebolo priamo sledované."]
+    },
+    {
+      "id": "obs_2222222222222222",
+      "display_code": "OBS-002",
+      "inspection_id": "insp_2222222222222222",
+      "statement": "Na vnútornej strane pivničného muriva pri severnej stene bola na prístrojovej škále zaznamenaná hodnota 72 WME.",
+      "type": "measured",
+      "area": {
+        "area_type": "basement",
+        "label": "pivničná miestnosť pod vstupom",
+        "room": "pivnica",
+        "orientation": "sever"
+      },
+      "status": "active",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "item-moisture-02",
+        "source_reference": "PDF strana 19, položka Pivnica/Meranie",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "2222222222222222222222222222222222222222222222222222222222222223"
+      },
+      "observed_at": "2026-06-03T09:20:00+02:00",
+      "observed_by": "inspector_example",
+      "measurement": {
+        "quantity": "orientačná odozva vlhkosti muriva",
+        "value": 72,
+        "unit_kind": "device_scale",
+        "unit_code": "WME",
+        "unit_label": "Wood Moisture Equivalent – prístrojová škála",
+        "method": "povrchové orientačné meranie",
+        "instrument": "ručný vlhkomer",
+        "instrument_id": "METER-DEMO-01",
+        "measured_at": "2026-06-03T09:20:00+02:00",
+        "conditions": "pivnica, bez odkrytia skladby muriva",
+        "notes": "Hodnota WME nie je hmotnostné percento vody v murive."
+      },
+      "limitations": ["Jednorazové povrchové meranie neurčuje zdroj ani transportný mechanizmus vlhkosti."]
+    },
+    {
+      "id": "obs_2222222222222223",
+      "display_code": "OBS-003",
+      "inspection_id": "insp_2222222222222222",
+      "statement": "Vrchná časť muriva pri severozápadnom rohu je viditeľne vychýlená smerom von a v nadväzujúcej omietke sú trhliny.",
+      "type": "visual",
+      "area": {
+        "area_type": "facade",
+        "label": "severozápadný roh obvodového muriva",
+        "orientation": "severozápad"
+      },
+      "status": "active",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "item-wall-03",
+        "source_reference": "PDF strana 14, položka Fasáda/Murivo",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "2222222222222223222222222222222322222222222222232222222222222223"
+      },
+      "observed_at": "2026-06-03T08:55:00+02:00",
+      "observed_by": "inspector_example",
+      "limitations": ["Bez geodetického zamerania a monitoringu nemožno z jedného pozorovania určiť aktivitu pohybu."]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_2222222222222221",
+      "display_code": "EV-001",
+      "inspection_id": "insp_2222222222222222",
+      "type": "photo",
+      "title": "Ukončenie severného dažďového zvodu",
+      "description": "Fotografia zobrazuje voľné vyústenie zvodu pri obvodovej stene.",
+      "captured_at": "2026-06-03T08:45:00+02:00",
+      "captured_by": "inspector_example",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "media-downpipe-01",
+        "source_media_id": "SC-MEDIA-001",
+        "source_reference": "PDF foto 001",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
+      },
+      "media_reference": "media/photos/downpipe-001.jpg",
+      "privacy": "client_private",
+      "status": "active",
+      "content_type": "image/jpeg",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
+    },
+    {
+      "id": "ev_2222222222222222",
+      "display_code": "EV-002",
+      "inspection_id": "insp_2222222222222222",
+      "type": "measurement_record",
+      "title": "Záznam orientačného merania v pivnici",
+      "description": "Záznam hodnoty 72 WME vrátane miesta, metódy a obmedzenia škály.",
+      "captured_at": "2026-06-03T09:20:00+02:00",
+      "captured_by": "inspector_example",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "media-measurement-02",
+        "source_media_id": "SC-MEDIA-002",
+        "source_reference": "PDF meranie 002",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2"
+      },
+      "media_reference": "media/measurements/basement-wme-002.json",
+      "privacy": "client_private",
+      "status": "active",
+      "content_type": "application/json",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2"
+    },
+    {
+      "id": "ev_2222222222222223",
+      "display_code": "EV-003",
+      "inspection_id": "insp_2222222222222222",
+      "type": "photo",
+      "title": "Deformácia a trhliny severozápadného rohu",
+      "description": "Fotografia dokumentuje viditeľný tvar muriva a trhliny bez určenia príčiny.",
+      "captured_at": "2026-06-03T08:55:00+02:00",
+      "captured_by": "inspector_example",
+      "provenance": {
+        "source_kind": "safetyculture",
+        "source_system": "SafetyCulture",
+        "source_inspection_id": "SC-INSP-260603-A",
+        "source_item_id": "media-wall-03",
+        "source_media_id": "SC-MEDIA-003",
+        "source_reference": "PDF foto 003",
+        "imported_at": "2026-06-04T10:00:00+02:00",
+        "source_hash": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc3"
+      },
+      "media_reference": "media/photos/wall-deformation-003.jpg",
+      "privacy": "client_private",
+      "status": "active",
+      "content_type": "image/jpeg",
+      "sha256": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc3"
+    }
+  ],
+  "observation_evidence_links": [
+    {"id":"rel_2222222222222221","observation_id":"obs_2222222222222221","evidence_id":"ev_2222222222222221","role":"depicts","relevance_note":"Fotografia zobrazuje presné ukončenie zvodu.","created_at":"2026-06-04T10:05:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222222","observation_id":"obs_2222222222222222","evidence_id":"ev_2222222222222222","role":"measures","relevance_note":"Záznam uchováva hodnotu a podmienky merania.","created_at":"2026-06-04T10:05:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222223","observation_id":"obs_2222222222222223","evidence_id":"ev_2222222222222223","role":"depicts","relevance_note":"Fotografia dokumentuje tvar a trhliny muriva.","created_at":"2026-06-04T10:05:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "import_metadata": {
+    "import_id": "import_2222222222222222",
+    "imported_at": "2026-06-04T10:00:00+02:00",
+    "source_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+    "source_system": "SafetyCulture",
+    "source_inspection_id": "SC-INSP-260603-A",
+    "notes": "Fixture používa anonymizované diagnostické údaje."
+  },
+  "created_at": "2026-06-04T10:00:00+02:00",
+  "updated_at": "2026-06-04T10:05:00+02:00"
+}

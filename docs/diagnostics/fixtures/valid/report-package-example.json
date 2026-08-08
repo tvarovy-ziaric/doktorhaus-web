@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "report_package",
+  "report": {
+    "id": "rpt_2222222222222222",
+    "inspection_id": "insp_2222222222222222",
+    "status": "active",
+    "current_published_version_id": "rptv_2222222222222222"
+  },
+  "report_version": {
+    "id": "rptv_2222222222222222",
+    "report_id": "rpt_2222222222222222",
+    "version": "1.0",
+    "change_type": "initial",
+    "change_summary": "Prvý schválený diagnostický report z úvodnej inšpekcie.",
+    "status": "published",
+    "generated_at": "2026-06-04T15:00:00+02:00",
+    "approved_by": "reviewer_example",
+    "approved_at": "2026-06-04T15:15:00+02:00",
+    "published_at": "2026-06-04T15:30:00+02:00",
+    "renderer_contract_version": "1.0.0",
+    "limitations_snapshot": [
+      "Kontrola bola nedeštruktívna a bez sondy podložia.",
+      "Aktivita deformácie nebola overovaná časovým monitoringom."
+    ],
+    "unverified_items_snapshot": [
+      "Aktivita deformácie a skladba založenia v severozápadnom rohu."
+    ]
+  },
+  "actors": [
+    {"id":"inspector_example","display_name":"Inšpektor DoktorHaus","role":"inspector"},
+    {"id":"reviewer_example","display_name":"Odborný reviewer DoktorHaus","role":"reviewer"}
+  ],
+  "files": [
+    {
+      "role": "inspection_data",
+      "path": "inspection.json",
+      "sha256": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd1",
+      "content_type": "application/json",
+      "size_bytes": 14800,
+      "privacy": "client_private"
+    },
+    {
+      "role": "diagnosis_data",
+      "path": "diagnosis.json",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee2",
+      "content_type": "application/json",
+      "size_bytes": 26200,
+      "privacy": "client_private"
+    },
+    {
+      "role": "media",
+      "path": "media/photos/downpipe-001.jpg",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+      "content_type": "image/jpeg",
+      "size_bytes": 420000,
+      "privacy": "client_private"
+    },
+    {
+      "role": "media",
+      "path": "media/photos/wall-deformation-003.jpg",
+      "sha256": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc3",
+      "content_type": "image/jpeg",
+      "size_bytes": 510000,
+      "privacy": "client_private"
+    },
+    {
+      "role": "source_report",
+      "path": "attachments/safetyculture-source-report.pdf",
+      "sha256": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff4",
+      "content_type": "application/pdf",
+      "size_bytes": 1800000,
+      "privacy": "internal"
+    }
+  ],
+  "created_at": "2026-06-04T15:30:00+02:00"
+}

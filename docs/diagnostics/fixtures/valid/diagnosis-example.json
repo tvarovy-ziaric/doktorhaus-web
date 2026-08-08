@@ -1,0 +1,176 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "diagnosis",
+  "id": "insp_2222222222222222",
+  "inspection_id": "insp_2222222222222222",
+  "status": "approved",
+  "actors": [
+    {"id":"inspector_example","display_name":"Inšpektor DoktorHaus","role":"inspector"},
+    {"id":"reviewer_example","display_name":"Odborný reviewer DoktorHaus","role":"reviewer"}
+  ],
+  "issues": [
+    {
+      "id": "issue_2222222222222222",
+      "display_code": "DI-001",
+      "title": "Súvisiace vlhkostné prejavy a deformácia muriva pri severnej časti domu",
+      "category": "drainage",
+      "affected_areas": [
+        {"area_type":"exterior","label":"severná fasáda pri vstupnej bráne","orientation":"sever"},
+        {"area_type":"basement","label":"pivničná miestnosť pod vstupom","room":"pivnica","orientation":"sever"},
+        {"area_type":"facade","label":"severozápadný roh obvodového muriva","orientation":"severozápad"}
+      ],
+      "summary": "Voľné vyústenie dažďového zvodu, zvýšená prístrojová odozva v pivnici a deformácia muriva sú združené do jedného diagnostického problému, pretože sa nachádzajú v nadväzujúcej časti objektu. Dostupné údaje zatiaľ nepotvrdzujú spoločnú príčinu.",
+      "interpretation": "Kombinácia prejavov odôvodňuje najprv upraviť hospodárenie s dažďovou vodou a sledovať vývoj, nie bez overenia určiť definitívnu sanáciu muriva.",
+      "severity": "S4",
+      "severity_rationale": "Ak je deformácia aktívna, následok môže byť významný pre murivo a nadväzujúce opravy; aktivita však zatiaľ nie je potvrdená.",
+      "likelihood": "L3",
+      "likelihood_subject": "Pokračovanie lokálneho vlhkostného zaťaženia pri ponechaní dnešného ukončenia zvodu.",
+      "likelihood_subject_kind": "future_event",
+      "likelihood_rationale": "Voda je vypúšťaná pri stene a v nadväzujúcej pivnici bola zaznamenaná zvýšená prístrojová odozva, no nebol sledovaný dážď ani transport vody.",
+      "urgency": "U2",
+      "urgency_rationale": "Odvedenie vody a príprava monitoringu sú vhodné približne do jedného mesiaca, aby sa obmedzilo ďalšie zaťaženie a získali porovnateľné údaje.",
+      "priority": "P2",
+      "priority_rationale": "Najprv treba odstrániť jednoduchý zdroj vody a vytvoriť podmienky na overenie aktivity pred drahšou opravou muriva.",
+      "confidence": "medium",
+      "deterioration_rate": "unknown",
+      "deterioration_rationale": "Chýba časová séria trhlín, geometrie aj vlhkostných meraní.",
+      "short_term_risk": {
+        "level": "moderate",
+        "description": "Do vykonania prvých krokov môže pokračovať lokálne zmáčanie; bez monitoringu nemožno potvrdiť pohyb muriva.",
+        "horizon": "najbližší mesiac až tri mesiace"
+      },
+      "long_term_risk": {
+        "level": "high",
+        "description": "Ak voda dlhodobo prispieva k zvlhčovaniu alebo pohybu, odklad môže zväčšiť rozsah poškodenia a znehodnotiť finálne povrchy.",
+        "horizon": "viac než 12 mesiacov pri ponechaní stavu"
+      },
+      "cost_estimate": {
+        "status": "estimated",
+        "min": 2000,
+        "expected": 3500,
+        "max": 6000,
+        "currency": "EUR",
+        "confidence": "low",
+        "price_basis_date": "2026-06-04",
+        "scope": "Úprava odvedenia dažďovej vody, základný monitoring a lokálne nadväzujúce práce; bez stabilizácie muriva.",
+        "assumptions": ["Prístup k zvodu je voľný.", "Monitoring nevyžaduje rozsiahle lešenie."],
+        "exclusions": ["Statický projekt a prípadná stabilizácia muriva.", "Skryté poškodenie základov alebo podložia.", "Finálne omietky pred potvrdením stabilného stavu."],
+        "source_method": "expert_range",
+        "vat_status": "unknown",
+        "financial_ui_band": null
+      },
+      "cost_escalation": {
+        "level": "high",
+        "mechanism": "Pokračujúce zavodňovanie môže rozšíriť vlhkostné poškodenie a predčasná omietka sa môže znehodnotiť.",
+        "trigger": "Odklad úpravy zvodu alebo vykonanie finálnych povrchov pred overením stability a vlhkostného režimu.",
+        "preventive_step": "Najprv odviesť dažďovú vodu, potom monitorovať vlhkosť a deformáciu a až následne rozhodnúť o ďalšej sanácii.",
+        "confidence": "medium",
+        "rationale": "Poradie krokov chráni klienta pred opakovanou opravou, aj keď spoločná príčina ešte nie je potvrdená."
+      },
+      "status": "active",
+      "missing_information": [
+        {
+          "id": "rel_2222222222222299",
+          "statement": "Nie je známa aktivita deformácie ani skladba založenia v severozápadnom rohu.",
+          "why_it_matters": "Bez týchto údajov nemožno potvrdiť mechanizmus pohybu ani navrhnúť definitívnu stabilizáciu.",
+          "how_to_obtain": "Zaviesť monitoring, podľa vývoja vykonať sondu a statické alebo geotechnické posúdenie.",
+          "blocking": true,
+          "recommended_specialty": {"specialty":"structural_engineer"},
+          "related_hypothesis_ids": ["hyp_2222222222222222"]
+        }
+      ],
+      "limitations": [
+        "Jednorazová nedeštruktívna obhliadka nepotvrdzuje príčinu deformácie.",
+        "Hodnota WME nie je priamym hmotnostným percentom vody v murive."
+      ]
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "hyp_2222222222222222",
+      "display_code": "HYP-001",
+      "diagnostic_issue_id": "issue_2222222222222222",
+      "statement": "Dlhodobé zavodňovanie pri severnej stene môže prispievať k vlhkostnému zaťaženiu a môže byť jedným z faktorov súvisiacich s pohybom muriva.",
+      "mechanism": "Koncentrovaná dažďová voda môže meniť vlhkostné podmienky pri základe; rozsah a význam tohto mechanizmu treba overiť.",
+      "confidence": "medium",
+      "status": "under_verification",
+      "rationale": "Priestorová blízkosť prejavov hypotézu podporuje, no chýba sonda, monitoring a potvrdenie charakteru podložia.",
+      "missing_information_ids": ["rel_2222222222222299"]
+    }
+  ],
+  "impacts": [
+    {"id":"imp_2222222222222221","diagnostic_issue_id":"issue_2222222222222222","dimension":"safety","level":"moderate","description":"Bez monitoringu nemožno úplne vylúčiť lokálne riziko spojené s vývojom deformácie; bezprostredné ohrozenie nebolo pozorované.","time_horizon":"short_term","confidence":"low","rationale":"Viditeľná deformácia existuje, jej aktivita a únosnosť však neboli posúdené.","supporting_observation_ids":["obs_2222222222222223"]},
+    {"id":"imp_2222222222222222","diagnostic_issue_id":"issue_2222222222222222","dimension":"structural","level":"high","description":"Aktívny pohyb by mohol mať významný dopad na murivo; súčasná aktivita nie je potvrdená.","time_horizon":"long_term","confidence":"medium","rationale":"Tvar muriva a trhliny odôvodňujú odborné overenie.","supporting_observation_ids":["obs_2222222222222223"]},
+    {"id":"imp_2222222222222223","diagnostic_issue_id":"issue_2222222222222222","dimension":"moisture","level":"high","description":"Voda pri stene a zvýšená odozva v pivnici predstavujú významné vlhkostné súvislosti.","time_horizon":"both","confidence":"medium","rationale":"Dve samostatné pozorovania sa nachádzajú v nadväzujúcej oblasti, transport vody však nie je potvrdený.","supporting_observation_ids":["obs_2222222222222221","obs_2222222222222222"]},
+    {"id":"imp_2222222222222224","diagnostic_issue_id":"issue_2222222222222222","dimension":"health","level":"low","description":"Zdravotný dopad nebol priamo pozorovaný; dlhodobá vlhkosť môže zhoršiť vnútorné prostredie.","time_horizon":"long_term","confidence":"low","rationale":"Nie je doložená pleseň ani pobytová expozícia v pivnici.","supporting_observation_ids":["obs_2222222222222222"]},
+    {"id":"imp_2222222222222225","diagnostic_issue_id":"issue_2222222222222222","dimension":"durability","level":"high","description":"Opakované zmáčanie a prípadný pohyb môžu znižovať životnosť muriva a povrchov.","time_horizon":"long_term","confidence":"medium","rationale":"Pozorované prejavy sú relevantné pre dlhodobú trvanlivosť detailu.","supporting_observation_ids":["obs_2222222222222221","obs_2222222222222222","obs_2222222222222223"]},
+    {"id":"imp_2222222222222226","diagnostic_issue_id":"issue_2222222222222222","dimension":"usability","level":"moderate","description":"Pivnica je použiteľná, ale vlhkostné prejavy a monitoring obmedzia plánovanie finálnych úprav.","time_horizon":"both","confidence":"medium","rationale":"Pred finálnou obnovou treba overiť režim vlhkosti a stabilitu.","supporting_observation_ids":["obs_2222222222222222","obs_2222222222222223"]},
+    {"id":"imp_2222222222222227","diagnostic_issue_id":"issue_2222222222222222","dimension":"financial","level":"high","description":"Nesprávne poradie zásahov môže viesť k opakovanej oprave a výrazne vyšším nákladom.","time_horizon":"long_term","confidence":"medium","rationale":"Finálne povrchy vykonané pred vyriešením vody a overením pohybu môžu byť znehodnotené.","supporting_observation_ids":["obs_2222222222222221","obs_2222222222222222","obs_2222222222222223"]}
+  ],
+  "verifications": [
+    {
+      "id":"ver_2222222222222221","display_code":"VER-001","verification_type":"monitoring","method":"Osadiť referenčné body a pravidelne dokumentovať trhliny a geometriu muriva.","purpose":"Zistiť, či je deformácia aktívna a ako sa mení v čase.","status":"proposed","limitations":["Krátke obdobie nemusí zachytiť sezónnu zmenu."],"specialist_required":true,"responsible_specialty":{"specialty":"structural_engineer"}
+    },
+    {
+      "id":"ver_2222222222222222","display_code":"VER-002","verification_type":"destructive_probe","method":"Cielená sonda pri základe podľa rozhodnutia statika alebo geotechnika.","purpose":"Overiť skladbu založenia a podmienky podložia, ak monitoring alebo odborné posúdenie ukáže potrebu.","status":"proposed","limitations":["Rozsah sondy sa určí až po úvodnom odbornom posúdení."],"specialist_required":true,"responsible_specialty":{"specialty":"geotechnical_specialist"}
+    }
+  ],
+  "recommendations": [
+    {"id":"rec_2222222222222221","display_code":"REC-001","type":"REPAIR","title":"Odviesť dažďovú vodu mimo bezprostrednej blízkosti steny","description":"Navrhnúť a vykonať funkčné ukončenie zvodu tak, aby voda nebola vypúšťaná pri stene.","rationale":"Ide o prvý praktický krok, ktorý môže znížiť vlhkostné zaťaženie bez predstierania potvrdenej príčiny deformácie.","status":"approved","target_timeframe":{"urgency":"U2","recommended_by":"2026-06-04","recommended_before":"2026-07-04","text":"približne do jedného mesiaca"},"responsible_specialty":{"specialty":"waterproofing_specialist"},"acceptance_or_follow_up":"Počas dažďa overiť, že voda odteká mimo objekt a nevracia sa k stene.","conditional":false},
+    {"id":"rec_2222222222222222","display_code":"REC-002","type":"MONITOR","title":"Monitorovať vlhkosť a deformáciu","description":"Zaviesť porovnateľné záznamy vlhkosti, trhlín a tvaru muriva po úprave zvodu.","rationale":"Monitoring oddelí jednorazový prejav od pokračujúceho vývoja.","status":"approved","target_timeframe":{"urgency":"U2","recommended_by":"2026-06-04","recommended_before":"2026-07-04","text":"začať po úprave zvodu a pokračovať podľa plánu špecialistu"},"responsible_specialty":{"specialty":"building_inspector"},"acceptance_or_follow_up":"Vyhodnotiť časovú sériu s rovnakými bodmi, metódou a podmienkami.","conditional":false},
+    {"id":"rec_2222222222222223","display_code":"REC-003","type":"VERIFY","title":"Odborne overiť aktivitu a mechanizmus deformácie","description":"Podľa výsledku monitoringu vykonať statické posúdenie a podľa potreby cielenú sondu.","rationale":"Definitívna stabilizácia nie je primeraná bez overenia aktivity, založenia a podložia.","status":"approved","target_timeframe":{"urgency":"U3","recommended_by":"2026-06-04","text":"do troch mesiacov alebo skôr pri zmene trhlín"},"responsible_specialty":{"specialty":"structural_engineer"},"acceptance_or_follow_up":"Písomný záver má uviesť aktivitu, potrebné opatrenia a rozsah ďalšieho overenia.","conditional":true,"condition_description":"Rozsah sondy a ďalších krokov závisí od monitoringu a úvodného statického posúdenia."},
+    {"id":"rec_2222222222222224","display_code":"REC-004","type":"REPAIR","title":"Obnoviť poškodené omietky až po vyriešení príčiny","description":"Finálne povrchy vykonať po stabilizovaní vlhkostného režimu a overení, že murivo nevyžaduje ďalší zásah.","rationale":"Predčasná omietka by mohla zakryť vývoj a byť znehodnotená.","status":"approved","target_timeframe":{"urgency":"U5","recommended_by":"2026-06-04","text":"až po uzavretí overení a stabilizácii stavu"},"responsible_specialty":{"specialty":"other","label":"murár a omietkar"},"acceptance_or_follow_up":"Pred povrchovou úpravou potvrdiť ukončenie monitoringu alebo podmienky ďalšieho sledovania.","conditional":true,"condition_description":"Vykonať iba po splnení predchádzajúcich krokov a potvrdení vhodného podkladu."}
+  ],
+  "issue_observation_links": [
+    {"id":"rel_2222222222222201","issue_id":"issue_2222222222222222","observation_id":"obs_2222222222222221","role":"primary","rationale":"Pozorovanie zachytáva spôsob odvedenia vody.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222202","issue_id":"issue_2222222222222222","observation_id":"obs_2222222222222222","role":"primary","rationale":"Pozorovanie zachytáva vlhkostný prejav v nadväzujúcej oblasti.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222203","issue_id":"issue_2222222222222222","observation_id":"obs_2222222222222223","role":"primary","rationale":"Pozorovanie zachytáva deformáciu a trhliny bez určenia príčiny.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "issue_evidence_links": [
+    {"id":"rel_2222222222222204","issue_id":"issue_2222222222222222","evidence_id":"ev_2222222222222221","role":"supporting","rationale":"Fotografia dokumentuje ukončenie zvodu.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222205","issue_id":"issue_2222222222222222","evidence_id":"ev_2222222222222222","role":"supporting","rationale":"Záznam dokumentuje meranie a jeho obmedzenia.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222206","issue_id":"issue_2222222222222222","evidence_id":"ev_2222222222222223","role":"supporting","rationale":"Fotografia dokumentuje tvar muriva a trhliny.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "hypothesis_evidence_links": [
+    {"id":"rel_2222222222222207","hypothesis_id":"hyp_2222222222222222","evidence_id":"ev_2222222222222221","role":"supporting","rationale":"Poloha vypúšťania vody je kompatibilná s hypotézou zavodňovania, ale sama ju nepotvrdzuje.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222208","hypothesis_id":"hyp_2222222222222222","evidence_id":"ev_2222222222222222","role":"supporting","rationale":"Zvýšená odozva v nadväzujúcej oblasti hypotézu podporuje iba nepriamo.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222209","hypothesis_id":"hyp_2222222222222222","evidence_id":"ev_2222222222222223","role":"supporting","rationale":"Deformácia je prejav na overenie, nie potvrdenie mechanizmu.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "verification_issue_links": [
+    {"id":"rel_2222222222222210","verification_id":"ver_2222222222222221","issue_id":"issue_2222222222222222","role":"monitors","rationale":"Monitoring má určiť aktivitu problému.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222211","verification_id":"ver_2222222222222222","issue_id":"issue_2222222222222222","role":"scopes","rationale":"Sonda môže spresniť rozsah a podmienky založenia.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "verification_hypothesis_links": [
+    {"id":"rel_2222222222222212","verification_id":"ver_2222222222222221","hypothesis_id":"hyp_2222222222222222","role":"tests","rationale":"Časový vývoj pomôže posúdiť súvislosť so zmenou vlhkostných podmienok.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222213","verification_id":"ver_2222222222222222","hypothesis_id":"hyp_2222222222222222","role":"tests","rationale":"Sonda môže overiť podmienky potrebné na posúdenie mechanizmu.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "verification_evidence_links": [
+    {"id":"rel_2222222222222214","verification_id":"ver_2222222222222221","evidence_id":"ev_2222222222222223","role":"input","rationale":"Fotografia tvorí východiskový dokumentačný bod.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "recommendation_issue_links": [
+    {"id":"rel_2222222222222215","recommendation_id":"rec_2222222222222221","issue_id":"issue_2222222222222222","role":"mitigates","rationale":"Odvedenie vody znižuje expozíciu bez definitívneho tvrdenia o príčine.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222216","recommendation_id":"rec_2222222222222222","issue_id":"issue_2222222222222222","role":"monitors","rationale":"Monitoring sleduje vývoj issue.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222217","recommendation_id":"rec_2222222222222223","issue_id":"issue_2222222222222222","role":"addresses","rationale":"Odborné overenie uzatvára chýbajúce diagnostické informácie.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222218","recommendation_id":"rec_2222222222222224","issue_id":"issue_2222222222222222","role":"addresses","rationale":"Finálna obnova je posledný podmienený krok.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "recommendation_hypothesis_links": [
+    {"id":"rel_2222222222222219","recommendation_id":"rec_2222222222222223","hypothesis_id":"hyp_2222222222222222","role":"tests","rationale":"Verification recommendation má rozlíšiť hypotézu od alternatív.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222220","recommendation_id":"rec_2222222222222224","hypothesis_id":"hyp_2222222222222222","role":"conditional_on","rationale":"Finálna omietka závisí od uzavretia diagnostiky mechanizmu.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "recommendation_dependencies": [
+    {"id":"rel_2222222222222221","from_recommendation_id":"rec_2222222222222221","to_recommendation_id":"rec_2222222222222222","dependency_type":"precedes","rationale":"Najprv sa odstráni jednoduchý zdroj vody, potom sa sleduje nový stav.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222222","from_recommendation_id":"rec_2222222222222222","to_recommendation_id":"rec_2222222222222223","dependency_type":"precedes","rationale":"Časová séria je vstupom pre odborné rozhodnutie.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"},
+    {"id":"rel_2222222222222223","from_recommendation_id":"rec_2222222222222223","to_recommendation_id":"rec_2222222222222224","dependency_type":"blocks_until_completed","rationale":"Finálne povrchy sa nemajú vykonať pred uzavretím overenia.","created_at":"2026-06-04T11:00:00+02:00","created_by":"inspector_example","status":"active"}
+  ],
+  "issue_relations": [],
+  "qa": {
+    "status": "passed",
+    "checked_at": "2026-06-04T14:30:00+02:00",
+    "checked_by": "reviewer_example",
+    "errors_acknowledged": [],
+    "warnings_acknowledged": [],
+    "notes": "Reviewer potvrdil oddelenie pozorovaní, hypotézy a podmienených odporúčaní."
+  },
+  "created_at": "2026-06-04T11:00:00+02:00",
+  "updated_at": "2026-06-04T14:30:00+02:00"
+}

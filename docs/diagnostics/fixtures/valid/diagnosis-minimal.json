@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "diagnosis",
+  "id": "insp_1111111111111111",
+  "inspection_id": "insp_1111111111111111",
+  "status": "draft",
+  "actors": [
+    {
+      "id": "inspector_minimal",
+      "display_name": "Inšpektor DoktorHaus",
+      "role": "inspector"
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue_1111111111111111",
+      "display_code": "DI-001",
+      "title": "Vyústenie dažďového zvodu pri obvodovej stene",
+      "category": "drainage",
+      "affected_areas": [
+        {
+          "area_type": "exterior",
+          "label": "severná obvodová stena pri zvode",
+          "orientation": "sever"
+        }
+      ],
+      "summary": "Dažďová voda nie je odvedená preukázateľne mimo bezprostrednej blízkosti steny.",
+      "severity": "S2",
+      "severity_rationale": "Pozorovaný detail má lokálny význam a bez ďalších prejavov nepreukazuje vážne poškodenie.",
+      "likelihood": "L5",
+      "likelihood_subject": "Vyústenie zvodu pri stene je priamo pozorované.",
+      "likelihood_subject_kind": "observed_condition",
+      "likelihood_rationale": "Poloha konca zvodu bola vizuálne overená.",
+      "urgency": "U4",
+      "urgency_rationale": "Úpravu je vhodné zaradiť do ročného plánu údržby.",
+      "priority": "P4",
+      "priority_rationale": "Bez súvisiacich vlhkostných prejavov ide o nízku prioritu preventívnej údržby.",
+      "confidence": "high",
+      "deterioration_rate": "unknown",
+      "deterioration_rationale": "Jednorazová obhliadka neposkytuje časové porovnanie.",
+      "short_term_risk": {
+        "level": "low",
+        "description": "Pri bežných zrážkach je krátkodobý dopad bez ďalších prejavov obmedzený.",
+        "horizon": "do plánovanej údržby, najviac 12 mesiacov"
+      },
+      "long_term_risk": {
+        "level": "moderate",
+        "description": "Dlhodobé ponechanie vody pri stene môže zvyšovať vlhkostné zaťaženie detailu.",
+        "horizon": "viac než 12 mesiacov"
+      },
+      "cost_estimate": {
+        "status": "not_estimated",
+        "reason": "Rozsah potrebnej úpravy odvodnenia nebol v minimálnom fixture zameraný."
+      },
+      "cost_escalation": {
+        "level": "low",
+        "mechanism": "Dlhodobé opakované zmáčanie môže rozšíriť lokálny rozsah údržby.",
+        "trigger": "Ponechanie zvodu bez úpravy počas ďalších sezón.",
+        "preventive_step": "Overiť smerovanie vody a upraviť ukončenie zvodu.",
+        "confidence": "low",
+        "rationale": "Nie sú doložené súvisiace vlhkostné prejavy ani časová séria."
+      },
+      "status": "active",
+      "missing_information": [],
+      "limitations": ["Nebola vykonaná sonda pri základe ani dlhodobé sledovanie počas dažďa."]
+    }
+  ],
+  "hypotheses": [],
+  "impacts": [
+    {"id":"imp_1111111111111111","diagnostic_issue_id":"issue_1111111111111111","dimension":"safety","level":"none","description":"V dostupnom rozsahu sa nezistil priamy bezpečnostný dopad.","time_horizon":"both","confidence":"medium","rationale":"Pozorovaný detail neobmedzuje bezpečný pohyb ani stabilitu.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_1111111111111112","diagnostic_issue_id":"issue_1111111111111111","dimension":"structural","level":"unknown","description":"Konštrukčný dopad nebol preukázaný ani vylúčený.","time_horizon":"long_term","confidence":"low","rationale":"Chýba sonda a súvisiace pozorovania konštrukcie.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_1111111111111113","diagnostic_issue_id":"issue_1111111111111111","dimension":"moisture","level":"moderate","description":"Detail môže dlhodobo zvyšovať lokálne vlhkostné zaťaženie.","time_horizon":"long_term","confidence":"medium","rationale":"Voda je smerovaná do blízkosti steny.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_1111111111111114","diagnostic_issue_id":"issue_1111111111111111","dimension":"health","level":"none","description":"Z dostupného exteriérového pozorovania nevyplýva zdravotný dopad.","time_horizon":"short_term","confidence":"medium","rationale":"Neboli zaznamenané vnútorné prejavy.","supporting_observation_ids":[]},
+    {"id":"imp_1111111111111115","diagnostic_issue_id":"issue_1111111111111111","dimension":"durability","level":"low","description":"Pri dlhom odklade môže detail lokálne znižovať životnosť povrchov.","time_horizon":"long_term","confidence":"low","rationale":"Rozsah a opakovanie zmáčania nie sú známe.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_1111111111111116","diagnostic_issue_id":"issue_1111111111111111","dimension":"usability","level":"none","description":"Detail aktuálne neobmedzuje používanie objektu.","time_horizon":"short_term","confidence":"high","rationale":"Nebolo pozorované funkčné obmedzenie.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_1111111111111117","diagnostic_issue_id":"issue_1111111111111111","dimension":"financial","level":"low","description":"Predpokladá sa skôr lokálna údržba, rozsah však nebol ocenený.","time_horizon":"both","confidence":"low","rationale":"Chýba zameranie a cenový podklad.","supporting_observation_ids":["obs_1111111111111111"]}
+  ],
+  "verifications": [],
+  "recommendations": [],
+  "issue_observation_links": [
+    {"id":"rel_1111111111111112","issue_id":"issue_1111111111111111","observation_id":"obs_1111111111111111","role":"primary","rationale":"Pozorovanie priamo opisuje hodnotený detail.","created_at":"2026-06-03T13:00:00+02:00","created_by":"inspector_minimal","status":"active"}
+  ],
+  "issue_evidence_links": [
+    {"id":"rel_1111111111111113","issue_id":"issue_1111111111111111","evidence_id":"ev_1111111111111111","role":"supporting","rationale":"Terénna poznámka dokumentuje polohu zvodu.","created_at":"2026-06-03T13:00:00+02:00","created_by":"inspector_minimal","status":"active"}
+  ],
+  "hypothesis_evidence_links": [],
+  "verification_issue_links": [],
+  "verification_hypothesis_links": [],
+  "verification_evidence_links": [],
+  "recommendation_issue_links": [],
+  "recommendation_hypothesis_links": [],
+  "recommendation_dependencies": [],
+  "issue_relations": [],
+  "qa": {
+    "status": "not_checked",
+    "errors_acknowledged": [],
+    "warnings_acknowledged": [],
+    "notes": "Minimálny pracovný fixture bez schválenia."
+  },
+  "created_at": "2026-06-03T13:00:00+02:00",
+  "updated_at": "2026-06-03T13:00:00+02:00"
+}

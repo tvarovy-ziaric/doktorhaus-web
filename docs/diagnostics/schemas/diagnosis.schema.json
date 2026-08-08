@@ -1,0 +1,420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doktorhaus.sk/schemas/diagnostics/diagnosis.schema.json",
+  "title": "DoktorHaus diagnosis document",
+  "description": "Diagnostic issues, hypotheses, impacts, verifications, recommendations, explicit link objects and QA metadata referencing one normalized inspection document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "id",
+    "inspection_id",
+    "status",
+    "actors",
+    "issues",
+    "hypotheses",
+    "impacts",
+    "verifications",
+    "recommendations",
+    "issue_observation_links",
+    "issue_evidence_links",
+    "hypothesis_evidence_links",
+    "verification_issue_links",
+    "verification_hypothesis_links",
+    "verification_evidence_links",
+    "recommendation_issue_links",
+    "recommendation_hypothesis_links",
+    "recommendation_dependencies",
+    "issue_relations",
+    "qa",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "document_type": { "const": "diagnosis" },
+    "id": {
+      "description": "The diagnosis document shares the stable inspection identity; it is not a separate domain entity.",
+      "$ref": "common.schema.json#/$defs/inspection_id"
+    },
+    "inspection_id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+    "status": { "type": "string", "enum": ["draft", "qa_pending", "qa_blocked", "approved", "superseded"] },
+    "actors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/actor" }
+    },
+    "issues": { "type": "array", "items": { "$ref": "#/$defs/diagnostic_issue" } },
+    "hypotheses": { "type": "array", "items": { "$ref": "#/$defs/hypothesis" } },
+    "impacts": { "type": "array", "items": { "$ref": "#/$defs/impact" } },
+    "verifications": { "type": "array", "items": { "$ref": "#/$defs/verification" } },
+    "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } },
+    "issue_observation_links": { "type": "array", "items": { "$ref": "#/$defs/issue_observation_link" } },
+    "issue_evidence_links": { "type": "array", "items": { "$ref": "#/$defs/issue_evidence_link" } },
+    "hypothesis_evidence_links": { "type": "array", "items": { "$ref": "#/$defs/hypothesis_evidence_link" } },
+    "verification_issue_links": { "type": "array", "items": { "$ref": "#/$defs/verification_issue_link" } },
+    "verification_hypothesis_links": { "type": "array", "items": { "$ref": "#/$defs/verification_hypothesis_link" } },
+    "verification_evidence_links": { "type": "array", "items": { "$ref": "#/$defs/verification_evidence_link" } },
+    "recommendation_issue_links": { "type": "array", "items": { "$ref": "#/$defs/recommendation_issue_link" } },
+    "recommendation_hypothesis_links": { "type": "array", "items": { "$ref": "#/$defs/recommendation_hypothesis_link" } },
+    "recommendation_dependencies": { "type": "array", "items": { "$ref": "#/$defs/recommendation_dependency" } },
+    "issue_relations": { "type": "array", "items": { "$ref": "#/$defs/issue_relation" } },
+    "qa": { "$ref": "#/$defs/qa" },
+    "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/date_time" }
+  },
+  "$defs": {
+    "diagnostic_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "title", "category", "affected_areas", "summary", "severity", "severity_rationale",
+        "likelihood", "likelihood_subject", "likelihood_subject_kind", "likelihood_rationale",
+        "urgency", "urgency_rationale", "priority", "priority_rationale", "confidence",
+        "deterioration_rate", "deterioration_rationale", "short_term_risk", "long_term_risk",
+        "cost_estimate", "cost_escalation", "status", "missing_information", "limitations"
+      ],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "category": {
+          "type": "string",
+          "enum": [
+            "drainage", "moisture", "structural", "masonry", "foundation", "facade", "roof",
+            "chimney_flue", "electrical", "heating", "plumbing", "sewerage", "ventilation",
+            "indoor_climate", "biological", "windows_doors", "site_exterior", "documentation",
+            "fire_safety", "other"
+          ]
+        },
+        "category_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "affected_areas": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "common.schema.json#/$defs/area_reference" }
+        },
+        "summary": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "interpretation": { "type": "string", "description": "Optional expert meaning kept distinct from observations and causal hypotheses." },
+        "severity": { "$ref": "common.schema.json#/$defs/severity" },
+        "severity_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "likelihood": { "$ref": "common.schema.json#/$defs/likelihood" },
+        "likelihood_subject": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "likelihood_subject_kind": {
+          "type": "string",
+          "enum": ["observed_condition", "future_event", "hypothesized_mechanism"]
+        },
+        "likelihood_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "urgency": { "$ref": "common.schema.json#/$defs/urgency" },
+        "urgency_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "priority": { "$ref": "common.schema.json#/$defs/priority" },
+        "priority_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "deterioration_rate": { "$ref": "common.schema.json#/$defs/deterioration_rate" },
+        "deterioration_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "short_term_risk": { "$ref": "common.schema.json#/$defs/risk_assessment" },
+        "long_term_risk": { "$ref": "common.schema.json#/$defs/risk_assessment" },
+        "cost_estimate": { "$ref": "common.schema.json#/$defs/cost_estimate" },
+        "cost_escalation": { "$ref": "common.schema.json#/$defs/cost_escalation" },
+        "status": { "type": "string", "enum": ["active", "monitoring", "resolved", "superseded"] },
+        "missing_information": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/missing_information" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "category": { "const": "other" } }, "required": ["category"] },
+          "then": { "required": ["category_label"] }
+        }
+      ]
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "diagnostic_issue_id", "statement", "mechanism", "confidence", "status", "rationale", "missing_information_ids"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/hypothesis_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "diagnostic_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "mechanism": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "status": { "type": "string", "enum": ["proposed", "under_verification", "supported", "contradicted", "inconclusive"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "missing_information_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/relation_id" }
+        }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "diagnostic_issue_id", "dimension", "level", "description", "time_horizon", "confidence", "rationale", "supporting_observation_ids"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/impact_id" },
+        "diagnostic_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "dimension": { "type": "string", "enum": ["safety", "structural", "moisture", "health", "durability", "usability", "financial"] },
+        "level": { "$ref": "common.schema.json#/$defs/risk_level" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "time_horizon": { "type": "string", "enum": ["short_term", "long_term", "both"] },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "supporting_observation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/observation_id" }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verification_type", "method", "purpose", "status", "limitations", "specialist_required"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "verification_type": {
+          "type": "string",
+          "enum": ["inspection", "measurement", "monitoring", "destructive_probe", "laboratory_test", "specialist_assessment", "document_review", "other"]
+        },
+        "verification_type_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "method": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "purpose": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "status": { "type": "string", "enum": ["proposed", "scheduled", "completed", "not_feasible", "declined"] },
+        "performed_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "performed_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "result_summary": { "type": "string" },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        },
+        "specialist_required": { "type": "boolean" },
+        "responsible_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "verification_type": { "const": "other" } }, "required": ["verification_type"] },
+          "then": { "required": ["verification_type_label"] }
+        },
+        {
+          "if": { "properties": { "specialist_required": { "const": true } }, "required": ["specialist_required"] },
+          "then": { "required": ["responsible_specialty"] }
+        }
+      ]
+    },
+    "target_timeframe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urgency", "recommended_by", "text"],
+      "properties": {
+        "urgency": { "$ref": "common.schema.json#/$defs/urgency" },
+        "recommended_by": { "$ref": "common.schema.json#/$defs/date" },
+        "recommended_before": { "$ref": "common.schema.json#/$defs/date" },
+        "text": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_code", "type", "title", "description", "rationale", "status", "target_timeframe", "responsible_specialty", "acceptance_or_follow_up", "conditional"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "type": { "type": "string", "enum": ["IMMEDIATE", "VERIFY", "REPAIR", "MONITOR", "MAINTENANCE", "DOCUMENT"] },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "status": { "type": "string", "enum": ["proposed", "approved", "completed", "deferred", "cancelled"] },
+        "target_timeframe": { "$ref": "#/$defs/target_timeframe" },
+        "responsible_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" },
+        "acceptance_or_follow_up": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "conditional": { "type": "boolean" },
+        "condition_description": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "conditional": { "const": true } }, "required": ["conditional"] },
+          "then": { "required": ["condition_description"] }
+        }
+      ]
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "errors_acknowledged", "warnings_acknowledged", "notes"],
+      "properties": {
+        "status": { "type": "string", "enum": ["not_checked", "needs_review", "blocked", "passed"] },
+        "checked_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "checked_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "errors_acknowledged": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/acknowledgement" } },
+        "warnings_acknowledged": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/acknowledgement" } },
+        "notes": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "passed" } }, "required": ["status"] },
+          "then": { "required": ["checked_at", "checked_by"] }
+        }
+      ]
+    },
+    "issue_observation_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "issue_id", "observation_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "observation_id": { "$ref": "common.schema.json#/$defs/observation_id" },
+        "role": { "type": "string", "enum": ["primary", "related", "context"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "issue_evidence_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "issue_id", "evidence_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "evidence_id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "role": { "type": "string", "enum": ["supporting", "contradicting", "context"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "hypothesis_evidence_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "hypothesis_id", "evidence_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "hypothesis_id": { "$ref": "common.schema.json#/$defs/hypothesis_id" },
+        "evidence_id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "role": { "type": "string", "enum": ["supporting", "contradicting"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "verification_issue_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verification_id", "issue_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "role": { "type": "string", "enum": ["verifies", "scopes", "monitors"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "verification_hypothesis_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verification_id", "hypothesis_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "hypothesis_id": { "$ref": "common.schema.json#/$defs/hypothesis_id" },
+        "role": { "type": "string", "enum": ["tests", "supports", "refutes"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "verification_evidence_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verification_id", "evidence_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "verification_id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "evidence_id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "role": { "type": "string", "enum": ["input", "result", "supporting", "contradicting"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "recommendation_issue_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "recommendation_id", "issue_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "recommendation_id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "role": { "type": "string", "enum": ["addresses", "mitigates", "monitors", "documents"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "recommendation_hypothesis_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "recommendation_id", "hypothesis_id", "role", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "recommendation_id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "hypothesis_id": { "$ref": "common.schema.json#/$defs/hypothesis_id" },
+        "role": { "type": "string", "enum": ["conditional_on", "tests", "responds_to"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "recommendation_dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "from_recommendation_id", "to_recommendation_id", "dependency_type", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "from_recommendation_id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "to_recommendation_id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "dependency_type": { "type": "string", "enum": ["precedes", "requires", "blocks_until_completed"] },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    },
+    "issue_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "from_issue_id", "to_issue_id", "relation_type", "description", "confidence", "rationale", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "from_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "to_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "relation_type": { "type": "string", "enum": ["contributes_to", "caused_by", "aggravates", "depends_on", "same_mechanism", "supersedes"] },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      }
+    }
+  }
+}

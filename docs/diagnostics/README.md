@@ -18,6 +18,8 @@ SafetyCulture zostáva zdrojom terénneho zberu a surových záznamov. Diagnosti
 6. [REPORT_CONTRACT.md](REPORT_CONTRACT.md) – obsah a pravidlá klientského reportu.
 7. [SECURITY_MODEL.md](SECURITY_MODEL.md) – dnešný prototyp a cieľová ochrana klientskych dát.
 8. [WORKFLOW.md](WORKFLOW.md) – manuálny MVP tok a budúce napojenie na SafetyCulture.
+9. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
+10. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
 
 ## Pravidlo zmeny
 
@@ -25,6 +27,26 @@ Zmena dátového modelu, diagnostických pravidiel, skórovania, finančného mo
 
 Ak sa dokumentácia rozchádza s reálnym kódom, pri opise súčasného stavu je zdrojom pravdy repozitár. Rozdiel sa nemá potichu prekryť: treba ho pomenovať ako dlh, rozhodnutie alebo plánovanú migráciu.
 
-## Rozsah tejto foundation verzie
+## Machine-readable kontrakty
 
-Táto verzia vedome neobsahuje JSON Schema, databázové tabuľky, renderer reportu, autentifikáciu, upload, SafetyCulture API ani webhook. Nezavádza nový framework ani dependency.
+Koncepčný model je od kroku 2 vyjadrený aj cez JSON Schema Draft 2020-12 kontrakty verzie `1.0.0`:
+
+- [common.schema.json](schemas/common.schema.json);
+- [inspection.schema.json](schemas/inspection.schema.json);
+- [diagnosis.schema.json](schemas/diagnosis.schema.json);
+- [report-package.schema.json](schemas/report-package.schema.json).
+
+Realistické vstupy sú v `fixtures/valid/`; úmyselne neplatné doménové prípady a ich očakávané kódy sú v `fixtures/invalid/`.
+
+Lokálne kontroly bez produkčných dependencies:
+
+```text
+python tools/diagnostics_lint.py --inspection docs/diagnostics/fixtures/valid/inspection-example.json --diagnosis docs/diagnostics/fixtures/valid/diagnosis-example.json --report-package docs/diagnostics/fixtures/valid/report-package-example.json
+python tools/test_diagnostics_contracts.py
+```
+
+Stdlib lint nie je všeobecný JSON Schema engine. Schémy sú normatívny štruktúrny kontrakt; lint dopĺňa referenčnú integritu, grafové, finančné, QA a bezpečnostné invarianty.
+
+## Rozsah po kroku 2
+
+Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, autentifikáciu, upload, SafetyCulture API ani webhook. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie webu.

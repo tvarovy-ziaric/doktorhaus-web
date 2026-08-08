@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doktorhaus.sk/schemas/diagnostics/inspection.schema.json",
+  "title": "DoktorHaus inspection document",
+  "description": "Normalized inspection facts, observations, evidence and provenance. Diagnostic causes, scores, recommendations and report copy are intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "document_type",
+    "id",
+    "property",
+    "inspection",
+    "actors",
+    "observations",
+    "evidence",
+    "observation_evidence_links",
+    "import_metadata",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "document_type": { "const": "inspection" },
+    "id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+    "property": { "$ref": "#/$defs/property_snapshot" },
+    "inspection": { "$ref": "#/$defs/inspection_metadata" },
+    "actors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/actor" }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "observation_evidence_links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation_evidence_link" }
+    },
+    "import_metadata": { "$ref": "common.schema.json#/$defs/import_metadata" },
+    "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/date_time" }
+  },
+  "$defs": {
+    "private_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacy", "address_lines", "country_code"],
+      "properties": {
+        "privacy": { "const": "client_private" },
+        "address_lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        },
+        "postal_code": { "type": "string" },
+        "municipality": { "type": "string" },
+        "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" }
+      }
+    },
+    "property_location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["country_code", "region"],
+      "properties": {
+        "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "region": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "municipality": { "type": "string" },
+        "district": { "type": "string" },
+        "address_private": { "$ref": "#/$defs/private_address" }
+      }
+    },
+    "property_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_name", "property_type", "location"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/property_id" },
+        "display_name": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "property_type": {
+          "type": "string",
+          "enum": ["house", "apartment", "mixed_use", "outbuilding", "site", "other"]
+        },
+        "property_type_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "location": { "$ref": "#/$defs/property_location" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "property_type": { "const": "other" } }, "required": ["property_type"] },
+          "then": { "required": ["property_type_label"] }
+        }
+      ]
+    },
+    "inspection_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["property_id", "inspection_type", "performed_at", "processing_status", "scope", "limitations", "actor_ids", "provenance"],
+      "properties": {
+        "property_id": { "$ref": "common.schema.json#/$defs/property_id" },
+        "inspection_type": {
+          "type": "string",
+          "enum": ["initial", "follow_up", "post_repair", "other"]
+        },
+        "inspection_type_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "performed_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "processing_status": {
+          "type": "string",
+          "enum": ["imported", "normalized", "diagnostic_draft", "qa_pending", "qa_blocked", "approved"]
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        },
+        "actor_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/actor_id" }
+        },
+        "previous_inspection_id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+        "provenance": { "$ref": "common.schema.json#/$defs/provenance" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "inspection_type": { "const": "other" } }, "required": ["inspection_type"] },
+          "then": { "required": ["inspection_type_label"] }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "inspection_id", "statement", "type", "area", "status", "provenance", "observed_at", "observed_by", "limitations"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/observation_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "inspection_id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "type": {
+          "type": "string",
+          "enum": ["visual", "measured", "reported", "document", "functional_test", "thermal", "other"]
+        },
+        "type_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "reported_source_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "area": { "$ref": "common.schema.json#/$defs/area_reference" },
+        "status": { "type": "string", "enum": ["active", "corrected", "superseded"] },
+        "provenance": { "$ref": "common.schema.json#/$defs/provenance" },
+        "observed_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "observed_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "measurement": { "$ref": "common.schema.json#/$defs/measurement" },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "other" } }, "required": ["type"] },
+          "then": { "required": ["type_label"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "reported" } }, "required": ["type"] },
+          "then": { "required": ["reported_source_label"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "measured" } }, "required": ["type"] },
+          "then": { "required": ["measurement"] }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "inspection_id", "type", "title", "description", "provenance", "media_reference", "privacy", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "inspection_id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+        "type": {
+          "type": "string",
+          "enum": ["photo", "video", "thermal_image", "measurement_record", "document", "sensor_series", "audio", "note", "drone_photo", "photo_360", "other"]
+        },
+        "type_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "captured_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "captured_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "provenance": { "$ref": "common.schema.json#/$defs/provenance" },
+        "media_reference": {
+          "description": "Internal storage reference or relative path; access is governed separately from this contract.",
+          "$ref": "common.schema.json#/$defs/non_empty_string"
+        },
+        "privacy": { "$ref": "common.schema.json#/$defs/privacy" },
+        "status": { "type": "string", "enum": ["active", "superseded", "withdrawn"] },
+        "content_type": { "type": "string" },
+        "sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "metadata_note": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "other" } }, "required": ["type"] },
+          "then": { "required": ["type_label"] }
+        }
+      ]
+    },
+    "observation_evidence_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "observation_id", "evidence_id", "role", "relevance_note", "created_at", "created_by", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/relation_id" },
+        "observation_id": { "$ref": "common.schema.json#/$defs/observation_id" },
+        "evidence_id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "role": { "type": "string", "enum": ["depicts", "measures", "documents", "reported_source", "other"] },
+        "role_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "relevance_note": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "created_by": { "$ref": "common.schema.json#/$defs/actor_id" },
+        "status": { "$ref": "common.schema.json#/$defs/link_status" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "role": { "const": "other" } }, "required": ["role"] },
+          "then": { "required": ["role_label"] }
+        }
+      ]
+    }
+  }
+}

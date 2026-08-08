@@ -1,0 +1,30 @@
+{
+  "schema_version":"1.0.0",
+  "document_type":"diagnosis",
+  "id":"insp_1111111111111111",
+  "inspection_id":"insp_1111111111111111",
+  "status":"draft",
+  "actors":[{"id":"inspector_minimal","display_name":"Inšpektor DoktorHaus","role":"inspector"}],
+  "issues":[
+    {
+      "id":"issue_5555555555555555","title":"Issue bez finančného impact rozmeru","category":"moisture","affected_areas":[{"area_type":"basement","label":"pivnica"}],"summary":"Fixture má iba šesť impact dimensions.",
+      "severity":"S3","severity_rationale":"Stredný vlhkostný dopad.","likelihood":"L3","likelihood_subject":"Pokračovanie vlhkosti.","likelihood_subject_kind":"future_event","likelihood_rationale":"Prejav je prítomný.","urgency":"U3","urgency_rationale":"Plánovať overenie.","priority":"P3","priority_rationale":"Plánovaná priorita.","confidence":"medium","deterioration_rate":"unknown","deterioration_rationale":"Bez časovej série.",
+      "short_term_risk":{"level":"moderate","description":"Stav vyžaduje plánované overenie.","horizon":"do troch mesiacov"},"long_term_risk":{"level":"moderate","description":"Odklad môže predĺžiť vlhkostné pôsobenie.","horizon":"nad 12 mesiacov"},
+      "cost_estimate":{"status":"not_estimated","reason":"Chýba rozsah sanácie."},
+      "cost_escalation":{"level":"moderate","mechanism":"Rozšírenie vlhkostného poškodenia.","trigger":"Odklad.","preventive_step":"Overiť zdroj vody.","confidence":"medium","rationale":"Vlhkostný prejav je známy, príčina nie."},
+      "status":"active","missing_information":[],"limitations":[]
+    }
+  ],
+  "hypotheses":[],
+  "impacts":[
+    {"id":"imp_5555555555555551","diagnostic_issue_id":"issue_5555555555555555","dimension":"safety","level":"none","description":"Bez dopadu.","time_horizon":"both","confidence":"medium","rationale":"Bez prejavu.","supporting_observation_ids":[]},
+    {"id":"imp_5555555555555552","diagnostic_issue_id":"issue_5555555555555555","dimension":"structural","level":"unknown","description":"Neoverené.","time_horizon":"both","confidence":"low","rationale":"Chýba sonda.","supporting_observation_ids":[]},
+    {"id":"imp_5555555555555553","diagnostic_issue_id":"issue_5555555555555555","dimension":"moisture","level":"moderate","description":"Vlhkostný prejav.","time_horizon":"both","confidence":"medium","rationale":"Pozorovaný stav.","supporting_observation_ids":[]},
+    {"id":"imp_5555555555555554","diagnostic_issue_id":"issue_5555555555555555","dimension":"health","level":"low","description":"Možný dlhodobý dopad.","time_horizon":"long_term","confidence":"low","rationale":"Bez analýzy prostredia.","supporting_observation_ids":[]},
+    {"id":"imp_5555555555555555","diagnostic_issue_id":"issue_5555555555555555","dimension":"durability","level":"moderate","description":"Možné zníženie životnosti.","time_horizon":"long_term","confidence":"medium","rationale":"Vlhkostný prejav.","supporting_observation_ids":[]},
+    {"id":"imp_5555555555555556","diagnostic_issue_id":"issue_5555555555555555","dimension":"usability","level":"low","description":"Lokálne obmedzenie.","time_horizon":"both","confidence":"medium","rationale":"Pivnica zostáva použiteľná.","supporting_observation_ids":[]}
+  ],
+  "verifications":[],"recommendations":[],"issue_observation_links":[],"issue_evidence_links":[],"hypothesis_evidence_links":[],"verification_issue_links":[],"verification_hypothesis_links":[],"verification_evidence_links":[],"recommendation_issue_links":[],"recommendation_hypothesis_links":[],"recommendation_dependencies":[],"issue_relations":[],
+  "qa":{"status":"not_checked","errors_acknowledged":[],"warnings_acknowledged":[],"notes":"Invalid fixture."},
+  "created_at":"2026-06-05T10:00:00+02:00","updated_at":"2026-06-05T10:00:00+02:00"
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version":"1.0.0",
+  "document_type":"report_package",
+  "report":{
+    "id":"rpt_7777777777777777",
+    "inspection_id":"insp_1111111111111111",
+    "status":"active",
+    "current_published_version_id":"rptv_7777777777777777"
+  },
+  "report_version":{
+    "id":"rptv_7777777777777777",
+    "report_id":"rpt_7777777777777777",
+    "version":"1.0",
+    "change_type":"initial",
+    "change_summary":"Úmyselne neplatný published manifest bez approval údajov.",
+    "status":"published",
+    "generated_at":"2026-06-05T10:00:00+02:00",
+    "renderer_contract_version":"1.0.0",
+    "limitations_snapshot":[],
+    "unverified_items_snapshot":[]
+  },
+  "actors":[{"id":"inspector_minimal","display_name":"Inšpektor DoktorHaus","role":"inspector"}],
+  "files":[
+    {"role":"inspection_data","path":"inspection.json","sha256":"7777777777777777777777777777777777777777777777777777777777777771","content_type":"application/json","privacy":"client_private"},
+    {"role":"diagnosis_data","path":"diagnosis.json","sha256":"7777777777777777777777777777777777777777777777777777777777777772","content_type":"application/json","privacy":"client_private"}
+  ],
+  "created_at":"2026-06-05T10:00:00+02:00"
+}

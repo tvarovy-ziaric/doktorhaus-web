@@ -1,0 +1,37 @@
+{
+  "schema_version":"1.0.0",
+  "document_type":"diagnosis",
+  "id":"insp_1111111111111111",
+  "inspection_id":"insp_1111111111111111",
+  "status":"draft",
+  "actors":[{"id":"inspector_minimal","display_name":"Inšpektor DoktorHaus","role":"inspector"}],
+  "issues":[],
+  "hypotheses":[],
+  "impacts":[],
+  "verifications":[],
+  "recommendations":[],
+  "issue_observation_links":[
+    {
+      "id":"rel_3333333333333301",
+      "issue_id":"issue_3333333333333333",
+      "observation_id":"obs_1111111111111111",
+      "role":"primary",
+      "rationale":"Úmyselne chýbajúci issue pre domain lint fixture.",
+      "created_at":"2026-06-05T10:00:00+02:00",
+      "created_by":"inspector_minimal",
+      "status":"active"
+    }
+  ],
+  "issue_evidence_links":[],
+  "hypothesis_evidence_links":[],
+  "verification_issue_links":[],
+  "verification_hypothesis_links":[],
+  "verification_evidence_links":[],
+  "recommendation_issue_links":[],
+  "recommendation_hypothesis_links":[],
+  "recommendation_dependencies":[],
+  "issue_relations":[],
+  "qa":{"status":"not_checked","errors_acknowledged":[],"warnings_acknowledged":[],"notes":"Invalid fixture."},
+  "created_at":"2026-06-05T10:00:00+02:00",
+  "updated_at":"2026-06-05T10:00:00+02:00"
+}

@@ -135,6 +135,16 @@ Posudzuje najmä:
 
 Cost escalation risk nie je dnešný odhad ceny a nemá sa automaticky premietnuť do severity.
 
+## Kontrakt 1.0.0
+
+- Confidence sa serializuje výhradne ako `unknown`, `low`, `medium` alebo `high`; percentá sa nepoužívajú.
+- Short-term risk, long-term risk, impact level a cost escalation level zdieľajú enum `none`, `low`, `moderate`, `high`, `critical`, `unknown`.
+- Risk je objekt `level + description + horizon`; samotný level nestačí.
+- Cost escalation je objekt `level + mechanism + trigger + preventive_step + confidence + rationale`.
+- Každý issue má presne sedem impact objects: safety, structural, moisture, health, durability, usability a financial. Tieto objects sú source of truth.
+- Likelihood ukladá aj `likelihood_subject` a `likelihood_subject_kind`. Kind je observed_condition, future_event alebo hypothesized_mechanism; vďaka tomu lint nekontroluje slovenský text cez NLP.
+- Deterioration, urgency, priority a severity vždy ukladajú vlastné rationale.
+
 ## Konzistenčné kontroly
 
 Validácia má upozorniť, nie automaticky prepísať hodnotenie, napríklad keď:
@@ -147,3 +157,5 @@ Validácia má upozorniť, nie automaticky prepísať hodnotenie, napríklad ke�
 - impact je high/critical bez description alebo evidence;
 - confidence je high pri významnom contradicting evidence bez vysvetlenia;
 - cost escalation risk je high/critical bez dependency alebo mechanizmu eskalácie.
+
+Domain lint mapuje tieto prípady na stabilné warning kódy, najmä `W_S5_PRIORITY`, `W_CRITICAL_SHORT_TERM_ACTION`, `W_CRITICAL_SAFETY_ACTION`, `W_RAPID_URGENCY`, `W_HIGH_CONFIDENCE_CONTRADICTION`, `W_L5_HYPOTHETICAL`, `W_COST_ESCALATION_DETAIL`, `W_NARROW_LOW_CONFIDENCE_COST` a `W_BLOCKING_MISSING_VERIFY`. Warning sám nemení score a nespôsobuje exit code 1; pred QA sa má vedome vyhodnotiť alebo štruktúrovane acknowledge-nuť.

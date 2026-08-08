@@ -1,0 +1,29 @@
+{
+  "schema_version":"1.0.0",
+  "document_type":"diagnosis",
+  "id":"insp_1111111111111111",
+  "inspection_id":"insp_1111111111111111",
+  "status":"draft",
+  "actors":[{"id":"inspector_minimal","display_name":"Inšpektor DoktorHaus","role":"inspector"}],
+  "issues":[],"hypotheses":[],"impacts":[],"verifications":[],
+  "recommendations":[
+    {
+      "id":"rec_6666666666666661","display_code":"REC-001","type":"REPAIR","title":"Upraviť zvod","description":"Odviesť vodu od steny.","rationale":"Obmedziť zmáčanie.","status":"proposed",
+      "target_timeframe":{"urgency":"U2","recommended_by":"2026-06-05","text":"do jedného mesiaca"},
+      "responsible_specialty":{"specialty":"waterproofing_specialist"},"acceptance_or_follow_up":"Overiť počas dažďa.","conditional":false
+    },
+    {
+      "id":"rec_6666666666666662","display_code":"REC-002","type":"MONITOR","title":"Monitorovať stenu","description":"Sledovať vlhkosť po úprave.","rationale":"Overiť účinok.","status":"proposed",
+      "target_timeframe":{"urgency":"U3","recommended_by":"2026-06-05","text":"po úprave zvodu"},
+      "responsible_specialty":{"specialty":"building_inspector"},"acceptance_or_follow_up":"Vyhodnotiť časovú sériu.","conditional":false
+    }
+  ],
+  "issue_observation_links":[],"issue_evidence_links":[],"hypothesis_evidence_links":[],"verification_issue_links":[],"verification_hypothesis_links":[],"verification_evidence_links":[],"recommendation_issue_links":[],"recommendation_hypothesis_links":[],
+  "recommendation_dependencies":[
+    {"id":"rel_6666666666666661","from_recommendation_id":"rec_6666666666666661","to_recommendation_id":"rec_6666666666666662","dependency_type":"precedes","rationale":"Úprava má predchádzať monitoringu.","created_at":"2026-06-05T10:00:00+02:00","created_by":"inspector_minimal","status":"active"},
+    {"id":"rel_6666666666666662","from_recommendation_id":"rec_6666666666666662","to_recommendation_id":"rec_6666666666666661","dependency_type":"requires","rationale":"Úmyselná spätná hrana vytvára cyklus.","created_at":"2026-06-05T10:00:00+02:00","created_by":"inspector_minimal","status":"active"}
+  ],
+  "issue_relations":[],
+  "qa":{"status":"not_checked","errors_acknowledged":[],"warnings_acknowledged":[],"notes":"Invalid fixture."},
+  "created_at":"2026-06-05T10:00:00+02:00","updated_at":"2026-06-05T10:00:00+02:00"
+}

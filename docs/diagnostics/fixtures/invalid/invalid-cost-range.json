@@ -1,0 +1,41 @@
+{
+  "schema_version":"1.0.0",
+  "document_type":"diagnosis",
+  "id":"insp_1111111111111111",
+  "inspection_id":"insp_1111111111111111",
+  "status":"draft",
+  "actors":[{"id":"inspector_minimal","display_name":"Inšpektor DoktorHaus","role":"inspector"}],
+  "issues":[
+    {
+      "id":"issue_4444444444444444",
+      "title":"Neplatne zoradený finančný interval",
+      "category":"drainage",
+      "affected_areas":[{"area_type":"exterior","label":"severná stena"}],
+      "summary":"Fixture má úmyselne minimum vyššie než expected.",
+      "severity":"S2","severity_rationale":"Lokálny detail.",
+      "likelihood":"L3","likelihood_subject":"Pokračovanie zmáčania.","likelihood_subject_kind":"future_event","likelihood_rationale":"Voda ostáva pri stene.",
+      "urgency":"U4","urgency_rationale":"Plánovaná údržba.",
+      "priority":"P4","priority_rationale":"Nízka priorita.",
+      "confidence":"medium",
+      "deterioration_rate":"unknown","deterioration_rationale":"Bez časovej série.",
+      "short_term_risk":{"level":"low","description":"Obmedzený krátkodobý dopad.","horizon":"do 12 mesiacov"},
+      "long_term_risk":{"level":"moderate","description":"Možné dlhodobé zvlhčovanie.","horizon":"nad 12 mesiacov"},
+      "cost_estimate":{"status":"estimated","min":5000,"expected":3000,"max":7000,"currency":"EUR","confidence":"medium","price_basis_date":"2026-06-05","scope":"Lokálna úprava.","assumptions":[],"exclusions":[],"source_method":"expert_range","vat_status":"unknown","financial_ui_band":null},
+      "cost_escalation":{"level":"low","mechanism":"Rozšírenie lokálnej opravy.","trigger":"Odklad.","preventive_step":"Úprava zvodu.","confidence":"low","rationale":"Orientačné hodnotenie."},
+      "status":"active","missing_information":[],"limitations":[]
+    }
+  ],
+  "hypotheses":[],
+  "impacts":[
+    {"id":"imp_4444444444444441","diagnostic_issue_id":"issue_4444444444444444","dimension":"safety","level":"none","description":"Bez dopadu.","time_horizon":"both","confidence":"medium","rationale":"Bez prejavu.","supporting_observation_ids":[]},
+    {"id":"imp_4444444444444442","diagnostic_issue_id":"issue_4444444444444444","dimension":"structural","level":"none","description":"Bez dopadu.","time_horizon":"both","confidence":"medium","rationale":"Bez prejavu.","supporting_observation_ids":[]},
+    {"id":"imp_4444444444444443","diagnostic_issue_id":"issue_4444444444444444","dimension":"moisture","level":"moderate","description":"Lokálne zvlhčovanie.","time_horizon":"both","confidence":"medium","rationale":"Voda pri stene.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_4444444444444444","diagnostic_issue_id":"issue_4444444444444444","dimension":"health","level":"none","description":"Bez dopadu.","time_horizon":"both","confidence":"medium","rationale":"Bez prejavu.","supporting_observation_ids":[]},
+    {"id":"imp_4444444444444445","diagnostic_issue_id":"issue_4444444444444444","dimension":"durability","level":"low","description":"Lokálny dopad.","time_horizon":"long_term","confidence":"low","rationale":"Možné zmáčanie.","supporting_observation_ids":["obs_1111111111111111"]},
+    {"id":"imp_4444444444444446","diagnostic_issue_id":"issue_4444444444444444","dimension":"usability","level":"none","description":"Bez dopadu.","time_horizon":"both","confidence":"medium","rationale":"Bez obmedzenia.","supporting_observation_ids":[]},
+    {"id":"imp_4444444444444447","diagnostic_issue_id":"issue_4444444444444444","dimension":"financial","level":"low","description":"Lokálny náklad.","time_horizon":"both","confidence":"low","rationale":"Orientačný rozsah.","supporting_observation_ids":[]}
+  ],
+  "verifications":[],"recommendations":[],"issue_observation_links":[],"issue_evidence_links":[],"hypothesis_evidence_links":[],"verification_issue_links":[],"verification_hypothesis_links":[],"verification_evidence_links":[],"recommendation_issue_links":[],"recommendation_hypothesis_links":[],"recommendation_dependencies":[],"issue_relations":[],
+  "qa":{"status":"not_checked","errors_acknowledged":[],"warnings_acknowledged":[],"notes":"Invalid fixture."},
+  "created_at":"2026-06-05T10:00:00+02:00","updated_at":"2026-06-05T10:00:00+02:00"
+}

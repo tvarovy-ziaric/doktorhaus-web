@@ -6,19 +6,25 @@ Finančný model dáva klientovi orientačný rámec pre rozhodovanie. Nie je ro
 
 Každý odhad musí byť viazaný na konkrétny scope, assumptions, exclusions, dátum/cenovú bázu a confidence. Ak tieto údaje chýbajú, vhodnejšie je uviesť `not_estimated` než presné číslo.
 
-## Povinné hodnoty odhadu
+## Kontrakt cost estimate 1.0.0
 
-- `estimated_cost_min`: rozumná dolná hranica pri opísanom priaznivom scenári;
-- `estimated_cost_expected`: najpravdepodobnejší orientačný rámec v rámci známeho scope, nie aritmetický priemer;
-- `estimated_cost_max`: rozumná horná hranica pri opísaných neistotách, nie teoreticky najhorší možný prípad;
+`cost_estimate.status` je `estimated` alebo `not_estimated`.
+
+Ak je status `estimated`, povinné sú:
+
+- `min`: rozumná dolná hranica pri opísanom priaznivom scenári;
+- `expected`: najpravdepodobnejší orientačný rámec v rámci známeho scope, nie aritmetický priemer;
+- `max`: rozumná horná hranica pri opísaných neistotách, nie teoreticky najhorší možný prípad;
 - `currency`: jednotná mena všetkých troch hodnôt;
-- `cost_estimate_confidence`: low, medium, high alebo unknown;
+- `confidence`: low, medium, high alebo unknown;
 - `price_basis_date`: dátum alebo obdobie, ku ktorému rámec patrí;
 - `scope`, `assumptions`, `exclusions`;
 - `source_method`: expert_range, comparable_work, unit_price_database, supplier_quote alebo budúci číselník;
 - `vat_status`: included, excluded, mixed alebo unknown, ak je relevantné.
 
-Musí platiť `min ≤ expected ≤ max`. Nula je povolená iba vtedy, keď naozaj znamená žiadny predpokladaný náklad v definovanom scope; neznámy náklad sa zapisuje ako chýbajúci odhad.
+Ak je status `not_estimated`, povinný je neprázdny `reason` a min/expected/max sa nepoužijú.
+
+Musí platiť `min ≤ expected ≤ max`. JSON Schema kontroluje štruktúru a typy; poradie čísel kontroluje domain lint ako `E_COST_RANGE`. Nula je povolená iba vtedy, keď naozaj znamená žiadny predpokladaný náklad v definovanom scope; neznámy náklad sa zapisuje ako `not_estimated`.
 
 ## Confidence odhadu
 
@@ -39,20 +45,9 @@ Samotná technická obhliadka bude mať pri nákladoch často low alebo medium c
 
 Ak významná missing information môže zásadne zmeniť rozsah, report má uviesť samostatný náklad verification a podmienený rámec opravy, nie ich zlúčiť do jedného presného čísla.
 
-## Finančné pásma pre klientsky UI
+## Finančné pásmo pre klientsky UI
 
-UI má vždy prioritne zobraziť zaokrúhlený interval a confidence. Voliteľné pásmo slúži iba na rýchlu orientáciu:
-
-- `not_estimated`: bez poctivého finančného rámca;
-- `A – drobný zásah`;
-- `B – menší rozsah`;
-- `C – stredný rozsah`;
-- `D – významný zásah`;
-- `E – investične náročný zásah`.
-
-Číselné hranice A–E sa v tejto foundation verzii zámerne neurčujú. Nie sú slovenským cenníkom a nesmú sa natvrdo rozptýliť po klientskom UI. Pred implementáciou sa zvolia ako samostatná, verziovaná konfigurácia podľa meny, obdobia a overených cenových dát. Pásmo sa počíta z `expected` a šírky intervalu; nesmie nahradiť zobrazenie min–max.
-
-Ak interval prechádza viacerými pásmami alebo má low confidence, UI to má priznať namiesto výberu optimistickejšieho pásma.
+Kontrakt 1.0.0 neurčuje pevné EUR A–E pásma. `financial_ui_band` je voliteľný string alebo null a je výslovne budúcou konfigurovanou hodnotou, nie zdrojom ceny. UI má vždy prioritne zobraziť zaokrúhlený interval a confidence. Hranice, mena a verzia budúcej konfigurácie sa musia určiť mimo diagnostického objektu.
 
 ## Pravidlá proti falošnej presnosti
 
@@ -69,14 +64,14 @@ Ak interval prechádza viacerými pásmami alebo má low confidence, UI to má p
 
 Cost escalation risk je samostatné hodnotenie. Vysvetľuje, ako môže odklad, pokračujúce pôsobenie vody, nesprávne poradie alebo prekrytie príčiny finálnou úpravou zväčšiť budúci rozsah.
 
-Má obsahovať:
+Kontrakt ho ukladá ako object `cost_escalation` s poľami:
 
-- level podľa [SCORING_RULES.md](SCORING_RULES.md);
-- mechanizmus eskalácie;
-- časový alebo podmienkový spúšťač;
-- lacnejší preventívny/verification krok, ak existuje;
-- affected recommendations a dependencies;
-- confidence.
+- `level` podľa [SCORING_RULES.md](SCORING_RULES.md);
+- `mechanism`;
+- `trigger`;
+- `preventive_step`;
+- `confidence`;
+- `rationale`.
 
 Budúci náklad po eskalácii sa uvedie len vtedy, keď má vlastný scope, assumptions a interval. Inak sa opisuje kvalitatívne.
 
@@ -105,4 +100,4 @@ Napojenie musí podporiť:
 - manuálnu odbornú korekciu s rationale;
 - výpočet min/expected/max namiesto jediného bodu.
 
-Výber zdroja cien, hranice UI pásiem, pravidlá zaokrúhľovania a agregácie sú otvorené rozhodnutia pred implementáciou finančnej schémy.
+Zostávajú otvorené: konkrétny zdroj cien, hranice a verzovanie budúcej UI konfigurácie, pravidlá zaokrúhľovania a agregácia naprieč issues bez dvojitého započítania. Samotná štruktúra issue cost estimate je kontraktom 1.0.0 uzavretá.

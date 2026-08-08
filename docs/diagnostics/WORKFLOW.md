@@ -43,30 +43,31 @@ Asistovaný návrh nesmie meniť observation na potvrdenú príčinu a nesmie ud
 
 ### 4. `inspection.json`
 
-Kanonický pracovný súbor zdrojovej/normalizovanej vrstvy. Budúca schema má pokrývať minimálne:
+Kanonický pracovný súbor zdrojovej/normalizovanej vrstvy podľa `schemas/inspection.schema.json`. Obsahuje výhradne:
 
-- property a inspection metadata;
+- schema/version metadata, property snapshot a inspection metadata;
 - scope a limitations;
+- lightweight actors relevantných pre zber;
 - observations;
 - evidence metadata a privátne media references;
-- väzby observation ↔ evidence;
-- source references a import provenance.
+- explicitné observation ↔ evidence link objects;
+- provenance a import metadata.
 
-Neobsahuje klientsky PIN, session, otvorené secrets ani autoritatívny diagnostický záver.
+Neobsahuje diagnostické príčiny, hypotheses, diagnostické scores, recommendations, report copy, klientsky PIN, session ani secrets.
 
 ### 5. `diagnosis.json`
 
-Kanonický pracovný súbor diagnostickej vrstvy. Budúca schema má pokrývať minimálne:
+Kanonický pracovný súbor diagnostickej vrstvy podľa `schemas/diagnosis.schema.json`. Obsahuje:
 
 - diagnostic issues;
 - hypotheses a ich evidence roles;
 - verifications;
-- impact hodnotenia;
+- presne sedem impact objects na každý issue ako source of truth;
 - scoring rationale;
 - cost model;
 - recommendations a dependencies;
-- issue relations;
-- report assembly metadata, limitations a unverified items.
+- issue relations a všetky explicitné many-to-many link objects;
+- QA metadata a diagnostic status.
 
 Referencie na inspection, observations a evidence musia byť validné. Klientsky render nie je zdroj pravdy.
 
@@ -85,7 +86,13 @@ Strojová validácia kontroluje syntaktické a doménové podmienky, najmä:
 - zákaz client-private public URL;
 - konzistenčné upozornenia zo `SCORING_RULES.md`.
 
-Výsledok je `pass`, `pass_with_warnings` alebo `fail`. Warnings musí inšpektor vedome uzavrieť; fail blokuje QA approval.
+Validácia má tri triedy:
+
+- schema error: blocking pre chybný JSON, required field, enum, type, ID pattern alebo štruktúru;
+- domain error: blocking pre approve/publish, napríklad dangling reference, duplicate ID/idempotency key, neplatný cost range, impact dimensions, dependency cycle alebo approval;
+- domain warning: neblokuje exit code, ale vyžaduje QA vyhodnotenie, napríklad S5 bez U1/P1 alebo critical impact bez primeranej akcie.
+
+`tools/diagnostics_lint.py` vypisuje polia `errors` a `warnings` so stabilnými kódmi. Exit code 0 znamená bez errors, 1 schema/domain errors a 2 tool/input failure. Warnings môžu byť štruktúrovane acknowledged; blocking errors nie.
 
 ### 7. Inspector QA
 
@@ -120,15 +127,18 @@ Klient vidí verziu, change summary, report a autorizované médiá. Prístup mo
 
 ## Pracovné stavy a mapovanie dnešného prototypu
 
-Budúci workflow potrebuje aspoň logické stavy:
+Kontrakt 1.0.0 používa malé explicitné lifecycle enumy:
 
-- `source_received`;
-- `normalized`;
-- `diagnostic_draft`;
-- `validation_failed` alebo `in_review`;
-- `approved`;
-- `published`;
-- `superseded` alebo `withdrawn` pre report version.
+- inspection processing: imported, normalized, diagnostic_draft, qa_pending, qa_blocked, approved;
+- diagnosis: draft, qa_pending, qa_blocked, approved, superseded;
+- observation: active, corrected, superseded;
+- evidence: active, superseded, withdrawn;
+- hypothesis: proposed, under_verification, supported, contradicted, inconclusive;
+- verification: proposed, scheduled, completed, not_feasible, declined;
+- recommendation: proposed, approved, completed, deferred, cancelled;
+- links/relations: active, superseded, rejected;
+- report: draft, active, closed;
+- report version: draft, in_review, approved, published, superseded, withdrawn.
 
 Aktuálny kód pozná iba `draft`, `ready`, `sent`. `ready` dnes zároveň generuje PIN a umožňuje client unlock, teda spája approve, publish a credential issuance. `sent` vyjadruje úspešné odoslanie emailu, nie verziu reportu. Pri budúcej implementácii treba tieto významy migrovať explicitne, nie iba premenovať enum.
 
@@ -172,15 +182,11 @@ Rovnaké validation, inspector QA, APPROVE, versioning, publish a security pravi
 - Chyba odoslania PINu: report môže zostať published, ale access delivery má samostatný stav a retry.
 - Zistenie úniku média: revoke access, withdraw podľa rozsahu, audit incidentu; samotná zmena URL nestačí ako úplná náprava.
 
-## Otvorené workflow rozhodnutia pred JSON Schema
+## Zostávajúce workflow rozhodnutia
 
-- presný obsah a delenie `inspection.json`/`diagnosis.json`;
-- ID, provenance a idempotency pravidlá;
-- mená a prechody pracovných stavov;
-- formát validation výsledku a povinné blokujúce vs. warning pravidlá;
-- reprezentácia approver a immutable snapshotu;
-- policy pre report v1.1 vs. v2.0;
-- spôsob práce s re-importom a konfliktom ručných úprav;
-- hranica, kedy neúplný report možno publikovať s limitations;
-- oddelenie publish state a access-delivery state;
-- konkrétna retencia raw exportov, médií a superseded versions.
+- spôsob práce s re-importom a konfliktom už existujúcich ručných diagnostických úprav;
+- hranica, kedy možno neúplný report publikovať s limitations po uzavretí warnings;
+- fyzické oddelenie publish state a access-delivery state v budúcom backende;
+- konkrétna retencia raw exportov, médií a superseded versions;
+- atomický publish/rollback immutable report package;
+- výber plného Draft 2020-12 validátora pre budúce CI.

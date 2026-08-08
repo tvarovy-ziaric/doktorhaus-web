@@ -26,6 +26,24 @@ Verzie:
 
 Publikovaná verzia je nemenná. Oprava alebo doplnenie vytvára novú verziu s change summary. Staršia verzia sa môže označiť ako superseded alebo withdrawn, ale auditná stopa zostáva.
 
+Strojový kontrakt používa version string `major.minor` s patternom `^[1-9][0-9]*\.[0-9]+$`. Minor increment pokrýva doplnené evidence, meranie alebo textové spresnenie bez novej samostatnej inspection a zásadnej zmeny záveru. Major increment pokrýva follow-up, post-repair, novú diagnostickú etapu alebo materiálnu zmenu záveru. `change_type` a `change_summary` vždy schvaľuje inšpektor; increment sa neurčuje iba automaticky.
+
+## Versioned report package
+
+Report package je manifest, nie renderer output ani jeden gigantický JSON blob. Cieľová fyzická štruktúra je:
+
+```text
+reports/<report-id>/<version>/
+    inspection.json
+    diagnosis.json
+    manifest.json
+    media/...
+```
+
+`report-package.schema.json` validuje `report`, `report_version`, actors a files. File entry má role, relatívny path, SHA-256, content type, voliteľnú veľkosť a explicitnú privacy. Absolútne cesty, `..` a URL sú zakázané. Publikovaná verzia dostane nový immutable adresár; existujúci manifest ani súbory sa neupravujú inplace.
+
+Report version status je draft, in_review, approved, published, superseded alebo withdrawn. Approved/published/superseded verzia musí mať `approved_by` a `approved_at`; published navyše `published_at`. Domain lint overuje, že approver actor má rolu inspector alebo reviewer a timestamp obsahuje timezone.
+
 ## Povinné sekcie
 
 ### 1. Executive summary
@@ -144,6 +162,8 @@ Report version sa nesmie označiť `approved` alebo `published`, ak:
 - náklad nemá interval/scope/confidence alebo používa falošnú presnosť;
 - report neobsahuje verziu, approver a čas schválenia;
 - obsahuje client-private URL, ktoré obchádza autorizáciu.
+
+Blocking schema/domain errors nemožno acknowledge-nuť a obísť. Domain warnings možno po odbornom posúdení štruktúrovane acknowledge-nuť kódom, rationale, actorom a časom. Diagnosis v stave approved musí mať QA status passed a nesmie mať blocking errors.
 
 ## Čo report nemá obsahovať
 

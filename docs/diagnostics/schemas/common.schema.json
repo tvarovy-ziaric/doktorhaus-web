@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doktorhaus.sk/schemas/diagnostics/common.schema.json",
+  "title": "DoktorHaus diagnostic common definitions",
+  "description": "Reusable identifiers, enums and value objects for diagnostic contracts. This schema is normative; cross-object invariants are enforced by the domain lint.",
+  "schema_version": "1.0.0",
+  "$defs": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "property_id": {
+      "type": "string",
+      "pattern": "^prop_[0-9a-f]{16,32}$"
+    },
+    "inspection_id": {
+      "type": "string",
+      "pattern": "^insp_[0-9a-f]{16,32}$"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^obs_[0-9a-f]{16,32}$"
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^ev_[0-9a-f]{16,32}$"
+    },
+    "issue_id": {
+      "type": "string",
+      "pattern": "^issue_[0-9a-f]{16,32}$"
+    },
+    "hypothesis_id": {
+      "type": "string",
+      "pattern": "^hyp_[0-9a-f]{16,32}$"
+    },
+    "verification_id": {
+      "type": "string",
+      "pattern": "^ver_[0-9a-f]{16,32}$"
+    },
+    "recommendation_id": {
+      "type": "string",
+      "pattern": "^rec_[0-9a-f]{16,32}$"
+    },
+    "impact_id": {
+      "type": "string",
+      "pattern": "^imp_[0-9a-f]{16,32}$"
+    },
+    "relation_id": {
+      "type": "string",
+      "pattern": "^rel_[0-9a-f]{16,32}$"
+    },
+    "report_id": {
+      "type": "string",
+      "pattern": "^rpt_[0-9a-f]{16,32}$"
+    },
+    "report_version_id": {
+      "type": "string",
+      "pattern": "^rptv_[0-9a-f]{16,32}$"
+    },
+    "display_code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9-]{1,23}$"
+    },
+    "actor_id": {
+      "description": "Lightweight workflow reference, not an authentication identity.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["unknown", "low", "medium", "high"]
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["none", "low", "moderate", "high", "critical", "unknown"]
+    },
+    "privacy": {
+      "type": "string",
+      "enum": ["public", "client_private", "internal"]
+    },
+    "link_status": {
+      "type": "string",
+      "enum": ["active", "superseded", "rejected"]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["S1", "S2", "S3", "S4", "S5"]
+    },
+    "likelihood": {
+      "type": "string",
+      "enum": ["L1", "L2", "L3", "L4", "L5"]
+    },
+    "urgency": {
+      "type": "string",
+      "enum": ["U1", "U2", "U3", "U4", "U5"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P1", "P2", "P3", "P4", "P5"]
+    },
+    "deterioration_rate": {
+      "type": "string",
+      "enum": ["stable", "slow", "progressive", "rapid", "unknown"]
+    },
+    "specialty": {
+      "type": "string",
+      "enum": [
+        "building_inspector",
+        "structural_engineer",
+        "roofer",
+        "chimney_specialist",
+        "electrician",
+        "heating_technician",
+        "plumber",
+        "waterproofing_specialist",
+        "geotechnical_specialist",
+        "laboratory",
+        "surveyor",
+        "designer",
+        "other"
+      ]
+    },
+    "specialty_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specialty"],
+      "properties": {
+        "specialty": { "$ref": "#/$defs/specialty" },
+        "label": { "$ref": "#/$defs/non_empty_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "specialty": { "const": "other" } }, "required": ["specialty"] },
+          "then": { "required": ["label"] }
+        }
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_name", "role"],
+      "properties": {
+        "id": { "$ref": "#/$defs/actor_id" },
+        "display_name": { "$ref": "#/$defs/non_empty_string" },
+        "role": {
+          "type": "string",
+          "enum": ["inspector", "reviewer", "system", "external_specialist", "client_source", "other"]
+        },
+        "role_label": { "$ref": "#/$defs/non_empty_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "role": { "const": "other" } }, "required": ["role"] },
+          "then": { "required": ["role_label"] }
+        }
+      ]
+    },
+    "area_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["area_type", "label"],
+      "properties": {
+        "area_type": {
+          "type": "string",
+          "enum": [
+            "whole_building",
+            "site",
+            "exterior",
+            "facade",
+            "foundation",
+            "basement",
+            "interior",
+            "roof",
+            "attic",
+            "chimney",
+            "technical_room",
+            "utility",
+            "outbuilding",
+            "other"
+          ]
+        },
+        "label": { "$ref": "#/$defs/non_empty_string" },
+        "level": { "type": "string" },
+        "floor": { "type": "string" },
+        "room": { "type": "string" },
+        "orientation": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind"],
+      "properties": {
+        "source_kind": {
+          "type": "string",
+          "enum": ["safetyculture", "manual", "derived", "external_document", "measurement_device", "other"]
+        },
+        "source_system": { "type": "string" },
+        "source_inspection_id": { "type": "string" },
+        "source_item_id": { "type": "string" },
+        "source_media_id": { "type": "string" },
+        "source_page": { "type": ["integer", "string"], "minimum": 1 },
+        "source_reference": { "type": "string" },
+        "imported_at": { "$ref": "#/$defs/date_time" },
+        "source_updated_at": { "$ref": "#/$defs/date_time" },
+        "source_hash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "import_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["import_id", "imported_at", "source_hash"],
+      "properties": {
+        "import_id": {
+          "type": "string",
+          "pattern": "^import_[0-9a-f]{16,32}$"
+        },
+        "imported_at": { "$ref": "#/$defs/date_time" },
+        "source_hash": { "$ref": "#/$defs/sha256" },
+        "source_system": { "type": "string" },
+        "source_inspection_id": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quantity", "value", "unit_kind", "unit_code", "method", "measured_at"],
+      "properties": {
+        "quantity": { "$ref": "#/$defs/non_empty_string" },
+        "value": { "type": "number" },
+        "unit_kind": {
+          "type": "string",
+          "enum": ["si", "percent", "device_scale", "count", "dimensionless", "custom"]
+        },
+        "unit_code": { "$ref": "#/$defs/non_empty_string" },
+        "unit_label": { "type": "string" },
+        "method": { "$ref": "#/$defs/non_empty_string" },
+        "instrument": { "type": "string" },
+        "instrument_id": { "type": "string" },
+        "measured_at": { "$ref": "#/$defs/date_time" },
+        "conditions": { "type": "string" },
+        "uncertainty": { "type": "number", "minimum": 0 },
+        "reference_min": { "type": "number" },
+        "reference_max": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "risk_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "description", "horizon"],
+      "properties": {
+        "level": { "$ref": "#/$defs/risk_level" },
+        "description": { "$ref": "#/$defs/non_empty_string" },
+        "horizon": { "$ref": "#/$defs/non_empty_string" }
+      }
+    },
+    "missing_information": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "why_it_matters", "how_to_obtain", "blocking"],
+      "properties": {
+        "id": { "$ref": "#/$defs/relation_id" },
+        "statement": { "$ref": "#/$defs/non_empty_string" },
+        "why_it_matters": { "$ref": "#/$defs/non_empty_string" },
+        "how_to_obtain": { "$ref": "#/$defs/non_empty_string" },
+        "blocking": { "type": "boolean" },
+        "recommended_specialty": { "$ref": "#/$defs/specialty_reference" },
+        "related_hypothesis_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/hypothesis_id" }
+        }
+      }
+    },
+    "cost_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["estimated", "not_estimated"] },
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "price_basis_date": { "$ref": "#/$defs/date" },
+        "scope": { "$ref": "#/$defs/non_empty_string" },
+        "assumptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/non_empty_string" }
+        },
+        "exclusions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/non_empty_string" }
+        },
+        "source_method": {
+          "type": "string",
+          "enum": ["expert_range", "comparable_work", "unit_price_database", "supplier_quote", "mixed", "other"]
+        },
+        "source_method_label": { "$ref": "#/$defs/non_empty_string" },
+        "vat_status": { "type": "string", "enum": ["included", "excluded", "mixed", "unknown"] },
+        "financial_ui_band": { "type": ["string", "null"], "description": "Optional future configured value; no fixed EUR bands are defined in schema version 1.0.0." },
+        "reason": { "$ref": "#/$defs/non_empty_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "estimated" } }, "required": ["status"] },
+          "then": {
+            "required": ["min", "expected", "max", "currency", "confidence", "price_basis_date", "scope", "assumptions", "exclusions", "source_method", "vat_status"],
+            "not": { "required": ["reason"] }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_estimated" } }, "required": ["status"] },
+          "then": {
+            "required": ["reason"],
+            "not": { "anyOf": [{ "required": ["min"] }, { "required": ["expected"] }, { "required": ["max"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "source_method": { "const": "other" } }, "required": ["source_method"] },
+          "then": { "required": ["source_method_label"] }
+        }
+      ]
+    },
+    "cost_escalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "mechanism", "trigger", "preventive_step", "confidence", "rationale"],
+      "properties": {
+        "level": { "$ref": "#/$defs/risk_level" },
+        "mechanism": { "$ref": "#/$defs/non_empty_string" },
+        "trigger": { "$ref": "#/$defs/non_empty_string" },
+        "preventive_step": { "$ref": "#/$defs/non_empty_string" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "rationale": { "$ref": "#/$defs/non_empty_string" }
+      }
+    },
+    "acknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "rationale", "acknowledged_by", "acknowledged_at"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[EW]_[A-Z0-9_]+$" },
+        "rationale": { "$ref": "#/$defs/non_empty_string" },
+        "acknowledged_by": { "$ref": "#/$defs/actor_id" },
+        "acknowledged_at": { "$ref": "#/$defs/date_time" }
+      }
+    },
+    "relative_manifest_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:)(?!https?://)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    }
+  }
+}

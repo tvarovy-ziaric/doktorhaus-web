@@ -55,9 +55,13 @@ Spravuje `diagnostic_issue`, `hypothesis`, `verification`, `impact`, `recommenda
 
 Kontroluje povinné polia, dovolené hodnoty, referenčnú integritu, interval nákladov, neúplné hypotézy, chýbajúce dôkazy, konflikt skóre a publikačné podmienky. Strojová validácia nenahrádza odborné schválenie inšpektorom.
 
+Od kroku 2 je štruktúrny kontrakt vyjadrený cez JSON Schema Draft 2020-12 v `docs/diagnostics/schemas/`. Python stdlib nástroj `tools/diagnostics_lint.py` dopĺňa cross-file a doménové invarianty. Nie je vlastným všeobecným schema enginom a nie je produkčnou dependency.
+
 ### 5. Reportová vrstva
 
 Z vybranej, schválenej verzie zostaví klientsky rozhodovací pohľad. Report je projekcia diagnostických dát, nie druhé miesto, kde sa ručne vytvára diagnóza. Publikovaná verzia je nemenný snapshot; doplnenie merania vytvorí novú verziu.
+
+Nemennosť pripravuje versioned manifest: `reports/<report-id>/<version>/manifest.json` referencuje samostatný `inspection.json`, `diagnosis.json` a médiá relatívnymi cestami a SHA-256. Manifest nie je gigantický blob ani renderer output.
 
 ### 6. Autorizačná a publikačná vrstva
 
@@ -96,26 +100,33 @@ Existujúci klientsky vstup `inspekcie.html`, backoffice a globálny vizuálny j
 - deploy výnimky a práca s runtime dátami sa zosúladia s bezpečnostným modelom;
 - budúci import môže nahradiť manuálny PDF tok SafetyCulture API/webhookom bez zmeny diagnostického modelu.
 
-## Čo teraz explicitne nezavádzame
+## Čo krok 2 explicitne nezavádza
 
 - React, Vue, Next, Laravel ani Node backend;
 - produkčnú databázu alebo migrácie;
-- JSON Schema;
 - nový renderer klientského reportu;
 - autentifikáciu, session, rate limiting alebo privátny media endpoint;
 - upload súborov;
 - SafetyCulture API, webhook alebo automatickú diagnostiku;
 - zmenu existujúceho HTML, PHP, CSS, JS alebo deploy workflow.
 
-## Architektonické rozhodnutia otvorené pred implementáciou schém
+## Rozhodnutia uzavreté kontraktom 1.0.0
 
-1. Formát stabilných ID a pravidlá ich generovania naprieč importmi.
-2. Presná hranica medzi `inspection.json` a `diagnosis.json`, najmä umiestnenie normalizovaných observations a evidence.
-3. Číselník kategórií, oblastí, stavov a odborných špecializácií.
-4. Stupnice jednotlivých impact dimensions a risk levels.
-5. Či MVP ostane na oddelených JSON súboroch na hostingu alebo sa databáza zavedie až po overení workflow.
-6. Spôsob nemenného snapshotu reportu a referencovania médií medzi verziami.
-7. Kto môže vykonať `APPROVE`, ako sa identifikuje a aký auditný záznam je minimálny.
-8. Cieľové úložisko privátnych médií a spôsob autorizovaného streamovania alebo sťahovania.
-9. Politika expirácie, obnovy a zrušenia klientskych prístupov.
-10. Pravidlá mapovania SafetyCulture identifikátorov a opakovaných importov bez duplikácie.
+- stabilné prefixované ID s 16–32 lowercase hex znakmi a oddeleným `display_code`;
+- `inspection.json` ako normalizovaný faktický dokument a `diagnosis.json` ako diagnostický dokument;
+- explicitné auditovateľné link objects pre many-to-many väzby;
+- impact objects ako jediný source of truth pre sedem povinných dimensions;
+- jednotné confidence a risk enumy, kontrolované issue kategórie, areas, specialty a lifecycle statusy;
+- versioned report-package manifest s relatívnymi cestami a SHA-256;
+- schema/domain error verzus domain warning a stabilné lint kódy;
+- provenance a SafetyCulture idempotency invariant bez databázovej unikátnosti.
+
+## Zostávajúce architektonické rozhodnutia
+
+1. Či MVP runtime zostane na oddelených JSON súboroch alebo neskôr použije databázu.
+2. Fyzický mechanizmus immutable publish: atomické vytvorenie adresára, storage a zálohy.
+3. Konkrétna interná identita, role a auditné úložisko pre `APPROVE`.
+4. Cieľové úložisko a autorizované doručovanie privátnych médií.
+5. Politika klientskych session, expirácie, obnovy a zrušenia prístupu.
+6. Konkrétny SafetyCulture adapter, webhook idempotency a riešenie konfliktu re-importu s ručnými úpravami.
+7. Voľba plného Draft 2020-12 validátora a jeho verziové uzamknutie v budúcom CI.
