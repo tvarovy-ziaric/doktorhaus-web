@@ -220,8 +220,7 @@ final class DiagnosticsStorage
                 throw new DiagnosticsStorageException('STORAGE_ALREADY_EXISTS', 'This published report version already exists.');
             }
 
-            $tmpRoot = $this->ensureDirectory($this->root . DIRECTORY_SEPARATOR . 'tmp', 0700);
-            $stagingDirectory = $tmpRoot . DIRECTORY_SEPARATOR . 'package-' . bin2hex(random_bytes(16));
+            $stagingDirectory = $reportDirectory . DIRECTORY_SEPARATOR . '.package-' . bin2hex(random_bytes(16));
             if (!@mkdir($stagingDirectory, 0700)) {
                 throw new DiagnosticsStorageException('STORAGE_IO', 'A package staging directory cannot be created.');
             }

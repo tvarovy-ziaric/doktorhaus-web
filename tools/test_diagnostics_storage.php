@@ -454,12 +454,6 @@ try {
 
 } catch (Throwable $error) {
     $failureMessage = $error->getMessage();
-    if ($requireSymlinkTests && $failureMessage === 'The report package cannot be installed atomically.') {
-        $lastError = error_get_last();
-        if (is_array($lastError) && isset($lastError['message']) && is_string($lastError['message'])) {
-            $failureMessage .= ' CI filesystem detail: ' . $lastError['message'];
-        }
-    }
 } finally {
     removeTestTree($testRoot);
 }
