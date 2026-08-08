@@ -132,9 +132,10 @@ try {
     projectionAssert($report['overview']['issue_count'] === 1, 'Superseded issue must not affect issue count.');
     projectionAssert(count($report['issues']) === 1 && $report['issues'][0]['id'] === $diagnosis['issues'][0]['id'], 'Only the visible issue may remain.');
     projectionAssert($report['overview']['priority_counts']['P2'] === 1, 'Priority counts must be deterministic.');
-    projectionAssert($report['overview']['severity_counts']['S3'] === 1, 'Severity counts must be deterministic.');
+    $sourceSeverity = $diagnosis['issues'][0]['severity'];
+    projectionAssert($report['overview']['severity_counts'][$sourceSeverity] === 1, 'Severity counts must be deterministic.');
     projectionAssert($report['overview']['highest_priority'] === 'P2', 'Highest priority must be correct.');
-    projectionAssert($report['overview']['highest_severity'] === 'S3', 'Highest severity must be correct.');
+    projectionAssert($report['overview']['highest_severity'] === $sourceSeverity, 'Highest severity must be correct.');
 
     $clientEvidence = [];
     foreach ($report['issues'][0]['evidence'] as $evidence) {
