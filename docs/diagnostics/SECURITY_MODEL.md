@@ -2,7 +2,7 @@
 
 ## Rozsah dokumentu
 
-Tento dokument opisuje legacy prototyp, bezpečnostné jadro kroku 4A a zostávajúci cieľový model. Krok 4A implementuje izolované granty, PIN hashing, rate limiting, serverovú session, CSRF, revokáciu a audit pre budúci diagnostický portál. Stále neimplementuje ochranu ani doručovanie reportového obsahu a médií.
+Tento dokument opisuje legacy prototyp, bezpečnostné jadro kroku 4A, delivery hranicu kroku 4B, prezentačnú hranicu kroku 5A a zostávajúci cieľový model. Krok 4A implementuje izolované granty, PIN hashing, rate limiting, serverovú session, CSRF, revokáciu a audit. Krok 4B chráni client-safe report a médiá; krok 5A ich zobrazuje bez vytvorenia novej autorizačnej cesty.
 
 Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie ani dokumenty nesmú byť dostupné bez platnej serverom overenej autorizácie. Nezverejnený odkaz, `hidden` element alebo neuhádnuteľný názov súboru nie sú autorizácia.
 
@@ -171,3 +171,10 @@ Validný, ale neprístupný evidence ID má vždy generic 404 bez potvrdenia jeh
 - retencia, zálohy a vymazanie klientskych dát;
 - pravidlá externých Google/Panoraven/YouTube výstupov pre súkromné prípady;
 - overenie security headers, PHP verzie a serverovej konfigurácie na cieľovom hostingu.
+## Prezentačná bezpečnostná hranica kroku 5A
+
+`inspekcia.html` je súkromný klient serverovej session, nie nositeľ oprávnenia. Opaque access handle v URL identifikuje grant, ale report neodomkne bez PINu alebo už platnej session. PIN, CSRF a report sa držia iba v pamäti dokumentu; stránka nepoužíva persistentné browser storage ani tracking a explicitne nastavuje noindex/no-referrer metadata.
+
+Lifecycle volá iba same-origin auth/report endpointy s `credentials: same-origin` a `cache: no-store`. Serverový text chyby sa neodráža do UI. 401 pri report requeste odstráni súkromný obsah z DOM a vyžiada nové overenie; logout používa session CSRF token a vykoná rovnaké vyčistenie.
+
+Renderer používa výhradne textové DOM API, takže payload z client-safe kontraktu sa neinterpretuje ako HTML. Media URL má ďalšiu klientsku allowlist kontrolu presného originu, endpointu, jediného evidence parametra a opaque ID. Táto defense-in-depth kontrola neznižuje požiadavku na serverovú session, BOLA ochranu, MIME a `nosniff` z kroku 4B. Podrobnosti a testy sú v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).

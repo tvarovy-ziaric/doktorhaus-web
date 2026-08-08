@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu a krok 4B strict client-safe report projection s autorizovaným media delivery. Legacy portál a klientsky renderer sa nemenia.
+Tento adresár je záväzný doménový a architektonický základ pre systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu, krok 4B strict client-safe report projection s autorizovaným media delivery a krok 5A samostatný bezpečný klientsky renderer. Legacy portál zostáva nezmenený.
 
 Základný tok informácií je:
 
@@ -22,7 +22,8 @@ SafetyCulture zostáva zdrojom terénneho zberu a surových záznamov. Diagnosti
 10. [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md) – granty, PIN hashing, serverová session, rate limiting, revokácia a audit v kroku 4A.
 11. [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md) – strict allowlist projekcia, report/media endpointy, BOLA, MIME, Range a audit v kroku 4B.
 12. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
-13. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
+13. [CLIENT_RENDERER.md](CLIENT_RENDERER.md) – stavový klient, bezpečný DOM renderer, media URL hranica, responsive a print správanie v kroku 5A.
+14. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
 
 ## Pravidlo zmeny
 
@@ -73,6 +74,8 @@ php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_access.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_client_projection.php
 bash tools/test_diagnostics_access_http.sh
 bash tools/test_diagnostics_delivery_http.sh
+node tools/test_diagnostics_renderer.js
+bash tools/test_diagnostics_renderer_http.sh
 ```
 
 Úspešný workflow potvrdzuje vykonanie tejto suite pre konkrétnu revision na CI PHP runtime. Nepotvrdzuje verziu ani konfiguráciu produkčného hostingu.
@@ -85,4 +88,12 @@ Krok 4A nad túto vrstvu pridáva opaque access grant viazaný na presný hash p
 
 Krok 4B z immutable package vytvára `client_report` výhradne cez field allowlist, filtruje internal/orphan evidence a poskytuje session-bound `GET api/diagnostics-report.php` a `GET|HEAD api/diagnostics-media.php`. Media selector je iba evidence ID; endpoint podporuje single byte ranges, bezpečný MIME/Content-Disposition model, `no-store` a audit. Raw inspection, diagnosis, manifest, storage paths a interné metadáta klientovi neposiela. Podrobnosti sú v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
-Táto verzia stále neobsahuje databázové tabuľky, klientsky renderer/final UX, backoffice issuance UI, upload, SafetyCulture API/webhook, produkčný deploy config, backup/restore, klientsky PDF generátor ani legacy migráciu. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.
+Krok 5A pridáva `inspekcia.html`, oddelený session/PIN lifecycle a čistý DOM renderer client-safe kontraktu. Reportové texty neprechádzajú HTML parserom, media URL musia zostať na presnom same-origin delivery endpointe a pri expirácii/logout sa obsah odstráni z DOM. Podrobnosti sú v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
+
+Táto verzia stále neobsahuje databázové tabuľky, backoffice issuance UI, upload, SafetyCulture API/webhook, produkčný deploy config, backup/restore, klientsky PDF generátor ani legacy migráciu. Renderer nevydáva granty a nevytvára odborný obsah. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.
+
+## Roadmap po kroku 5A
+
+Hotové sú: diagnostic foundation, machine contracts, runtime storage, CI execution, secure access authentication, client-safe projection, authorized media delivery a client renderer.
+
+Ešte nie sú hotové: reálny diagnostický dataset a expert QA Babiná, reálny report package, access grant issuance v backoffice, production deployment config, SafetyCulture adapter, legacy migrácia, server backup/restore ani PDF generátor.

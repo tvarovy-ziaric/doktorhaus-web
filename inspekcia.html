@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>Technická diagnostika nehnuteľnosti | DoktorHaus</title>
+  <meta name="description" content="Súkromná technická diagnostická správa DoktorHaus dostupná iba cez autorizovaný klientsky prístup.">
+  <link rel="stylesheet" href="styles/style.css?v=14">
+  <link rel="stylesheet" href="styles/diagnostics-report.css?v=1">
+</head>
+
+<body class="diag-page">
+  <a class="diag-skip-link" href="#diag-main">Preskočiť na obsah správy</a>
+
+  <header class="diag-site-header">
+    <div class="container diag-site-header-inner">
+      <a href="index.html" class="brand" aria-label="DoktorHaus – domovská stránka">
+        <img src="icons/doktorhaus-symbol.svg" alt="" class="brand-symbol" aria-hidden="true">
+        <span class="brand-word">doktorhaus</span>
+      </a>
+      <span class="diag-private-label">Súkromná diagnostická správa</span>
+    </div>
+  </header>
+
+  <main id="diag-main" class="diag-shell">
+    <section class="diag-state-card" id="diag-loading" aria-labelledby="diag-loading-title">
+      <p class="eyebrow">Technická diagnostika</p>
+      <h1 id="diag-loading-title">Načítavam diagnostickú správu…</h1>
+      <p>Overujem bezpečný prístup k publikovanej verzii správy.</p>
+    </section>
+
+    <section class="diag-state-card" id="diag-pin-screen" aria-labelledby="diag-pin-title" hidden>
+      <p class="eyebrow">Klientsky prístup</p>
+      <h1 id="diag-pin-title" tabindex="-1">Prístup k diagnostickej správe</h1>
+      <p id="diag-pin-intro">Zadajte 6-miestny PIN, ktorý ste dostali spolu s odkazom.</p>
+
+      <form class="diag-pin-form" id="diag-pin-form" novalidate>
+        <label for="diag-pin">6-miestny PIN</label>
+        <div class="diag-pin-row">
+          <input
+            id="diag-pin"
+            name="pin"
+            type="password"
+            inputmode="numeric"
+            pattern="[0-9]{6}"
+            minlength="6"
+            maxlength="6"
+            autocomplete="one-time-code"
+            aria-describedby="diag-auth-status"
+            required
+          >
+          <button class="btn primary" id="diag-pin-submit" type="submit">Otvoriť správu</button>
+        </div>
+        <p class="diag-form-status" id="diag-auth-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="diag-state-card" id="diag-access-required" aria-labelledby="diag-access-required-title" hidden>
+      <p class="eyebrow">Klientsky prístup</p>
+      <h1 id="diag-access-required-title" tabindex="-1">Prístup k správe nie je aktívny</h1>
+      <p id="diag-access-required-message">Otvorte pôvodný odkaz, ktorý ste dostali spolu s PINom.</p>
+    </section>
+
+    <section class="diag-state-card" id="diag-error-screen" aria-labelledby="diag-error-title" hidden>
+      <p class="eyebrow">Technická diagnostika</p>
+      <h1 id="diag-error-title" tabindex="-1">Správu sa momentálne nepodarilo načítať.</h1>
+      <p id="diag-error-message">Skúste to prosím neskôr.</p>
+      <button class="btn primary" id="diag-retry" type="button">Skúsiť znova</button>
+    </section>
+
+    <article class="diag-report" id="diag-report" aria-labelledby="diag-report-title" hidden>
+      <div class="diag-report-toolbar" aria-label="Ovládanie správy">
+        <span>Technická diagnostická správa</span>
+        <div>
+          <button class="btn" id="diag-print" type="button">Vytlačiť</button>
+          <button class="btn" id="diag-logout" type="button">Odhlásiť</button>
+        </div>
+      </div>
+
+      <div class="diag-print-header" aria-hidden="true">
+        <strong>DoktorHaus</strong>
+        <span id="diag-print-property"></span>
+        <span id="diag-print-meta"></span>
+      </div>
+
+      <div id="diag-report-content"></div>
+
+      <footer class="diag-print-footer" aria-hidden="true">
+        Technická diagnostická správa DoktorHaus
+      </footer>
+    </article>
+  </main>
+
+  <div class="diag-photo-modal" id="diag-photo-modal" role="dialog" aria-modal="true" aria-labelledby="diag-photo-title" aria-hidden="true" hidden>
+    <button class="diag-photo-backdrop" type="button" data-diag-photo-close aria-label="Zavrieť fotogalériu"></button>
+    <section class="diag-photo-panel">
+      <header class="diag-photo-header">
+        <div>
+          <p id="diag-photo-code"></p>
+          <h2 id="diag-photo-title">Fotografia</h2>
+        </div>
+        <button class="diag-modal-button" type="button" data-diag-photo-close>Zavrieť</button>
+      </header>
+      <div class="diag-photo-view">
+        <button class="diag-photo-nav" id="diag-photo-prev" type="button" aria-label="Predchádzajúca fotografia">‹</button>
+        <div class="diag-photo-stage">
+          <img id="diag-photo-image" alt="">
+          <p id="diag-photo-error" role="status" hidden>Médium sa nepodarilo načítať.</p>
+        </div>
+        <button class="diag-photo-nav" id="diag-photo-next" type="button" aria-label="Ďalšia fotografia">›</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="diag-site-footer">
+    <div class="container">
+      <p>Technická inšpekcia v uvedenom rozsahu nenahrádza znalecký, statický ani revízny posudok tam, kde je také odborné posúdenie potrebné.</p>
+    </div>
+  </footer>
+
+  <noscript>
+    <div class="diag-noscript">Na otvorenie diagnostickej správy je potrebný JavaScript.</div>
+  </noscript>
+
+  <script src="JSS/diagnostics-report.js" defer></script>
+  <script src="JSS/diagnostics-client.js" defer></script>
+</body>
+</html>

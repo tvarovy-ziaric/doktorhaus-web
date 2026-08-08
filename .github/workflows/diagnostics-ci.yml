@@ -7,6 +7,9 @@ on:
       - "api/lib/diagnostics/**"
       - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
+      - "inspekcia.html"
+      - "JSS/diagnostics-*.js"
+      - "styles/diagnostics-report.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
       - ".github/workflows/diagnostics-ci.yml"
@@ -18,6 +21,9 @@ on:
       - "api/lib/diagnostics/**"
       - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
+      - "inspekcia.html"
+      - "JSS/diagnostics-*.js"
+      - "styles/diagnostics-report.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
       - ".github/workflows/diagnostics-ci.yml"
@@ -58,6 +64,12 @@ jobs:
         run: |
           set -euo pipefail
           python tools/test_diagnostics_contracts.py
+
+      - name: Test diagnostics client renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/test_diagnostics_renderer.js
 
       - name: Lint diagnostic PHP files
         shell: bash
@@ -124,6 +136,12 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/test_diagnostics_delivery_http.sh
+
+      - name: Test diagnostics renderer HTTP flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/test_diagnostics_renderer_http.sh
 
       - name: Git and workspace sanity
         shell: bash

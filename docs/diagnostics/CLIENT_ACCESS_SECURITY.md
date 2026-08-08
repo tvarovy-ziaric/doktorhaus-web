@@ -141,3 +141,5 @@ Krok 4A neimplementuje a netvrdí ochranu týchto budúcich tokov:
 Kým tieto vrstvy nevzniknú, nový auth endpoint sa nesmie interpretovať ako hotový klientsky portál a žiadne privátne reportové dáta sa cezň nesmú vracať.
 
 Na tento izolovaný 4A kontrakt nadväzuje krok 4B: client-safe report a autorizovaný media/PDF streaming už poskytujú samostatné `diagnostics-report.php` a `diagnostics-media.php`, nie auth endpoint. Renderer, finálny klientsky UX, backoffice issuance UI, SafetyCulture a legacy migrácia zostávajú mimo 4B aj mimo tohto dokumentu.
+
+Krok 5A je prvý browser klient tohto kontraktu. `JSS/diagnostics-client.js` používa status, unlock a CSRF logout presne cez uvedené requesty; access ID a CSRF drží iba v pamäti. Rozdielny access handle oproti aktívnej session neprepne report bez PINu. Pri 401 alebo logout odstráni vykreslený obsah a nikdy nezobrazuje interný text chyby. Renderer stále nevydáva, nerotuje ani nerevokuje granty; tieto interné operácie zostávajú mimo klienta. Pozri [CLIENT_RENDERER.md](CLIENT_RENDERER.md).

@@ -198,3 +198,17 @@ Rovnaké validation, inspector QA, APPROVE, versioning, publish a security pravi
 - konkrétna retencia raw exportov, médií a superseded versions;
 - atomický publish/rollback immutable report package;
 - výber plného Draft 2020-12 validátora pre budúce CI.
+## Klientské otvorenie publikovaného reportu v kroku 5A
+
+Po odbornom schválení, immutable publish a samostatnom vydaní grantu môže klient otvoriť `inspekcia.html?access=acc_…`. Renderer nie je ďalšia publikačná fáza a nedokáže grant vytvoriť.
+
+1. Stránka syntakticky overí jediný access parameter.
+2. Auth status overí existujúcu serverovú session.
+3. Ak session chýba alebo patrí inému odkazu, klient zadá šesťmiestny PIN.
+4. Úspešný unlock vytvorí/obnoví serverovú session; PIN sa z inputu odstráni.
+5. Report sa načíta bez selectorov iba zo session-bound report endpointu.
+6. Médiá sa načítajú len z allowlisted URL projekcie a server ich znovu autorizuje.
+7. Pri 401, logout alebo zmene session sa vykreslený report odstráni z DOM.
+8. Nové odborné zistenie alebo zmena záveru vyžaduje nový doménový/publikačný cyklus a verziu, nie edit v rendereri.
+
+Klientská tlač je zobrazenie publikovanej verzie v prehliadači. Nie je novou publikovanou verziou ani náhradou budúceho riadeného PDF artifactu. Prevádzkový opis je v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).

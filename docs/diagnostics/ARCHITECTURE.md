@@ -72,7 +72,7 @@ Server overuje interného používateľa aj klienta, vytvára autorizovanú sess
 
 ### 7. Prezentačná vrstva
 
-Existujúci klientsky vstup `inspekcie.html`, backoffice a globálny vizuálny jazyk sa majú zachovať. Budúci renderer smie čítať iba publikovaný reportový kontrakt a nesmie odvodzovať diagnózu v prehliadači.
+Existujúci klientsky vstup `inspekcie.html`, vzor, backoffice a globálny vizuálny jazyk zostávajú zachované. Krok 5A pridáva oddelenú súkromnú route `inspekcia.html?access=acc_…`. Jej lifecycle smie komunikovať iba s auth/report endpointmi a jej renderer smie čítať iba publikovaný `client_report`; diagnózu ani nové súhrny v prehliadači neodvodzuje. Médiá prijme iba z presného same-origin delivery endpointu.
 
 ## Hranice a smer toku
 
@@ -149,7 +149,18 @@ Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportov
 
 Raw `inspection.json`, `diagnosis.json` a `manifest.json` nie sú client API. 4B nemení ich diagnostický význam ani existujúce schemas. `client_report` je jednosmerná projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
-Krok 4B stále nie je klientsky portál: renderer, finálny UX, `inspekcie.html`, backoffice issuance, SafetyCulture adapter, produkčný report a legacy tok zostávajú nezmenené.
+Samotný krok 4B ešte nebol klientsky portál: renderer, finálny UX, `inspekcie.html`, backoffice issuance, SafetyCulture adapter, produkčný report a legacy tok zostali nezmenené.
+
+## Čo zavádza krok 5A
+
+- izolovaný klientsky shell `inspekcia.html` bez zmeny legacy vstupu a verejného vzoru;
+- oddelený vanilla JS lifecycle pre session, PIN, report, expiry, retry a CSRF logout;
+- DOM-only renderer client-safe reportu s centrálnymi slovenskými mapovaniami;
+- strict same-origin media URL validáciu, lazy dôkazy a prístupnú fotogalériu;
+- mobilný a print layout bez externých assetov, trackingu či klientského úložiska;
+- Node bezpečnostné kontrakty a HTTP smoke integrovaný do diagnostics CI.
+
+Krok 5A nemení source schemas, projekciu, auth/media endpointy, grant issuance, backoffice, SafetyCulture, legacy migráciu, databázu ani PDF generátor. Kompletná hranica je v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
 
 ## Rozhodnutia uzavreté kontraktom 1.0.0
 
