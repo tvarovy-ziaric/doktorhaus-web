@@ -48,6 +48,24 @@ python tools/test_diagnostics_contracts.py
 
 Stdlib lint nie je všeobecný JSON Schema engine. Schémy sú normatívny štruktúrny kontrakt; lint dopĺňa referenčnú integritu, grafové, finančné, QA a bezpečnostné invarianty.
 
+## CI verification
+
+Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` vykonáva Python contract tests, PHP syntax lint a celý PHP storage runtime runner na GitHub-hosted Linux runneri. Testy používajú iba syntetické dáta a dočasný storage mimo repository; nepotrebujú produkčné secrets, FTP ani prístup k hostingu.
+
+Ak je lokálne dostupné PHP CLI, rovnaké jadro kontroly sa spustí príkazmi:
+
+```text
+python tools/test_diagnostics_contracts.py
+php -l api/lib/diagnostics/DiagnosticsStorage.php
+php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
+php -l api/lib/diagnostics/DiagnosticsStorageException.php
+php -l api/diagnostics.config.example.php
+php -l tools/test_diagnostics_storage.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
+```
+
+Úspešný workflow potvrdzuje vykonanie tejto suite pre konkrétnu revision na CI PHP runtime. Nepotvrdzuje verziu ani konfiguráciu produkčného hostingu.
+
 ## Runtime storage foundation po kroku 3
 
 `api/lib/diagnostics/` implementuje PHP úložisko draft `inspection.json`/`diagnosis.json` dokumentov a nemenných publikovaných report packages. Používa explicitný root mimo webrootu, atomické zápisy, per-object locks, optimistic revision, strict paths, symlink kontroly, SHA-256 a staging + atomic rename publish. Samostatný runner je `tools/test_diagnostics_storage.php`.

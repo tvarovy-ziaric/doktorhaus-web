@@ -219,17 +219,40 @@ Správy sú zámerne všeobecné. Neobsahujú storage root, source cestu, klient
 
 FTP workflow explicitne vylučuje oba lokálne configy aj `data/inspections.json`. Diagnostický runtime root sa úmyselne nevytvára v repozitári ani webroote, preto nemá deployovateľnú lokálnu cestu. Produkčný root, jeho backup a retention sa spravujú mimo Git/FTP mirroru.
 
-## Overenie
+## CI verification
 
-Samostatný runner `tools/test_diagnostics_storage.php` používa iba dočasný adresár operačného systému a anonymizované syntetické balíky založené na validných fixtures. Netýka sa `data/inspections.json`. Pokrýva draft revision, poškodený JSON, ID mismatch, traversal, absolútne/URL/UNC paths, hash a size mismatch, chýbajúce a neočakávané súbory, publish state, symlinky podľa možností OS, immutable install, čítanie, resolve a numerické radenie verzií.
+### Implementation exists
 
-Ak platforma nepovoľuje vytvorenie symlinku, runner vypíše samostatný `SKIP` namiesto predstierania úspechu. PHP CLI sa neinštaluje ako súčasť tejto vrstvy.
+Samostatný runner `tools/test_diagnostics_storage.php` používa iba dočasný adresár operačného systému a anonymizované syntetické balíky založené na validných fixtures. Nečíta ani nemení `data/inspections.json`. Pokrýva draft revision, poškodený JSON, ID mismatch, webroot rejection, traversal, absolútne/URL/UNC paths, hash a size mismatch, chýbajúce a neočakávané súbory, publish state, symlinky, immutable install, čítanie, resolve, cleanup a numerické radenie verzií.
+
+### Runtime-tested in GitHub CI
+
+Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` je autoritatívny execution gate pre PHP runtime tohto kroku. Na `ubuntu-latest` nainštaluje systémový balík `php-cli`, vypíše `php -v`, vykoná lint všetkých PHP tried v `api/lib/diagnostics/` aj config example/test runner a následne spustí storage suite s viditeľným `E_ALL`.
+
+CI nastavuje symlink testy ako povinné. Log preto musí obsahovať `symlink file test: PASS` aj `symlink directory test: PASS`; environment-specific `SKIP` je povolený iba mimo tohto Linux CI gate. Každá revision je runtime overená až vtedy, keď jej zodpovedajúci GitHub Actions run skončí úspešne.
+
+Workflow používa syntetický temporary storage, odstraňuje `DIAGNOSTICS_STORAGE_ROOT` z testovacieho procesu, nemá produkčné secrets ani write permissions a neuploaduje testovacie balíky ako artifacts. Nevykonáva FTP deploy ani nepristupuje k produkčnému hostingu.
+
+Lokálne príkazy pri dostupnom PHP CLI:
+
+```text
+python tools/test_diagnostics_contracts.py
+php -l api/lib/diagnostics/DiagnosticsStorage.php
+php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
+php -l api/lib/diagnostics/DiagnosticsStorageException.php
+php -l api/diagnostics.config.example.php
+php -l tools/test_diagnostics_storage.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
+```
+
+Repozitár nepotvrdzuje produkčnú PHP verziu hostingu. Systémové PHP na `ubuntu-latest` je reprodukovateľné CI prostredie pre aktuálnu revision, nie deklarácia production compatibility. Pred ostrým nasadením treba zistiť major/minor PHP verziu hostingu a spustiť storage suite alebo minimálne compatibility smoke test proti rovnakej major/minor vetve.
 
 ## Otvorené prevádzkové rozhodnutia
 
 - cieľový produkčný filesystem alebo privátne object storage pre veľké médiá;
 - backup, restore test, retention a bezpečné vymazanie;
 - overenie semantics `flock`, atomického rename a permissions na konkrétnom hostingu;
+- potvrdenie produkčnej major/minor PHP verzie a compatibility smoke test na rovnakom runtime;
 - produkčný Draft 2020-12 validator a miesto jeho spustenia v publish workflow;
 - politika cache integrity výsledkov pri veľkých balíkoch;
 - autorizovaný media streaming/range requests a bezpečné download headers;

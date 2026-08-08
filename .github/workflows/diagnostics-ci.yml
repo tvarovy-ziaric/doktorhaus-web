@@ -1,0 +1,118 @@
+name: Diagnostics contracts and storage CI
+
+on:
+  pull_request:
+    paths:
+      - "docs/diagnostics/**"
+      - "api/lib/diagnostics/**"
+      - "api/diagnostics.config.example.php"
+      - "tools/diagnostics_*"
+      - "tools/test_diagnostics_*"
+      - ".github/workflows/diagnostics-ci.yml"
+  push:
+    branches:
+      - "codex/diagnostics-**"
+    paths:
+      - "docs/diagnostics/**"
+      - "api/lib/diagnostics/**"
+      - "api/diagnostics.config.example.php"
+      - "tools/diagnostics_*"
+      - "tools/test_diagnostics_*"
+      - ".github/workflows/diagnostics-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    name: Contracts, PHP syntax and storage runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install PHP CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y php-cli
+          php -v
+
+      - name: Test diagnostic contracts
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          python tools/test_diagnostics_contracts.py
+
+      - name: Lint diagnostic PHP files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t php_files < <(find api/lib/diagnostics -maxdepth 1 -type f -name '*.php' -print | sort)
+          php_files+=(
+            api/diagnostics.config.example.php
+            tools/test_diagnostics_storage.php
+          )
+          for file in "${php_files[@]}"; do
+            php -l "$file"
+          done
+
+      - name: Test diagnostics storage runtime
+        shell: bash
+        env:
+          DIAGNOSTICS_REQUIRE_SYMLINK_TESTS: "1"
+        run: |
+          set -euo pipefail
+          unset DIAGNOSTICS_STORAGE_ROOT
+          php \
+            -d display_errors=1 \
+            -d error_reporting=-1 \
+            tools/test_diagnostics_storage.php
+
+      - name: Git and workspace sanity
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          base_sha=""
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PULL_REQUEST_BASE_SHA"
+          elif [[ -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+            base_sha="$PUSH_BEFORE_SHA"
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            base_sha="$(git rev-parse HEAD^)"
+          fi
+
+          if [[ -n "$base_sha" ]]; then
+            git diff --check "$base_sha"...HEAD
+          else
+            git diff --check
+          fi
+
+          if [[ -e api/diagnostics.config.php || -e data/inspections.json ]]; then
+            echo "Unexpected local config or legacy runtime data in CI workspace." >&2
+            exit 1
+          fi
+
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            echo "Diagnostics tests left files in the repository workspace." >&2
+            git status --short
+            exit 1
+          fi
