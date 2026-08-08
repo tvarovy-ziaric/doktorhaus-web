@@ -2,7 +2,7 @@
 
 ## Rozsah dokumentu
 
-Tento dokument opisuje súčasný prototyp a cieľový model. Neimplementuje autentifikáciu, session, rate limiting ani ochranu médií.
+Tento dokument opisuje legacy prototyp, bezpečnostné jadro kroku 4A a zostávajúci cieľový model. Krok 4A implementuje izolované granty, PIN hashing, rate limiting, serverovú session, CSRF, revokáciu a audit pre budúci diagnostický portál. Stále neimplementuje ochranu ani doručovanie reportového obsahu a médií.
 
 Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie ani dokumenty nesmú byť dostupné bez platnej serverom overenej autorizácie. Nezverejnený odkaz, `hidden` element alebo neuhádnuteľný názov súboru nie sú autorizácia.
 
@@ -15,6 +15,19 @@ Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie a
 - Úspešné overenie nevytvára serverovú session. Endpoint v jednej odpovedi vráti metadáta a priame URL médií záznamu v stave `ready` alebo `sent`.
 - PINy sa generujú cez `random_int()` a kontroluje sa jedinečnosť v aktuálnom JSON súbore.
 - Nie je implementovaný limit pokusov, oneskorenie, blokovanie, expirácia, revokácia ani audit klientskych prístupov.
+
+Tieto body naďalej presne opisujú iba legacy tok `api/inspections.php`. Nové jadro ho neprepája ani nemigruje.
+
+### Izolované diagnostické jadro kroku 4A
+
+- `api/diagnostics-auth.php` vracia iba minimálny stav autentizácie; žiadne inspection, diagnosis, reporty, paths, PDF ani médiá.
+- Access grant je viazaný na konkrétnu immutable publikovanú verziu a hash manifestu. Opaque access ID nie je tajomstvo; tajomstvom je PIN a server-side session cookie.
+- PIN sa HMAC-prehashuje povinným pepperom a ukladá cez `password_hash`. Unknown ID používa dummy verify a má rovnakú 401 odpoveď ako wrong/revoked/expired prístup.
+- Perzistentný access+IP a globálny IP limiter sa vyhodnotí pred password verify. Zdrojom adresy je iba `REMOTE_ADDR`.
+- Session používa Secure/HttpOnly/SameSite Strict cookie, regeneráciu ID, idle/absolute timeout, CSRF a generation kontrolu pri rotácii alebo revokácii.
+- Audit používa pseudonymizované request fingerprints a nikdy neukladá PIN, pin hash, raw IP, session ID/cookie, celý user agent ani klientsky diagnostický obsah.
+
+Detailný model, HTTP kontrakt a prevádzkové hranice sú v [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md).
 
 ### Interný prístup
 
@@ -38,19 +51,19 @@ Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie a
 - FTP workflow od kroku 3 explicitne vylučuje oba lokálne configy a legacy `data/inspections.json`. Nový diagnostický runtime root musí byť mimo checkoutu a webrootu, takže ho mirror nespravuje.
 - Endpointy nastavujú JSON content type a `X-Content-Type-Options: nosniff`; komplexnejšia politika security headers nie je v tomto module definovaná.
 
-## Identifikované riziká
+## Identifikované legacy riziká a zostávajúce medzery
 
-1. Šesťmiestny PIN má nízku entropiu a bez rate limitingu sa dá skúšať automatizovane.
+1. Legacy šesťmiestny PIN má nízku entropiu a bez rate limitingu sa dá skúšať automatizovane; nové jadro túto konkrétnu hranu limituje, ale legacy tok nie.
 2. Únik `data/inspections.json`, admin odpovede alebo zálohy odhalí otvorené klientské PINy.
 3. Priama URL súkromného média zostáva použiteľná bez PINu a môže sa dostať do histórie, logov, referrerov alebo preposlania.
 4. `sessionStorage` chráni iba zobrazenie rozcestníka, nie serverový zdroj.
 5. Zdieľaný globálny Admin PIN neposkytuje identitu, role, odvolanie konkrétneho prístupu ani audit approvera.
-6. Neexistuje expirácia/revokácia klientského prístupu ani invalidácia pri vrátení reportu do draftu.
+6. Legacy prístup nemá expiráciu/revokáciu; krok 4A ich má pre izolovaný grant, ale zatiaľ nie je prepojený na withdraw/publish workflow.
 7. `ready` sprístupňuje dáta, ale nie je viazané na nemennú, auditovanú report version.
 8. Produkčné umiestnenie, backup, restore a retencia nového storage rootu ešte nie sú overené na cieľovom hostingu.
 9. Ochrana `data/` a configs závisí od webservera; pri migrácii mimo Apache môže prestať platiť.
 10. Externé médiá môžu mať verejné alebo širšie oprávnenia než klientsky report.
-11. Chýba audit prístupov, zmien, schválenia, publikovania, stiahnutia a zrušenia prístupu.
+11. Krok 4A audituje grant a auth/session udalosti, stále však chýba audit interných zmien, schválenia, publikovania a budúceho stiahnutia obsahu.
 12. Chýba politika minimalizácie osobných údajov, retencie, záloh a bezpečného vymazania.
 
 ## Cieľová hranica verejné vs. súkromné
@@ -84,7 +97,7 @@ Interný backoffice je neverejná aplikačná plocha, hoci jeho HTML môže byť
 7. Session má krátku neaktívnu a absolútnu expiráciu, možnosť revokácie a invalidáciu pri zrušení publikácie alebo regenerácii prístupu.
 8. Každé načítanie JSON, dokumentu alebo média overí session a autorizáciu pre konkrétny objekt.
 
-Šesťmiestny PIN môže zostať používateľsky jednoduchý iba spolu s rate limitingom, monitoringom, expiráciou a serverovou session. Presné limity a životnosť sú otvorené rozhodnutia pred implementáciou.
+Šesťmiestny PIN môže zostať používateľsky jednoduchý iba spolu s rate limitingom, monitoringom, expiráciou a serverovou session. Krok 4A určuje bezpečné necitlivé defaulty; ich produkčné ladenie podľa monitoringu zostáva prevádzkovým rozhodnutím.
 
 ## Cieľový interný prístup
 
@@ -115,7 +128,7 @@ Kontrakt 1.0.0 pripravuje túto hranicu bez implementácie auth: každé evidenc
 
 Manifest paths sa nenormalizujú z nebezpečného na bezpečný tvar. Vrstva odmieta traversal, absolute/drive/UNC/URL paths, backslash, NUL, prázdne segmenty, symlink súbory a symlink adresáre. Deklarovaný obsah kontroluje streamujúcim SHA-256 a voliteľnou veľkosťou; neočakávaný regular file blokuje inštaláciu.
 
-Tieto vlastnosti chránia filesystem integritu, nie prístup klienta. Storage API nevytvára PIN, session, admin oprávnenie, CSRF ochranu, audit ani HTTP/media endpoint. Volajúca vrstva musí overiť oprávnenie pred každým read/resolve a nesmie vrátiť internú filesystem cestu klientovi. Reziduálna TOCTOU hranica predpokladá privátny storage root vo výhradnom vlastníctve aplikačného používateľa; podrobnosti sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
+Tieto vlastnosti samotnej storage vrstvy chránia filesystem integritu, nie prístup klienta. Krok 4A nad ňou vytvára samostatný grant/session/audit modul a úzky auth endpoint, stále však nevytvára admin oprávnenie ani HTTP report/media endpoint. Budúca delivery vrstva musí overiť oprávnenie pred každým read/resolve a nesmie vrátiť internú filesystem cestu klientovi. Reziduálna TOCTOU hranica predpokladá privátny storage root vo výhradnom vlastníctve aplikačného používateľa; podrobnosti sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
 
 ## Schválenie, verzia a audit
 

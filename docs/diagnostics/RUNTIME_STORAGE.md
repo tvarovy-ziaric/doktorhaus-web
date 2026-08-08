@@ -175,6 +175,14 @@ Pri chybe sa staging bezpečne odstráni a finálny adresár nevznikne. Druhá i
 
 ## Interné čítanie
 
+### Access security layout kroku 4A
+
+Rovnaký privátny `DIAGNOSTICS_STORAGE_ROOT` od kroku 4A obsahuje aj `access/grants/`, dve vrstvy `access/rate-limit/` a denné `audit/*.jsonl`. Granty, rate state aj audit odmietajú symlinky, používajú úzke formáty názvov, reštriktívne permissions, locky a atomické replace zápisy. Grant nesie SHA-256 `manifest.json`, takže session zostáva viazaná na presný overený immutable snapshot.
+
+Tieto súbory nie sú reportový obsah ani verejný cache. Nesmú sa umiestniť pod webroot, commitnúť alebo FTP mirrorovať. Backup a restore musia zachovať konzistenciu grantov, auditnú stopu a oddelené secrets; pri horizontálnom škálovaní musí byť rate-limit a session stav spoločný alebo nahradený zodpovedajúcim centralizovaným mechanizmom.
+
+Access vrstva neposkytuje raw file endpoint. Budúce autorizované doručovanie musí osobitne vyriešiť field-level projection, media path autorizáciu, streaming, `Range`, `Content-Disposition` a cache hlavičky.
+
 Vrstva poskytuje:
 
 - `loadPublishedManifest($reportId, $version)`;
@@ -225,11 +233,13 @@ FTP workflow explicitne vylučuje oba lokálne configy aj `data/inspections.json
 
 Samostatný runner `tools/test_diagnostics_storage.php` používa iba dočasný adresár operačného systému a anonymizované syntetické balíky založené na validných fixtures. Nečíta ani nemení `data/inspections.json`. Pokrýva draft revision, poškodený JSON, ID mismatch, webroot rejection, traversal, absolútne/URL/UNC paths, hash a size mismatch, chýbajúce a neočakávané súbory, publish state, symlinky, immutable install, čítanie, resolve, cleanup a numerické radenie verzií.
 
+`tools/test_diagnostics_access.php` pridáva syntetické access grant, PIN/pepper, expiration, rate-limit, session-policy, audit, stale update, rollback/fail-closed a symlink scenáre. `tools/test_diagnostics_access_http.sh` používa dočasný storage, lokálny PHP built-in server a curl na overenie unlock/status/logout, generic 401, cookie atribútov, CSRF, 429, revokácie a rotácie. Žiadny runner nečíta legacy runtime ani produkčné secrets.
+
 ### Runtime-tested in GitHub CI
 
-Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` je autoritatívny execution gate pre PHP runtime tohto kroku. Na `ubuntu-latest` nainštaluje systémový balík `php-cli`, vypíše `php -v`, vykoná lint všetkých PHP tried v `api/lib/diagnostics/` aj config example/test runner a následne spustí storage suite s viditeľným `E_ALL`.
+Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` je autoritatívny execution gate pre PHP runtime tohto kroku. Na `ubuntu-latest` nainštaluje systémový balík `php-cli`, vypíše `php -v`, vykoná lint všetkých PHP tried v `api/lib/diagnostics/`, auth endpointu, config example a oboch PHP runnerov. Následne spustí storage suite, access suite a HTTP integration suite s viditeľným `E_ALL` pre CLI testy.
 
-CI nastavuje symlink testy ako povinné. Log preto musí obsahovať `symlink file test: PASS` aj `symlink directory test: PASS`; environment-specific `SKIP` je povolený iba mimo tohto Linux CI gate. Každá revision je runtime overená až vtedy, keď jej zodpovedajúci GitHub Actions run skončí úspešne.
+CI nastavuje symlink testy ako povinné. Storage aj access log preto musia obsahovať príslušné `symlink … test: PASS`; environment-specific `SKIP` je povolený iba mimo tohto Linux CI gate. Každá revision je runtime overená až vtedy, keď jej zodpovedajúci GitHub Actions run skončí úspešne.
 
 Workflow používa syntetický temporary storage, odstraňuje `DIAGNOSTICS_STORAGE_ROOT` z testovacieho procesu, nemá produkčné secrets ani write permissions a neuploaduje testovacie balíky ako artifacts. Nevykonáva FTP deploy ani nepristupuje k produkčnému hostingu.
 
@@ -240,9 +250,13 @@ python tools/test_diagnostics_contracts.py
 php -l api/lib/diagnostics/DiagnosticsStorage.php
 php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
 php -l api/lib/diagnostics/DiagnosticsStorageException.php
+php -l api/diagnostics-auth.php
 php -l api/diagnostics.config.example.php
+php -l tools/test_diagnostics_access.php
 php -l tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_access.php
+bash tools/test_diagnostics_access_http.sh
 ```
 
 Repozitár nepotvrdzuje produkčnú PHP verziu hostingu. Systémové PHP na `ubuntu-latest` je reprodukovateľné CI prostredie pre aktuálnu revision, nie deklarácia production compatibility. Pred ostrým nasadením treba zistiť major/minor PHP verziu hostingu a spustiť storage suite alebo minimálne compatibility smoke test proti rovnakej major/minor vetve.
@@ -256,5 +270,5 @@ Repozitár nepotvrdzuje produkčnú PHP verziu hostingu. Systémové PHP na `ubu
 - produkčný Draft 2020-12 validator a miesto jeho spustenia v publish workflow;
 - politika cache integrity výsledkov pri veľkých balíkoch;
 - autorizovaný media streaming/range requests a bezpečné download headers;
-- audit actorov, approval/publish udalostí a klientskych prístupov;
+- audit interných actorov a approval/publish udalostí; klientské auth udalosti kroku 4A už majú samostatný security audit;
 - riešenie reziduálneho TOCTOU rizika, ak storage root nebude výhradne vlastnený aplikačným používateľom.

@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Od kroku 3 opisuje aj izolovanú runtime storage foundation; tá stále nemení správanie klientského portálu.
+Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation a krok 4A serverové bezpečnostné jadro budúceho klientského prístupu. Legacy portál sa nemení a doručovanie reportu ani médií ešte nie je implementované.
 
 Základný tok informácií je:
 
@@ -19,8 +19,9 @@ SafetyCulture zostáva zdrojom terénneho zberu a surových záznamov. Diagnosti
 7. [SECURITY_MODEL.md](SECURITY_MODEL.md) – dnešný prototyp a cieľová ochrana klientskych dát.
 8. [WORKFLOW.md](WORKFLOW.md) – manuálny MVP tok a budúce napojenie na SafetyCulture.
 9. [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md) – filesystem storage, atomické drafty, immutable publish a bezpečnostné hranice.
-10. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
-11. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
+10. [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md) – granty, PIN hashing, serverová session, rate limiting, revokácia a audit v kroku 4A.
+11. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
+12. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
 
 ## Pravidlo zmeny
 
@@ -50,7 +51,7 @@ Stdlib lint nie je všeobecný JSON Schema engine. Schémy sú normatívny štru
 
 ## CI verification
 
-Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` vykonáva Python contract tests, PHP syntax lint a celý PHP storage runtime runner na GitHub-hosted Linux runneri. Testy používajú iba syntetické dáta a dočasný storage mimo repository; nepotrebujú produkčné secrets, FTP ani prístup k hostingu.
+Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` vykonáva Python contract tests, PHP syntax lint, storage runner, access security runner a HTTP auth integráciu na GitHub-hosted Linux runneri. Testy používajú iba syntetické dáta a dočasný storage mimo repository; nepotrebujú produkčné secrets, FTP ani prístup k hostingu.
 
 Ak je lokálne dostupné PHP CLI, rovnaké jadro kontroly sa spustí príkazmi:
 
@@ -59,9 +60,13 @@ python tools/test_diagnostics_contracts.py
 php -l api/lib/diagnostics/DiagnosticsStorage.php
 php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
 php -l api/lib/diagnostics/DiagnosticsStorageException.php
+php -l api/diagnostics-auth.php
 php -l api/diagnostics.config.example.php
+php -l tools/test_diagnostics_access.php
 php -l tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_access.php
+bash tools/test_diagnostics_access_http.sh
 ```
 
 Úspešný workflow potvrdzuje vykonanie tejto suite pre konkrétnu revision na CI PHP runtime. Nepotvrdzuje verziu ani konfiguráciu produkčného hostingu.
@@ -70,4 +75,6 @@ php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
 
 `api/lib/diagnostics/` implementuje PHP úložisko draft `inspection.json`/`diagnosis.json` dokumentov a nemenných publikovaných report packages. Používa explicitný root mimo webrootu, atomické zápisy, per-object locks, optimistic revision, strict paths, symlink kontroly, SHA-256 a staging + atomic rename publish. Samostatný runner je `tools/test_diagnostics_storage.php`.
 
-Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, autentifikáciu, PIN hashing, session, rate limiting, CSRF, autorizované HTTP doručovanie médií, audit, upload, SafetyCulture API ani webhook. Storage úspech nie je schema/domain validácia ani odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie webu.
+Krok 4A nad túto vrstvu pridáva opaque access grant viazaný na presný hash publikovaného manifestu, peppered PIN hash, perzistentný rate limiting, serverovú session, CSRF, rotáciu/revokáciu a bezpečnostný audit. Verejný endpoint poskytuje iba unlock, status a logout; nevracia diagnostický obsah.
+
+Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, klientskú projekciu, field-level autorizáciu, autorizované HTTP doručovanie reportu alebo médií, `Range`/`Content-Disposition`/cache politiku pre súbory, backoffice issuance UI, upload, SafetyCulture API ani webhook. Storage ani auth úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.

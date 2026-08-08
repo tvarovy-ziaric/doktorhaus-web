@@ -5,6 +5,7 @@ on:
     paths:
       - "docs/diagnostics/**"
       - "api/lib/diagnostics/**"
+      - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
@@ -15,6 +16,7 @@ on:
     paths:
       - "docs/diagnostics/**"
       - "api/lib/diagnostics/**"
+      - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
@@ -63,7 +65,9 @@ jobs:
           set -euo pipefail
           mapfile -t php_files < <(find api/lib/diagnostics -maxdepth 1 -type f -name '*.php' -print | sort)
           php_files+=(
+            api/diagnostics-auth.php
             api/diagnostics.config.example.php
+            tools/test_diagnostics_access.php
             tools/test_diagnostics_storage.php
           )
           for file in "${php_files[@]}"; do
@@ -81,6 +85,26 @@ jobs:
             -d display_errors=1 \
             -d error_reporting=-1 \
             tools/test_diagnostics_storage.php
+
+      - name: Test diagnostics client access security
+        shell: bash
+        env:
+          DIAGNOSTICS_REQUIRE_SYMLINK_TESTS: "1"
+        run: |
+          set -euo pipefail
+          unset DIAGNOSTICS_STORAGE_ROOT
+          unset DIAGNOSTICS_PIN_PEPPER
+          unset DIAGNOSTICS_AUDIT_HMAC_KEY
+          php \
+            -d display_errors=1 \
+            -d error_reporting=-1 \
+            tools/test_diagnostics_access.php
+
+      - name: Test diagnostics auth HTTP contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/test_diagnostics_access_http.sh
 
       - name: Git and workspace sanity
         shell: bash

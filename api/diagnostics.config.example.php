@@ -5,4 +5,16 @@ return [
     // Použite absolútnu cestu mimo verejného web rootu.
     // V produkcii má prednosť environment premenná DIAGNOSTICS_STORAGE_ROOT.
     'storage_root' => '/srv/doktorhaus-private/diagnostics',
+
+    // Povinné tajomstvá nemajú default ani ukážkovú hodnotu. Nastavte ich cez
+    // DIAGNOSTICS_PIN_PEPPER a DIAGNOSTICS_AUDIT_HMAC_KEY (každé min. 32 bytes),
+    // alebo ich doplňte iba do ignorovaného api/diagnostics.config.php.
+
+    // Nasledujúce necitlivé hodnoty sú voliteľné; uvedené sú bezpečné defaulty.
+    'session_idle_seconds' => 3600,
+    'session_absolute_seconds' => 43200,
+    'rate_window_seconds' => 900,
+    'rate_access_ip_max' => 6,
+    'rate_ip_max' => 30,
+    'rate_lockout_seconds' => 900,
 ];

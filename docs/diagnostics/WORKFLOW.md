@@ -129,6 +129,8 @@ Po publish sa vydá alebo aktivuje klientsky prístup. Server uloží hash PINu,
 
 Klient vidí verziu, change summary, report a autorizované médiá. Prístup možno expirovať, odvolať alebo regenerovať bez úpravy reportu.
 
+Krok 4A implementuje iba prvú bezpečnostnú časť tohto bodu: interné vytvorenie grantu pre presnú publikovanú verziu, jednorazové vrátenie plaintext PINu, overenie, serverovú session, rate limiting, rotáciu, revokáciu a audit. Neimplementuje kanál doručenia PINu, backoffice issuance UI ani následné vydanie change summary, reportu a médií. Legacy `ready`/`sent` tok sa nemení a jeho plaintext PINy sa nemigrujú.
+
 ## Pracovné stavy a mapovanie dnešného prototypu
 
 Kontrakt 1.0.0 používa malé explicitné lifecycle enumy:

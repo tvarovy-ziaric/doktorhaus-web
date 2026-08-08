@@ -280,6 +280,31 @@ final class DiagnosticsStorage
         return $this->verifyPublishedPackage($reportId, $version)['manifest'];
     }
 
+    public function getPublishedManifestSha256(string $reportId, string $version): string
+    {
+        return $this->loadPublishedManifestBinding($reportId, $version)['sha256'];
+    }
+
+    /** @return array{manifest: array<string, mixed>, sha256: string} */
+    public function loadPublishedManifestBinding(string $reportId, string $version): array
+    {
+        $manifestPath = $this->publishedDirectory($reportId, $version) . DIRECTORY_SEPARATOR . 'manifest.json';
+        if (is_link($manifestPath) || !is_file($manifestPath)) {
+            throw new DiagnosticsStorageException('STORAGE_SYMLINK', 'The published manifest path is unsafe.');
+        }
+        $hashBefore = hash_file('sha256', $manifestPath);
+        $verified = $this->verifyPublishedPackage($reportId, $version);
+        $hashAfter = hash_file('sha256', $manifestPath);
+        if (!is_string($hashBefore) || !is_string($hashAfter) ||
+            preg_match('/^[0-9a-f]{64}$/D', $hashAfter) !== 1) {
+            throw new DiagnosticsStorageException('STORAGE_IO', 'The published manifest cannot be hashed.');
+        }
+        if (!hash_equals($hashBefore, $hashAfter)) {
+            throw new DiagnosticsStorageException('STORAGE_INTEGRITY', 'The published manifest changed during verification.');
+        }
+        return ['manifest' => $verified['manifest'], 'sha256' => $hashAfter];
+    }
+
     /** @return array<string, mixed> */
     public function loadPublishedInspection(string $reportId, string $version): array
     {

@@ -123,7 +123,18 @@ Existujúci klientsky vstup `inspekcie.html`, backoffice a globálny vizuálny j
 - interné read/resolve metódy bez HTTP sprístupnenia;
 - ignore, Apache a FTP hardening pre lokálne configy a legacy runtime dáta.
 
-Krok 3 stále nezavádza auth, PIN, session, role, rate limiting, CSRF, audit, renderer ani autorizované media delivery. Existujúci `api/inspections.php`, `inspekcie.html` a `inspekcie-admin.html` zostávajú nezmenené.
+Krok 3 sám nezaviedol auth, PIN, session, role, rate limiting, CSRF, audit, renderer ani autorizované media delivery. Existujúci `api/inspections.php`, `inspekcie.html` a `inspekcie-admin.html` zostali nezmenené.
+
+## Čo zavádza krok 4A
+
+- filesystem access grant s opaque `acc_…` handle, ktorý je viazaný na presný report ID, verziu, version ID a SHA-256 manifestu;
+- šesťmiestny PIN uložený iba ako peppered password hash;
+- dve perzistentné vrstvy rate limitingu založené iba na `REMOTE_ADDR`;
+- serverovú PHP session s idle/absolute timeoutom, CSRF tokenom a generation invalidáciou;
+- rotáciu PINu, idempotentnú revokáciu a bezpečnostný JSONL audit;
+- úzky HTTPS endpoint `api/diagnostics-auth.php` iba pre unlock, status a logout.
+
+Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportové dáta ani súbory a nepridáva klientskú projekciu, field-level auth, renderer, media/PDF streaming, `Range`, `Content-Disposition`, cache politiku, backoffice vydávanie grantov, SafetyCulture integráciu alebo legacy migráciu. Podrobný kontrakt je v [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md).
 
 ## Rozhodnutia uzavreté kontraktom 1.0.0
 
@@ -142,6 +153,6 @@ Krok 3 stále nezavádza auth, PIN, session, role, rate limiting, CSRF, audit, r
 2. Produkčný filesystem/object storage, zálohy, restore test, retencia a overenie atomic rename/flock semantics hostingu.
 3. Konkrétna interná identita, role a auditné úložisko pre `APPROVE`.
 4. Cieľové úložisko a autorizované doručovanie privátnych médií.
-5. Politika klientskych session, expirácie, obnovy a zrušenia prístupu.
+5. Produkčná prevádzková politika retencie session/auditu, rotácie secrets a distribuovaného rate limitingu pri horizontálnom škálovaní.
 6. Konkrétny SafetyCulture adapter, webhook idempotency a riešenie konfliktu re-importu s ručnými úpravami.
 7. Voľba plného Draft 2020-12 validátora a jeho verziové uzamknutie v budúcom CI.
