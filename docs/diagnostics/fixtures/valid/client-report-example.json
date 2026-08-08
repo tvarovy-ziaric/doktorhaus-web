@@ -1,0 +1,240 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "client_report",
+  "report": {
+    "version": "1.0",
+    "change_type": "initial",
+    "change_summary": "Prvé vydanie anonymizovaného diagnostického reportu.",
+    "published_at": "2026-06-04T12:00:00+02:00",
+    "renderer_contract_version": "1.0.0",
+    "approved_at": "2026-06-04T11:45:00+02:00"
+  },
+  "property": {
+    "display_name": "Anonymizovaný starší rodinný dom – diagnostický príklad",
+    "property_type": "house",
+    "location": {
+      "country_code": "SK",
+      "region": "Banskobystrický kraj",
+      "municipality": "anonymizovaná obec",
+      "district": "anonymizovaný okres"
+    }
+  },
+  "inspection": {
+    "inspection_type": "initial",
+    "performed_at": "2026-06-03T08:30:00+02:00",
+    "scope": [
+      "Vizuálna kontrola dostupných častí exteriéru a pivnice.",
+      "Orientačné prístrojové meranie povrchu muriva v pivnici."
+    ],
+    "limitations": [
+      "Kontrola bola nedeštruktívna a bez sondy podložia.",
+      "Aktivita deformácie nebola overovaná časovým monitoringom."
+    ]
+  },
+  "overview": {
+    "issue_count": 1,
+    "priority_counts": { "P1": 0, "P2": 1, "P3": 0, "P4": 0, "P5": 0 },
+    "severity_counts": { "S1": 0, "S2": 0, "S3": 1, "S4": 0, "S5": 0 },
+    "immediate_recommendation_count": 0,
+    "verification_recommendation_count": 1,
+    "unverified_item_count": 1,
+    "highest_priority": "P2",
+    "highest_severity": "S3"
+  },
+  "issues": [
+    {
+      "id": "issue_2222222222222222",
+      "display_code": "ISS-001",
+      "title": "Dažďová voda pri dome, vlhkosť pivnice a lokálna deformácia muriva",
+      "category": "moisture",
+      "affected_areas": [
+        { "area_type": "exterior", "label": "severná fasáda pri zvode", "orientation": "sever" },
+        { "area_type": "basement", "label": "pivničná miestnosť pod vstupom", "room": "pivnica" }
+      ],
+      "summary": "Zvod končí pri päte domu, v nadväzujúcej pivnici je zvýšená prístrojová odozva a na rohu muriva je viditeľná deformácia.",
+      "interpretation": "Pozorovania spolu časovo ani príčinou ešte nepotvrdzujú jeden mechanizmus; najprv treba obmedziť prítok vody a overiť aktivitu prejavov.",
+      "severity": "S3",
+      "severity_rationale": "Stav môže znižovať životnosť povrchov a muriva, bez overenia však nie je dôvod označiť ho za havarijný.",
+      "likelihood": "L3",
+      "likelihood_subject": "Dažďová voda pri päte domu prispieva k vlhkostnému zaťaženiu pivničného muriva.",
+      "likelihood_subject_kind": "hypothesized_mechanism",
+      "likelihood_rationale": "Priestorová súvislosť je zjavná, chýba však pozorovanie počas dažďa a dlhší monitoring.",
+      "urgency": "U2",
+      "urgency_rationale": "Jednoduché odvedenie vody a začatie monitoringu má zmysel vykonať pred ďalšou dažďovou periódou.",
+      "priority": "P2",
+      "priority_rationale": "Najprv treba znížiť expozíciu vode a získať údaje, až potom voliť rozsah sanácie.",
+      "confidence": "C3",
+      "deterioration_rate": "DR2",
+      "deterioration_rationale": "Jednorazová obhliadka nepotvrdila rýchly vývoj, opakované zmáčanie však môže poškodenie postupne zhoršovať.",
+      "short_term_risk": {
+        "level": "moderate",
+        "description": "Pri intenzívnych dažďoch môže pokračovať lokálne zmáčanie muriva a poškodzovanie omietok.",
+        "horizon": "Do začatia monitoringu a úpravy odvodu dažďovej vody."
+      },
+      "long_term_risk": {
+        "level": "high",
+        "description": "Pri dlhodobom opakovanom zvlhčovaní môže rásť rozsah degradácie muriva a náročnosť opravy.",
+        "horizon": "Viacero sezón bez odstránenia príčiny alebo bez overenia pohybu."
+      },
+      "cost_estimate": {
+        "status": "estimated",
+        "min": 450,
+        "expected": 1200,
+        "max": 2600,
+        "currency": "EUR",
+        "confidence": "C2",
+        "price_basis_date": "2026-06-01",
+        "scope": "Úprava odvodu zvodu, základný monitoring a lokálne sprístupnenie povrchov; bez statického zásahu.",
+        "assumptions": ["Zvod možno odviesť bez rozsiahlych zemných prác."],
+        "exclusions": ["Statické zabezpečenie muriva a kompletná sanácia pivnice."],
+        "vat_status": "unknown"
+      },
+      "cost_escalation": {
+        "level": "high",
+        "mechanism": "Opakované zvlhčovanie môže rozšíriť poškodenie omietok a muriva.",
+        "trigger": "Ponechanie zvodu pri stene a zakrytie prejavov bez overenia príčiny.",
+        "preventive_step": "Odviesť dažďovú vodu, zaznamenať východiskový stav a sledovať vývoj.",
+        "confidence": "C3",
+        "rationale": "Preventívne kroky sú lacnejšie a reverzibilnejšie než predčasná plošná sanácia."
+      },
+      "status": "active",
+      "limitations": [
+        "Bez sondy a monitoringu nemožno potvrdiť skladbu, smer transportu vlhkosti ani aktivitu deformácie."
+      ],
+      "missing_information": [
+        {
+          "statement": "Nie je overené, či sa deformácia muriva ďalej mení.",
+          "why_it_matters": "Aktivita pohybu ovplyvní potrebu a poradie zásahov.",
+          "how_to_obtain": "Geodetické zameranie alebo osadenie meracích bodov a opakované odčítanie.",
+          "blocking": true,
+          "recommended_specialty": { "specialty": "structural_engineer" }
+        }
+      ],
+      "observations": [
+        {
+          "id": "obs_2222222222222221",
+          "display_code": "OBS-001",
+          "statement": "Dažďový zvod je ukončený voľne pri päte obvodovej steny.",
+          "type": "visual",
+          "area": { "area_type": "exterior", "label": "severná fasáda pri zvode", "orientation": "sever" },
+          "status": "active",
+          "limitations": ["Správanie vody počas intenzívneho dažďa nebolo priamo sledované."]
+        },
+        {
+          "id": "obs_2222222222222222",
+          "display_code": "OBS-002",
+          "statement": "Na povrchu pivničného muriva bola zaznamenaná hodnota 72 WME.",
+          "type": "measured",
+          "area": { "area_type": "basement", "label": "pivničná miestnosť pod vstupom", "room": "pivnica" },
+          "status": "active",
+          "measurement": {
+            "quantity": "orientačná odozva vlhkosti muriva",
+            "value": 72,
+            "unit_kind": "device_scale",
+            "unit_code": "WME",
+            "unit_label": "Wood Moisture Equivalent – prístrojová škála",
+            "method": "povrchové orientačné meranie",
+            "instrument": "ručný vlhkomer",
+            "measured_at": "2026-06-03T09:20:00+02:00",
+            "conditions": "Pivnica, bez odkrytia skladby muriva.",
+            "notes": "Hodnota WME nie je hmotnostné percento vody v murive."
+          },
+          "limitations": ["Jednorazové povrchové meranie neurčuje zdroj vlhkosti."]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ev_2222222222222221",
+          "display_code": "EV-001",
+          "type": "photo",
+          "title": "Ukončenie severného dažďového zvodu",
+          "description": "Fotografia zobrazuje voľné vyústenie zvodu pri obvodovej stene.",
+          "content_type": "image/jpeg",
+          "has_media": true,
+          "media_url": "api/diagnostics-media.php?evidence=ev_2222222222222221"
+        }
+      ],
+      "hypotheses": [
+        {
+          "id": "hyp_2222222222222221",
+          "display_code": "HYP-001",
+          "statement": "Lokálne privádzanie dažďovej vody môže prispievať k vlhkostnému zaťaženiu pivničného muriva.",
+          "mechanism": "Voda pri päte objektu zvyšuje vlhkostnú expozíciu muriva a priľahlého podložia.",
+          "confidence": "C3",
+          "status": "under_verification"
+        }
+      ],
+      "impacts": [
+        { "dimension": "safety", "level": "low", "description": "Pri obhliadke nebol potvrdený bezprostredný bezpečnostný stav.", "time_horizon": "both", "confidence": "C2", "rationale": "Chýba overenie aktivity deformácie." },
+        { "dimension": "structural", "level": "moderate", "description": "Deformácia muriva vyžaduje sledovanie a odborné overenie.", "time_horizon": "both", "confidence": "C2", "rationale": "Jednorazové pozorovanie neurčuje aktivitu pohybu." },
+        { "dimension": "moisture", "level": "high", "description": "Opakované privádzanie vody môže udržiavať murivo vlhké.", "time_horizon": "both", "confidence": "C3", "rationale": "Zvod končí pri stene a v pivnici je zvýšená odozva." },
+        { "dimension": "health", "level": "moderate", "description": "Dlhodobá vlhkosť môže zhoršiť podmienky v pivnici.", "time_horizon": "long_term", "confidence": "C2", "rationale": "Mikrobiologické vyšetrenie nebolo vykonané." },
+        { "dimension": "durability", "level": "high", "description": "Cyklické zvlhčovanie môže urýchliť degradáciu omietok a muriva.", "time_horizon": "long_term", "confidence": "C3", "rationale": "Poškodenie povrchov je už lokálne viditeľné." },
+        { "dimension": "usability", "level": "moderate", "description": "Pivnica môže vyžadovať obmedzenie citlivého skladovania.", "time_horizon": "short_term", "confidence": "C3", "rationale": "Vlhkostné podmienky nie sú stabilne overené." },
+        { "dimension": "financial", "level": "high", "description": "Predčasné prekrytie prejavov môže viesť k opakovanej oprave.", "time_horizon": "long_term", "confidence": "C3", "rationale": "Rozsah sanácie závisí od výsledku monitoringu." }
+      ],
+      "verification_ids": ["ver_2222222222222221"],
+      "recommendation_ids": ["rec_2222222222222221", "rec_2222222222222222"]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec_2222222222222221",
+      "display_code": "REC-001",
+      "type": "VERIFY",
+      "title": "Monitorovať vlhkosť a deformáciu",
+      "description": "Zaznamenať východiskový stav a vykonať opakované merania po úprave odvodu vody.",
+      "rationale": "Časová séria pomôže oddeliť stabilný starší stav od aktívneho zhoršovania.",
+      "status": "approved",
+      "target_timeframe": { "urgency": "U2", "recommended_by": "2026-06-30", "text": "Začať bez zbytočného odkladu." },
+      "responsible_specialty": { "specialty": "building_inspector" },
+      "acceptance_or_follow_up": "Vyhodnotiť trend po dažďových udalostiach a podľa výsledku určiť ďalší krok.",
+      "conditional": false,
+      "issue_ids": ["issue_2222222222222222"],
+      "depends_on": []
+    },
+    {
+      "id": "rec_2222222222222222",
+      "display_code": "REC-002",
+      "type": "REPAIR",
+      "title": "Obnoviť poškodené povrchy až po overení príčiny",
+      "description": "Rozsah opravy omietok určiť podľa výsledku monitoringu a odborného overenia muriva.",
+      "rationale": "Finálny povrch pred uzavretím príčiny môže zakryť vývoj a viesť k opakovanej oprave.",
+      "status": "approved",
+      "target_timeframe": { "urgency": "U4", "recommended_by": "2026-10-31", "text": "Po vyhodnotení monitoringu." },
+      "responsible_specialty": { "specialty": "other", "label": "murár so skúsenosťou so starším murivom" },
+      "acceptance_or_follow_up": "Povrch ostane po primeranom období bez nových vlhkostných máp a trhlín.",
+      "conditional": true,
+      "condition_description": "Až po potvrdení stabilného stavu alebo po návrhu potrebného technického zásahu.",
+      "issue_ids": ["issue_2222222222222222"],
+      "depends_on": [
+        { "recommendation_id": "rec_2222222222222221", "dependency_type": "requires" }
+      ]
+    }
+  ],
+  "verifications": [
+    {
+      "id": "ver_2222222222222221",
+      "display_code": "VER-001",
+      "verification_type": "monitoring",
+      "method": "Opakované meranie vlhkostnej odozvy a geometrie rovnakými bodmi.",
+      "purpose": "Overiť trend po odvedení dažďovej vody a aktivitu deformácie.",
+      "status": "proposed",
+      "limitations": ["Výsledok závisí od dĺžky sledovania a poveternostných podmienok."],
+      "specialist_required": true,
+      "responsible_specialty": { "specialty": "building_inspector" }
+    }
+  ],
+  "issue_relations": [],
+  "unverified_items": [
+    {
+      "issue_id": "issue_2222222222222222",
+      "statement": "Nie je overené, či sa deformácia muriva ďalej mení.",
+      "why_it_matters": "Aktivita pohybu ovplyvní potrebu a poradie zásahov.",
+      "how_to_obtain": "Geodetické zameranie alebo osadenie meracích bodov a opakované odčítanie.",
+      "blocking": true,
+      "recommended_specialty": { "specialty": "structural_engineer" }
+    }
+  ],
+  "generated_at": "2026-06-04T11:30:00+02:00"
+}

@@ -21,6 +21,8 @@ final class DiagnosticsAuditLog
         'session_expired',
         'session_invalidated',
         'logout',
+        'report_viewed',
+        'media_accessed',
     ];
 
     private const ALLOWED_METADATA = [
@@ -28,6 +30,8 @@ final class DiagnosticsAuditLog
         'retry_after',
         'idle_seconds',
         'absolute_seconds',
+        'evidence_id',
+        'request_type',
     ];
 
     /** @var string */

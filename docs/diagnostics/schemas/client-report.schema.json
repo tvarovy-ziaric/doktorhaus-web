@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doktorhaus.sk/schemas/diagnostics/client-report.schema.json",
+  "title": "DoktorHaus client-safe diagnostic report projection",
+  "description": "Strict allowlist delivery contract deterministically derived from one immutable published report package. It is not a diagnostic source of truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "document_type", "report", "property", "inspection", "overview", "issues",
+    "recommendations", "verifications", "issue_relations", "unverified_items", "generated_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "document_type": { "const": "client_report" },
+    "report": { "$ref": "#/$defs/report" },
+    "property": { "$ref": "#/$defs/property" },
+    "inspection": { "$ref": "#/$defs/inspection" },
+    "overview": { "$ref": "#/$defs/overview" },
+    "issues": { "type": "array", "items": { "$ref": "#/$defs/issue" } },
+    "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } },
+    "verifications": { "type": "array", "items": { "$ref": "#/$defs/verification" } },
+    "issue_relations": { "type": "array", "items": { "$ref": "#/$defs/issue_relation" } },
+    "unverified_items": { "type": "array", "items": { "$ref": "#/$defs/unverified_item" } },
+    "generated_at": { "$ref": "common.schema.json#/$defs/date_time" }
+  },
+  "$defs": {
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "change_type", "change_summary", "published_at", "renderer_contract_version"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+$" },
+        "change_type": { "type": "string", "enum": ["initial", "evidence_update", "follow_up", "post_repair", "material_revision"] },
+        "change_summary": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "published_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "renderer_contract_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "approved_at": { "$ref": "common.schema.json#/$defs/date_time" }
+      }
+    },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display_name", "property_type", "location"],
+      "properties": {
+        "display_name": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "property_type": { "type": "string", "enum": ["house", "apartment", "mixed_use", "outbuilding", "site", "other"] },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["country_code", "region"],
+      "properties": {
+        "country_code": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "region": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "municipality": { "type": "string" },
+        "district": { "type": "string" }
+      }
+    },
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inspection_type", "performed_at", "scope", "limitations"],
+      "properties": {
+        "inspection_type": { "type": "string", "enum": ["initial", "follow_up", "post_repair", "other"] },
+        "performed_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "scope": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "limitations": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } }
+      }
+    },
+    "overview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue_count", "priority_counts", "severity_counts", "immediate_recommendation_count",
+        "verification_recommendation_count", "unverified_item_count", "highest_priority", "highest_severity"
+      ],
+      "properties": {
+        "issue_count": { "type": "integer", "minimum": 0 },
+        "priority_counts": { "$ref": "#/$defs/priority_counts" },
+        "severity_counts": { "$ref": "#/$defs/severity_counts" },
+        "immediate_recommendation_count": { "type": "integer", "minimum": 0 },
+        "verification_recommendation_count": { "type": "integer", "minimum": 0 },
+        "unverified_item_count": { "type": "integer", "minimum": 0 },
+        "highest_priority": { "anyOf": [{ "$ref": "common.schema.json#/$defs/priority" }, { "type": "null" }] },
+        "highest_severity": { "anyOf": [{ "$ref": "common.schema.json#/$defs/severity" }, { "type": "null" }] }
+      }
+    },
+    "priority_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["P1", "P2", "P3", "P4", "P5"],
+      "properties": {
+        "P1": { "type": "integer", "minimum": 0 }, "P2": { "type": "integer", "minimum": 0 },
+        "P3": { "type": "integer", "minimum": 0 }, "P4": { "type": "integer", "minimum": 0 },
+        "P5": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "severity_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["S1", "S2", "S3", "S4", "S5"],
+      "properties": {
+        "S1": { "type": "integer", "minimum": 0 }, "S2": { "type": "integer", "minimum": 0 },
+        "S3": { "type": "integer", "minimum": 0 }, "S4": { "type": "integer", "minimum": 0 },
+        "S5": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "title", "category", "affected_areas", "summary", "severity", "severity_rationale",
+        "likelihood", "likelihood_subject", "likelihood_subject_kind", "likelihood_rationale", "urgency",
+        "urgency_rationale", "priority", "priority_rationale", "confidence", "deterioration_rate",
+        "deterioration_rationale", "short_term_risk", "long_term_risk", "cost_estimate", "cost_escalation",
+        "status", "limitations", "missing_information", "observations", "evidence", "hypotheses", "impacts",
+        "verification_ids", "recommendation_ids"
+      ],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "category": { "type": "string", "enum": [
+          "drainage", "moisture", "structural", "masonry", "foundation", "facade", "roof", "chimney_flue",
+          "electrical", "heating", "plumbing", "sewerage", "ventilation", "indoor_climate", "biological",
+          "windows_doors", "site_exterior", "documentation", "fire_safety", "other"
+        ] },
+        "category_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "affected_areas": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/area_reference" } },
+        "summary": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "interpretation": { "type": "string" },
+        "severity": { "$ref": "common.schema.json#/$defs/severity" },
+        "severity_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "likelihood": { "$ref": "common.schema.json#/$defs/likelihood" },
+        "likelihood_subject": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "likelihood_subject_kind": { "type": "string", "enum": ["observed_condition", "future_event", "hypothesized_mechanism"] },
+        "likelihood_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "urgency": { "$ref": "common.schema.json#/$defs/urgency" },
+        "urgency_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "priority": { "$ref": "common.schema.json#/$defs/priority" },
+        "priority_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "deterioration_rate": { "$ref": "common.schema.json#/$defs/deterioration_rate" },
+        "deterioration_rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "short_term_risk": { "$ref": "#/$defs/risk" },
+        "long_term_risk": { "$ref": "#/$defs/risk" },
+        "cost_estimate": { "$ref": "#/$defs/cost_estimate" },
+        "cost_escalation": { "$ref": "#/$defs/cost_escalation" },
+        "status": { "type": "string", "enum": ["active", "monitoring", "resolved"] },
+        "limitations": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "missing_information": { "type": "array", "items": { "$ref": "#/$defs/missing_information" } },
+        "observations": { "type": "array", "items": { "$ref": "#/$defs/observation" } },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "hypotheses": { "type": "array", "items": { "$ref": "#/$defs/hypothesis" } },
+        "impacts": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/$defs/impact" } },
+        "verification_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/verification_id" } },
+        "recommendation_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/recommendation_id" } }
+      }
+    },
+    "risk": {
+      "type": "object", "additionalProperties": false, "required": ["level", "description", "horizon"],
+      "properties": {
+        "level": { "$ref": "common.schema.json#/$defs/risk_level" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "horizon": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      }
+    },
+    "cost_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["estimated", "not_estimated"] },
+        "min": { "type": "number", "minimum": 0 }, "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }, "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "price_basis_date": { "$ref": "common.schema.json#/$defs/date" },
+        "scope": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "exclusions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "vat_status": { "type": "string", "enum": ["included", "excluded", "mixed", "unknown"] },
+        "reason": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "estimated" } }, "required": ["status"] },
+          "then": { "required": ["min", "expected", "max", "currency", "confidence", "price_basis_date", "scope", "assumptions", "exclusions", "vat_status"], "not": { "required": ["reason"] } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_estimated" } }, "required": ["status"] },
+          "then": {
+            "required": ["reason"],
+            "not": { "anyOf": [
+              { "required": ["min"] }, { "required": ["expected"] }, { "required": ["max"] },
+              { "required": ["currency"] }, { "required": ["confidence"] }, { "required": ["price_basis_date"] },
+              { "required": ["scope"] }, { "required": ["assumptions"] }, { "required": ["exclusions"] },
+              { "required": ["vat_status"] }
+            ] }
+          }
+        }
+      ]
+    },
+    "cost_escalation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["level", "mechanism", "trigger", "preventive_step", "confidence", "rationale"],
+      "properties": {
+        "level": { "$ref": "common.schema.json#/$defs/risk_level" },
+        "mechanism": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "trigger": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "preventive_step": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      }
+    },
+    "observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "type", "area", "status", "limitations"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/observation_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "type": { "type": "string", "enum": ["visual", "measured", "reported", "document", "functional_test", "thermal", "other"] },
+        "area": { "$ref": "common.schema.json#/$defs/area_reference" },
+        "status": { "const": "active" },
+        "measurement": { "$ref": "#/$defs/measurement" },
+        "limitations": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } }
+      }
+    },
+    "measurement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["quantity", "value", "unit_kind", "unit_code", "method", "measured_at"],
+      "properties": {
+        "quantity": { "$ref": "common.schema.json#/$defs/non_empty_string" }, "value": { "type": "number" },
+        "unit_kind": { "type": "string", "enum": ["si", "percent", "device_scale", "count", "dimensionless", "custom"] },
+        "unit_code": { "$ref": "common.schema.json#/$defs/non_empty_string" }, "unit_label": { "type": "string" },
+        "method": { "$ref": "common.schema.json#/$defs/non_empty_string" }, "instrument": { "type": "string" },
+        "measured_at": { "$ref": "common.schema.json#/$defs/date_time" }, "conditions": { "type": "string" },
+        "uncertainty": { "type": "number", "minimum": 0 }, "reference_min": { "type": "number" },
+        "reference_max": { "type": "number" }, "notes": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "type", "title", "description", "has_media"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/evidence_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "type": { "type": "string", "enum": ["photo", "video", "thermal_image", "measurement_record", "document", "sensor_series", "audio", "note", "drone_photo", "photo_360", "other"] },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "content_type": { "type": "string" },
+        "has_media": { "type": "boolean" },
+        "media_url": { "type": "string", "pattern": "^api/diagnostics-media\\.php\\?evidence=ev_[0-9a-f]{16,32}$" }
+      },
+      "allOf": [
+        { "if": { "properties": { "has_media": { "const": true } }, "required": ["has_media"] }, "then": { "required": ["content_type", "media_url"] } },
+        { "if": { "properties": { "has_media": { "const": false } }, "required": ["has_media"] }, "then": { "not": { "required": ["media_url"] } } }
+      ]
+    },
+    "hypothesis": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "statement", "mechanism", "confidence", "status"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/hypothesis_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "mechanism": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "status": { "type": "string", "enum": ["proposed", "under_verification", "supported", "contradicted", "inconclusive"] }
+      }
+    },
+    "impact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dimension", "level", "description", "time_horizon", "confidence", "rationale"],
+      "properties": {
+        "dimension": { "type": "string", "enum": ["safety", "structural", "moisture", "health", "durability", "usability", "financial"] },
+        "level": { "$ref": "common.schema.json#/$defs/risk_level" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "time_horizon": { "type": "string", "enum": ["short_term", "long_term", "both"] },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      }
+    },
+    "missing_information": {
+      "type": "object", "additionalProperties": false,
+      "required": ["statement", "why_it_matters", "how_to_obtain", "blocking"],
+      "properties": {
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "why_it_matters": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "how_to_obtain": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "blocking": { "type": "boolean" },
+        "recommended_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" }
+      }
+    },
+    "unverified_item": {
+      "type": "object", "additionalProperties": false,
+      "required": ["issue_id", "statement", "why_it_matters", "how_to_obtain", "blocking"],
+      "properties": {
+        "issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "statement": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "why_it_matters": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "how_to_obtain": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "blocking": { "type": "boolean" },
+        "recommended_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" }
+      }
+    },
+    "recommendation": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "id", "display_code", "type", "title", "description", "rationale", "status", "target_timeframe",
+        "responsible_specialty", "acceptance_or_follow_up", "conditional", "issue_ids", "depends_on"
+      ],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "type": { "type": "string", "enum": ["IMMEDIATE", "VERIFY", "REPAIR", "MONITOR", "MAINTENANCE", "DOCUMENT"] },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "rationale": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "status": { "type": "string", "enum": ["proposed", "approved", "completed", "deferred"] },
+        "target_timeframe": { "$ref": "#/$defs/target_timeframe" },
+        "responsible_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" },
+        "acceptance_or_follow_up": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "conditional": { "type": "boolean" },
+        "condition_description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "issue_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/issue_id" } },
+        "depends_on": { "type": "array", "items": { "$ref": "#/$defs/recommendation_dependency" } }
+      }
+    },
+    "target_timeframe": {
+      "type": "object", "additionalProperties": false, "required": ["urgency", "recommended_by", "text"],
+      "properties": {
+        "urgency": { "$ref": "common.schema.json#/$defs/urgency" },
+        "recommended_by": { "$ref": "common.schema.json#/$defs/date" },
+        "recommended_before": { "$ref": "common.schema.json#/$defs/date" },
+        "text": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+      }
+    },
+    "recommendation_dependency": {
+      "type": "object", "additionalProperties": false, "required": ["recommendation_id", "dependency_type"],
+      "properties": {
+        "recommendation_id": { "$ref": "common.schema.json#/$defs/recommendation_id" },
+        "dependency_type": { "type": "string", "enum": ["precedes", "requires", "blocks_until_completed"] }
+      }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "verification_type", "method", "purpose", "status", "limitations", "specialist_required"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/verification_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "verification_type": { "type": "string", "enum": ["inspection", "measurement", "monitoring", "destructive_probe", "laboratory_test", "specialist_assessment", "document_review", "other"] },
+        "method": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "purpose": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "status": { "type": "string", "enum": ["proposed", "scheduled", "completed", "not_feasible", "declined"] },
+        "performed_at": { "$ref": "common.schema.json#/$defs/date_time" },
+        "result_summary": { "type": "string" },
+        "limitations": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "specialist_required": { "type": "boolean" },
+        "responsible_specialty": { "$ref": "common.schema.json#/$defs/specialty_reference" }
+      }
+    },
+    "issue_relation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["from_issue_id", "to_issue_id", "relation_type", "description", "confidence"],
+      "properties": {
+        "from_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "to_issue_id": { "$ref": "common.schema.json#/$defs/issue_id" },
+        "relation_type": { "type": "string", "enum": ["contributes_to", "caused_by", "aggravates", "depends_on", "same_mechanism", "supersedes"] },
+        "description": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" }
+      }
+    }
+  }
+}

@@ -136,6 +136,21 @@ Krok 3 sám nezaviedol auth, PIN, session, role, rate limiting, CSRF, audit, ren
 
 Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportové dáta ani súbory a nepridáva klientskú projekciu, field-level auth, renderer, media/PDF streaming, `Range`, `Content-Disposition`, cache politiku, backoffice vydávanie grantov, SafetyCulture integráciu alebo legacy migráciu. Podrobný kontrakt je v [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md).
 
+## Čo zavádza krok 4B
+
+- derived `client_report` schema a realistický anonymizovaný fixture;
+- `DiagnosticsClientProjection`, ktorý explicitne skladá client-safe polia a fail-closed kontroluje identity, sedem impacts, relation/dependency konzistenciu a cycle;
+- privacy + active-link evidence filter a serverový `clientVisibleEvidenceIds` set;
+- session-bound `GET api/diagnostics-report.php` bez report/version selectorov;
+- session-bound `GET|HEAD api/diagnostics-media.php` iba s opaque evidence ID;
+- manifest role kontrolu, safe inline MIME allowlist, generated filename, single byte ranges a chunk streaming;
+- audit events `report_viewed` a `media_accessed` s fail-closed delivery politikou;
+- uvoľnenie PHP session locku pred media streamom a reuse package snapshotu úplne overeného v session bindingu.
+
+Raw `inspection.json`, `diagnosis.json` a `manifest.json` nie sú client API. 4B nemení ich diagnostický význam ani existujúce schemas. `client_report` je jednosmerná projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+
+Krok 4B stále nie je klientsky portál: renderer, finálny UX, `inspekcie.html`, backoffice issuance, SafetyCulture adapter, produkčný report a legacy tok zostávajú nezmenené.
+
 ## Rozhodnutia uzavreté kontraktom 1.0.0
 
 - stabilné prefixované ID s 16–32 lowercase hex znakmi a oddeleným `display_code`;
@@ -152,7 +167,7 @@ Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportov
 1. Ako dlho MVP runtime zostane na oddelených JSON súboroch a kedy bude odôvodnená databáza.
 2. Produkčný filesystem/object storage, zálohy, restore test, retencia a overenie atomic rename/flock semantics hostingu.
 3. Konkrétna interná identita, role a auditné úložisko pre `APPROVE`.
-4. Cieľové úložisko a autorizované doručovanie privátnych médií.
+4. Cieľové produkčné úložisko a škálovanie integrity verifikácie veľkých médií; základné autorizované PHP delivery je od 4B implementované.
 5. Produkčná prevádzková politika retencie session/auditu, rotácie secrets a distribuovaného rate limitingu pri horizontálnom škálovaní.
 6. Konkrétny SafetyCulture adapter, webhook idempotency a riešenie konfliktu re-importu s ručnými úpravami.
 7. Voľba plného Draft 2020-12 validátora a jeho verziové uzamknutie v budúcom CI.

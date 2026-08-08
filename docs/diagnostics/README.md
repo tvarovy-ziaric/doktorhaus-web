@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation a krok 4A serverové bezpečnostné jadro budúceho klientského prístupu. Legacy portál sa nemení a doručovanie reportu ani médií ešte nie je implementované.
+Tento adresár je záväzný doménový a architektonický základ pre budúci systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu a krok 4B strict client-safe report projection s autorizovaným media delivery. Legacy portál a klientsky renderer sa nemenia.
 
 Základný tok informácií je:
 
@@ -20,8 +20,9 @@ SafetyCulture zostáva zdrojom terénneho zberu a surových záznamov. Diagnosti
 8. [WORKFLOW.md](WORKFLOW.md) – manuálny MVP tok a budúce napojenie na SafetyCulture.
 9. [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md) – filesystem storage, atomické drafty, immutable publish a bezpečnostné hranice.
 10. [CLIENT_ACCESS_SECURITY.md](CLIENT_ACCESS_SECURITY.md) – granty, PIN hashing, serverová session, rate limiting, revokácia a audit v kroku 4A.
-11. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
-12. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
+11. [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md) – strict allowlist projekcia, report/media endpointy, BOLA, MIME, Range a audit v kroku 4B.
+12. [schemas/README.md](schemas/README.md) – normatívne machine-readable kontrakty, lint a fixtures.
+13. [SCHEMA_MIGRATION_NOTES.md](SCHEMA_MIGRATION_NOTES.md) – budúce mapovanie dnešného portálu bez produkčnej migrácie.
 
 ## Pravidlo zmeny
 
@@ -36,7 +37,8 @@ Koncepčný model je od kroku 2 vyjadrený aj cez JSON Schema Draft 2020-12 kont
 - [common.schema.json](schemas/common.schema.json);
 - [inspection.schema.json](schemas/inspection.schema.json);
 - [diagnosis.schema.json](schemas/diagnosis.schema.json);
-- [report-package.schema.json](schemas/report-package.schema.json).
+- [report-package.schema.json](schemas/report-package.schema.json);
+- [client-report.schema.json](schemas/client-report.schema.json) – odvodený delivery kontrakt, nie nový source of truth.
 
 Realistické vstupy sú v `fixtures/valid/`; úmyselne neplatné doménové prípady a ich očakávané kódy sú v `fixtures/invalid/`.
 
@@ -51,7 +53,7 @@ Stdlib lint nie je všeobecný JSON Schema engine. Schémy sú normatívny štru
 
 ## CI verification
 
-Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` vykonáva Python contract tests, PHP syntax lint, storage runner, access security runner a HTTP auth integráciu na GitHub-hosted Linux runneri. Testy používajú iba syntetické dáta a dočasný storage mimo repository; nepotrebujú produkčné secrets, FTP ani prístup k hostingu.
+Workflow `Diagnostics contracts, access and delivery CI` v `.github/workflows/diagnostics-ci.yml` vykonáva Python contract tests, PHP syntax lint, storage/access/projection runners a auth aj delivery HTTP integráciu na GitHub-hosted Linux runneri. Testy používajú iba syntetické dáta, dočasný storage a syntetický 6 MiB media súbor; nepotrebujú produkčné secrets, FTP ani prístup k hostingu.
 
 Ak je lokálne dostupné PHP CLI, rovnaké jadro kontroly sa spustí príkazmi:
 
@@ -61,12 +63,16 @@ php -l api/lib/diagnostics/DiagnosticsStorage.php
 php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
 php -l api/lib/diagnostics/DiagnosticsStorageException.php
 php -l api/diagnostics-auth.php
+php -l api/diagnostics-report.php
+php -l api/diagnostics-media.php
 php -l api/diagnostics.config.example.php
 php -l tools/test_diagnostics_access.php
 php -l tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_access.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_client_projection.php
 bash tools/test_diagnostics_access_http.sh
+bash tools/test_diagnostics_delivery_http.sh
 ```
 
 Úspešný workflow potvrdzuje vykonanie tejto suite pre konkrétnu revision na CI PHP runtime. Nepotvrdzuje verziu ani konfiguráciu produkčného hostingu.
@@ -75,6 +81,8 @@ bash tools/test_diagnostics_access_http.sh
 
 `api/lib/diagnostics/` implementuje PHP úložisko draft `inspection.json`/`diagnosis.json` dokumentov a nemenných publikovaných report packages. Používa explicitný root mimo webrootu, atomické zápisy, per-object locks, optimistic revision, strict paths, symlink kontroly, SHA-256 a staging + atomic rename publish. Samostatný runner je `tools/test_diagnostics_storage.php`.
 
-Krok 4A nad túto vrstvu pridáva opaque access grant viazaný na presný hash publikovaného manifestu, peppered PIN hash, perzistentný rate limiting, serverovú session, CSRF, rotáciu/revokáciu a bezpečnostný audit. Verejný endpoint poskytuje iba unlock, status a logout; nevracia diagnostický obsah.
+Krok 4A nad túto vrstvu pridáva opaque access grant viazaný na presný hash publikovaného manifestu, peppered PIN hash, perzistentný rate limiting, serverovú session, CSRF, rotáciu/revokáciu a bezpečnostný audit. Auth endpoint poskytuje iba unlock, status a logout.
 
-Táto verzia stále neobsahuje databázové tabuľky, renderer reportu, klientskú projekciu, field-level autorizáciu, autorizované HTTP doručovanie reportu alebo médií, `Range`/`Content-Disposition`/cache politiku pre súbory, backoffice issuance UI, upload, SafetyCulture API ani webhook. Storage ani auth úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.
+Krok 4B z immutable package vytvára `client_report` výhradne cez field allowlist, filtruje internal/orphan evidence a poskytuje session-bound `GET api/diagnostics-report.php` a `GET|HEAD api/diagnostics-media.php`. Media selector je iba evidence ID; endpoint podporuje single byte ranges, bezpečný MIME/Content-Disposition model, `no-store` a audit. Raw inspection, diagnosis, manifest, storage paths a interné metadáta klientovi neposiela. Podrobnosti sú v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+
+Táto verzia stále neobsahuje databázové tabuľky, klientsky renderer/final UX, backoffice issuance UI, upload, SafetyCulture API/webhook, produkčný deploy config, backup/restore, klientsky PDF generátor ani legacy migráciu. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.

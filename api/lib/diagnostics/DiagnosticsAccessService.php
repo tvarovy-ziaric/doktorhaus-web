@@ -34,6 +34,9 @@ final class DiagnosticsAccessService
     /** @var callable */
     private $clock;
 
+    /** @var array<string, mixed>|null */
+    private $lastVerifiedPackage;
+
     public function __construct(
         DiagnosticsStorage $storage,
         DiagnosticsSecurityConfig $config,
@@ -254,6 +257,7 @@ final class DiagnosticsAccessService
     /** @param array<string, mixed> $grant */
     public function assertGrantPackageBinding(array $grant): void
     {
+        $this->lastVerifiedPackage = null;
         try {
             $binding = $this->storage->loadPublishedManifestBinding(
                 (string)$grant['report_id'],
@@ -268,6 +272,26 @@ final class DiagnosticsAccessService
             !hash_equals((string)$grant['package_manifest_sha256'], $manifestHash)) {
             throw new DiagnosticsAccessException('ACCESS_PACKAGE_MISMATCH', 'The access package binding is invalid.');
         }
+        $this->lastVerifiedPackage = $binding['package'];
+    }
+
+    /**
+     * Consume the immutable package snapshot verified by the immediately preceding grant/session check.
+     *
+     * @param array<string, mixed> $context
+     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     */
+    public function consumeVerifiedPackage(array $context): array
+    {
+        $package = $this->lastVerifiedPackage;
+        $this->lastVerifiedPackage = null;
+        if (!is_array($package) ||
+            ($package['manifest']['report']['id'] ?? null) !== ($context['report_id'] ?? null) ||
+            ($package['manifest']['report_version']['version'] ?? null) !== ($context['report_version'] ?? null) ||
+            ($package['manifest']['report_version']['id'] ?? null) !== ($context['report_version_id'] ?? null)) {
+            throw new DiagnosticsAccessException('ACCESS_PACKAGE_MISMATCH', 'The verified package snapshot is unavailable.');
+        }
+        return $package;
     }
 
     public function getStore(): DiagnosticsAccessStore

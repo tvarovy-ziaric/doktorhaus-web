@@ -121,7 +121,7 @@ Server sprístupní iba approved report version a jej povolené médiá. Publish
 
 Od kroku 3 môže storage vrstva nainštalovať iba manifest so stavom `published`, s `approved_by`, `approved_at` a `published_at`. Predpokladá, že oprávnený workflow už vytvoril tieto auditné fakty; sama ich nevytvára. Balík kopíruje do stagingu, znovu overí paths, symlinky, veľkosti a SHA-256 a atomicky ho premenuje na novú `reports/<report-id>/<version>` cestu. Existujúca verzia sa nikdy neprepisuje.
 
-Doménový lint, plná schema validácia, inspector QA a auditovaný `APPROVE` musia prebehnúť pred volaním storage install. Úspešný install ešte neznamená klientsky prístup: auth/session a autorizované HTTP doručenie zostávajú samostatný budúci krok.
+Doménový lint, plná schema validácia, inspector QA a auditovaný `APPROVE` musia prebehnúť pred volaním storage install. Úspešný install ešte neznamená klientsky prístup: krok 4A vyžaduje samostatný grant/session a krok 4B doručí iba odvodenú allowlist projekciu a autorizované médiá. Ani jedna vrstva nenahrádza odborné publish rozhodnutie.
 
 ### 10. Client PIN
 
@@ -129,7 +129,9 @@ Po publish sa vydá alebo aktivuje klientsky prístup. Server uloží hash PINu,
 
 Klient vidí verziu, change summary, report a autorizované médiá. Prístup možno expirovať, odvolať alebo regenerovať bez úpravy reportu.
 
-Krok 4A implementuje iba prvú bezpečnostnú časť tohto bodu: interné vytvorenie grantu pre presnú publikovanú verziu, jednorazové vrátenie plaintext PINu, overenie, serverovú session, rate limiting, rotáciu, revokáciu a audit. Neimplementuje kanál doručenia PINu, backoffice issuance UI ani následné vydanie change summary, reportu a médií. Legacy `ready`/`sent` tok sa nemení a jeho plaintext PINy sa nemigrujú.
+Krok 4A implementuje prvú bezpečnostnú časť tohto bodu: interné vytvorenie grantu pre presnú publikovanú verziu, jednorazové vrátenie plaintext PINu, overenie, serverovú session, rate limiting, rotáciu, revokáciu a audit. Krok 4B po validnej session vydá client-safe change/report projection a iba evidence médiá, ktoré prejdú active/privacy/relevance allowlistom. Report ani media request nesmie zvoliť report, verziu alebo storage path.
+
+Stále nie je implementovaný kanál doručenia PINu, backoffice issuance UI ani klientsky renderer/final UX. Legacy `ready`/`sent` tok sa nemení a jeho plaintext PINy sa nemigrujú.
 
 ## Pracovné stavy a mapovanie dnešného prototypu
 

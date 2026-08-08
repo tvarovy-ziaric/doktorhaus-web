@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -46,8 +47,8 @@ def resolve_pointer(document: Any, fragment: str) -> bool:
 
 def validate_schemas(failures: list[str]) -> None:
     schema_paths = sorted(SCHEMA_DIR.glob("*.schema.json"))
-    if len(schema_paths) != 4:
-        failures.append(f"Expected 4 schemas, found {len(schema_paths)}")
+    if len(schema_paths) != 5:
+        failures.append(f"Expected 5 schemas, found {len(schema_paths)}")
     loaded: dict[Path, dict[str, Any]] = {}
     for path in schema_paths:
         try:
@@ -155,6 +156,58 @@ def validate_invalid_fixtures(failures: list[str]) -> None:
             failures.append(f"Invalid fixture {filename} lacks {expected_code}; got {sorted(code for code in actual_codes if code)}")
 
 
+def validate_client_report_fixture(failures: list[str]) -> None:
+    path = VALID_DIR / "client-report-example.json"
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            report = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        failures.append(f"Client report fixture cannot be read: {exc}")
+        return
+
+    expected_keys = {
+        "schema_version", "document_type", "report", "property", "inspection", "overview", "issues",
+        "recommendations", "verifications", "issue_relations", "unverified_items", "generated_at",
+    }
+    if set(report) != expected_keys:
+        failures.append(f"Client report fixture top-level keys differ: {sorted(set(report) ^ expected_keys)}")
+    if report.get("schema_version") != "1.0.0" or report.get("document_type") != "client_report":
+        failures.append("Client report fixture metadata is invalid")
+
+    forbidden = {
+        "qa", "actors", "actor_ids", "approved_by", "observed_by", "captured_by", "performed_by",
+        "provenance", "import_metadata", "source_system", "source_inspection_id", "source_item_id",
+        "source_media_id", "source_reference", "source_hash", "pin", "pin_hash", "csrf_token",
+        "session_id", "report_id", "report_version_id", "package_manifest_sha256", "media_reference",
+        "sha256", "address_private", "storage_path", "filesystem_path",
+    }
+
+    def scan(value: Any, location: str = "$") -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key in forbidden:
+                    failures.append(f"Forbidden client-report key {key} at {location}")
+                scan(child, f"{location}.{key}")
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                scan(child, f"{location}[{index}]")
+
+    scan(report)
+    for issue in report.get("issues", []):
+        if not isinstance(issue, dict):
+            continue
+        if len(issue.get("impacts", [])) != 7:
+            failures.append("Client report fixture issue must contain exactly seven impacts")
+        for evidence in issue.get("evidence", []):
+            if not isinstance(evidence, dict) or not evidence.get("has_media"):
+                continue
+            media_url = evidence.get("media_url")
+            if not isinstance(media_url, str) or re.fullmatch(
+                r"api/diagnostics-media\.php\?evidence=ev_[0-9a-f]{16,32}", media_url
+            ) is None:
+                failures.append(f"Client report fixture has an invalid media URL: {media_url!r}")
+
+
 def validate_warning_exit_semantics(failures: list[str]) -> None:
     inspection = VALID_DIR / "inspection-example.json"
     with (VALID_DIR / "diagnosis-example.json").open("r", encoding="utf-8") as handle:
@@ -179,6 +232,7 @@ def main() -> int:
     validate_json_fixtures(failures)
     validate_valid_fixtures(failures)
     validate_invalid_fixtures(failures)
+    validate_client_report_fixture(failures)
     validate_warning_exit_semantics(failures)
     if failures:
         print("Diagnostic contract tests FAILED")
@@ -187,7 +241,8 @@ def main() -> int:
         return 1
     valid_count = len(list(VALID_DIR.glob("*.json")))
     invalid_count = len(list(INVALID_DIR.glob("*.json")))
-    print(f"Diagnostic contract tests passed: 4 schemas, {valid_count} valid fixtures, {invalid_count} invalid fixtures.")
+    schema_count = len(list(SCHEMA_DIR.glob("*.schema.json")))
+    print(f"Diagnostic contract tests passed: {schema_count} schemas, {valid_count} valid fixtures, {invalid_count} invalid fixtures.")
     return 0
 
 

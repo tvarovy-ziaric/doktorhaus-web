@@ -128,7 +128,19 @@ Kontrakt 1.0.0 pripravuje túto hranicu bez implementácie auth: každé evidenc
 
 Manifest paths sa nenormalizujú z nebezpečného na bezpečný tvar. Vrstva odmieta traversal, absolute/drive/UNC/URL paths, backslash, NUL, prázdne segmenty, symlink súbory a symlink adresáre. Deklarovaný obsah kontroluje streamujúcim SHA-256 a voliteľnou veľkosťou; neočakávaný regular file blokuje inštaláciu.
 
-Tieto vlastnosti samotnej storage vrstvy chránia filesystem integritu, nie prístup klienta. Krok 4A nad ňou vytvára samostatný grant/session/audit modul a úzky auth endpoint, stále však nevytvára admin oprávnenie ani HTTP report/media endpoint. Budúca delivery vrstva musí overiť oprávnenie pred každým read/resolve a nesmie vrátiť internú filesystem cestu klientovi. Reziduálna TOCTOU hranica predpokladá privátny storage root vo výhradnom vlastníctve aplikačného používateľa; podrobnosti sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
+Tieto vlastnosti samotnej storage vrstvy chránia filesystem integritu, nie prístup klienta. Krok 4A nad ňou vytvára grant/session/audit modul. Krok 4B pridáva HTTP report/media delivery, ale oprávnenie overuje pred každým read/resolve a klientovi nikdy nevracia filesystem cestu. Session binding vykoná úplnú package verifikáciu; rovnaký request potom spotrebuje tento overený snapshot bez druhého hashovania veľkého média. Reziduálna TOCTOU hranica predpokladá privátny storage root vo výhradnom vlastníctve aplikačného používateľa; podrobnosti sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md) a [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+
+## Client-safe delivery od kroku 4B
+
+- Authenticated session neotvára raw inspection, diagnosis ani manifest. `client_report` je strict allowlist a rekurzívny denylist test blokuje actor, provenance, source, QA, credential, package a path/hash polia.
+- Report/version patria výhradne session. Report endpoint odmieta query selectors a media endpoint prijíma iba evidence ID, čím blokuje BOLA cez report, version alebo path override.
+- Evidence musí byť active, mať privacy `public|client_private` a aktívnu väzbu na client-visible issue alebo jeho active observation. Internal, withdrawn a orphan evidence sa správajú ako neexistujúce.
+- Media resolver povoľuje iba manifest role `media|attachment`. Source report a raw data role nie sú client-deliverable.
+- Active MIME (`html`, JavaScript, SVG, XHTML/XML) a unknown typy sa nútene sťahujú ako `application/octet-stream`; inline je uzavretý image/video/PDF/audio allowlist.
+- Report aj media sú `no-store, private`, same-origin, bez wildcard CORS. Media podporuje iba jeden validný byte range a uvoľní session lock pred body.
+- Security audit musí uspieť pred doručením. Udalosti neobsahujú raw IP, session, PIN, filesystem path, filename ani `media_reference`.
+
+Validný, ale neprístupný evidence ID má vždy generic 404 bez potvrdenia jeho existencie alebo privacy. Podrobný algoritmus, hlavičky a reziduálne performance riziko sú v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
 ## Schválenie, verzia a audit
 
@@ -154,8 +166,8 @@ Tieto vlastnosti samotnej storage vrstvy chránia filesystem integritu, nie prí
 - konkrétne rate limit prahy a recovery workflow;
 - cieľový interný identity/role model;
 - úložisko session a audit logu bez zavedenia neodôvodneného frameworku;
-- umiestnenie a spôsob doručovania privátnych médií;
+- produkčné umiestnenie privátnych médií a škálovanie per-request integrity verifikácie pri multi-GB packages;
 - politika starších report versions po publish novej verzie;
 - retencia, zálohy a vymazanie klientskych dát;
 - pravidlá externých Google/Panoraven/YouTube výstupov pre súkromné prípady;
-- požadované security headers a serverová konfigurácia cieľového hostingu.
+- overenie security headers, PHP verzie a serverovej konfigurácie na cieľovom hostingu.

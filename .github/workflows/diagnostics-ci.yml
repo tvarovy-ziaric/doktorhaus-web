@@ -1,4 +1,4 @@
-name: Diagnostics contracts and storage CI
+name: Diagnostics contracts, access and delivery CI
 
 on:
   pull_request:
@@ -66,8 +66,12 @@ jobs:
           mapfile -t php_files < <(find api/lib/diagnostics -maxdepth 1 -type f -name '*.php' -print | sort)
           php_files+=(
             api/diagnostics-auth.php
+            api/diagnostics-report.php
+            api/diagnostics-media.php
             api/diagnostics.config.example.php
             tools/test_diagnostics_access.php
+            tools/test_diagnostics_client_projection.php
+            tools/test_diagnostics_delivery_fixture.php
             tools/test_diagnostics_storage.php
           )
           for file in "${php_files[@]}"; do
@@ -100,11 +104,26 @@ jobs:
             -d error_reporting=-1 \
             tools/test_diagnostics_access.php
 
+      - name: Test diagnostics client-safe projection and media units
+        shell: bash
+        run: |
+          set -euo pipefail
+          php \
+            -d display_errors=1 \
+            -d error_reporting=-1 \
+            tools/test_diagnostics_client_projection.php
+
       - name: Test diagnostics auth HTTP contract
         shell: bash
         run: |
           set -euo pipefail
           bash tools/test_diagnostics_access_http.sh
+
+      - name: Test diagnostics report and media HTTP delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/test_diagnostics_delivery_http.sh
 
       - name: Git and workspace sanity
         shell: bash

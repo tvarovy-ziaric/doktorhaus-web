@@ -235,9 +235,11 @@ Samostatný runner `tools/test_diagnostics_storage.php` používa iba dočasný 
 
 `tools/test_diagnostics_access.php` pridáva syntetické access grant, PIN/pepper, expiration, rate-limit, session-policy, audit, stale update, rollback/fail-closed a symlink scenáre. `tools/test_diagnostics_access_http.sh` používa dočasný storage, lokálny PHP built-in server a curl na overenie unlock/status/logout, generic 401, cookie atribútov, CSRF, 429, revokácie a rotácie. Žiadny runner nečíta legacy runtime ani produkčné secrets.
 
+Krok 4B pridáva projection/media unit runner a samostatný delivery HTTP runner. Session package binding stále vykoná úplnú hash/size verifikáciu. Overený snapshot sa v tom istom requeste odovzdá projekcii a media resolveru, takže resolver nehashuje veľký súbor druhýkrát. Každý nový Range request však stále raz verifikuje celý package; pri multi-GB médiách je to otvorený performance problém, nie dôvod vypnúť integritu. Detail je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+
 ### Runtime-tested in GitHub CI
 
-Workflow `Diagnostics contracts and storage CI` v `.github/workflows/diagnostics-ci.yml` je autoritatívny execution gate pre PHP runtime tohto kroku. Na `ubuntu-latest` nainštaluje systémový balík `php-cli`, vypíše `php -v`, vykoná lint všetkých PHP tried v `api/lib/diagnostics/`, auth endpointu, config example a oboch PHP runnerov. Následne spustí storage suite, access suite a HTTP integration suite s viditeľným `E_ALL` pre CLI testy.
+Workflow `Diagnostics contracts, access and delivery CI` v `.github/workflows/diagnostics-ci.yml` je autoritatívny execution gate pre PHP runtime. Na `ubuntu-latest` nainštaluje systémový balík `php-cli`, vypíše `php -v`, vykoná lint všetkých diagnostics PHP tried, endpointov a runnerov. Následne spustí storage, access, projection/media unit suite a auth aj delivery HTTP integration suite s viditeľným `E_ALL` pre CLI testy.
 
 CI nastavuje symlink testy ako povinné. Storage aj access log preto musia obsahovať príslušné `symlink … test: PASS`; environment-specific `SKIP` je povolený iba mimo tohto Linux CI gate. Každá revision je runtime overená až vtedy, keď jej zodpovedajúci GitHub Actions run skončí úspešne.
 
@@ -251,12 +253,16 @@ php -l api/lib/diagnostics/DiagnosticsStorage.php
 php -l api/lib/diagnostics/DiagnosticsPackageVerifier.php
 php -l api/lib/diagnostics/DiagnosticsStorageException.php
 php -l api/diagnostics-auth.php
+php -l api/diagnostics-report.php
+php -l api/diagnostics-media.php
 php -l api/diagnostics.config.example.php
 php -l tools/test_diagnostics_access.php
 php -l tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_storage.php
 php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_access.php
+php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_client_projection.php
 bash tools/test_diagnostics_access_http.sh
+bash tools/test_diagnostics_delivery_http.sh
 ```
 
 Repozitár nepotvrdzuje produkčnú PHP verziu hostingu. Systémové PHP na `ubuntu-latest` je reprodukovateľné CI prostredie pre aktuálnu revision, nie deklarácia production compatibility. Pred ostrým nasadením treba zistiť major/minor PHP verziu hostingu a spustiť storage suite alebo minimálne compatibility smoke test proti rovnakej major/minor vetve.
@@ -268,7 +274,7 @@ Repozitár nepotvrdzuje produkčnú PHP verziu hostingu. Systémové PHP na `ubu
 - overenie semantics `flock`, atomického rename a permissions na konkrétnom hostingu;
 - potvrdenie produkčnej major/minor PHP verzie a compatibility smoke test na rovnakom runtime;
 - produkčný Draft 2020-12 validator a miesto jeho spustenia v publish workflow;
-- politika cache integrity výsledkov pri veľkých balíkoch;
-- autorizovaný media streaming/range requests a bezpečné download headers;
+- dôveryhodný immutable verification index/cache pre veľké balíky bez oslabenia package bindingu;
+- produkčné limity, monitoring a object-storage stratégia pre autorizovaný media streaming;
 - audit interných actorov a approval/publish udalostí; klientské auth udalosti kroku 4A už majú samostatný security audit;
 - riešenie reziduálneho TOCTOU rizika, ak storage root nebude výhradne vlastnený aplikačným používateľom.

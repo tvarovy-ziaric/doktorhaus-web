@@ -5,7 +5,10 @@ Adresár obsahuje normatívne JSON Schema Draft 2020-12 kontrakty verzie `1.0.0`
 - `common.schema.json` – zdieľané ID, enumy a value objects;
 - `inspection.schema.json` – normalizované fakty, observations, evidence a provenance;
 - `diagnosis.schema.json` – diagnostické issues, hypotheses, impacts, verifications, recommendations, link objects a QA;
-- `report-package.schema.json` – manifest nemennej verzie reportového balíka.
+- `report-package.schema.json` – manifest nemennej verzie reportového balíka;
+- `client-report.schema.json` – strict allowlist kontrakt odvodeného klientského delivery payloadu.
+
+`client-report.schema.json` nie je ďalší ručne editovaný diagnostický dokument. Source of truth zostávajú inspection, diagnosis a report-package manifest; client report sa z nich vytvára deterministicky až po autorizácii.
 
 Lokálne `$ref` sú relatívne, aby schémy fungovali spolu aj bez siete. `$id` poskytuje stabilnú kanonickú identitu. Kritické doménové objekty používajú `additionalProperties: false`.
 

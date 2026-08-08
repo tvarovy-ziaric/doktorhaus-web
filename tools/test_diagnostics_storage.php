@@ -429,6 +429,19 @@ try {
     testAssert($storage->loadPublishedDiagnosis($reportId, '1.0')['document_type'] === 'diagnosis', 'The published diagnosis must load.');
     $resolved = $storage->resolvePublishedFile($reportId, '1.0', 'inspection.json');
     testAssert(is_file($resolved['path']) && $resolved['role'] === 'inspection_data', 'A declared published file must resolve with metadata.');
+    $binding = $storage->loadPublishedManifestBinding($reportId, '1.0');
+    $snapshotResolved = $storage->resolveVerifiedPublishedFile(
+        $reportId,
+        '1.0',
+        'inspection.json',
+        $binding['package']
+    );
+    testAssert($snapshotResolved['path'] === $resolved['path'], 'A same-request verified package snapshot must resolve the same declared file.');
+    $wrongSnapshot = $binding['package'];
+    $wrongSnapshot['manifest']['report_version']['version'] = '9.9';
+    expectStorageCode('STORAGE_ID_MISMATCH', function () use ($storage, $reportId, $wrongSnapshot): void {
+        $storage->resolveVerifiedPublishedFile($reportId, '1.0', 'inspection.json', $wrongSnapshot);
+    }, 'A verified package snapshot with another identity must fail closed.');
     expectStorageCode('STORAGE_PATH', function () use ($storage, $reportId): void {
         $storage->resolvePublishedFile($reportId, '1.0', 'undeclared.bin');
     }, 'An undeclared published file must not resolve.');

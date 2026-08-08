@@ -44,6 +44,12 @@ reports/<report-id>/<version>/
 
 Report version status je draft, in_review, approved, published, superseded alebo withdrawn. Approved/published/superseded verzia musí mať `approved_by` a `approved_at`; published navyše `published_at`. Domain lint overuje, že approver actor má rolu inspector alebo reviewer a timestamp obsahuje timezone.
 
+## Odvodený machine delivery kontrakt
+
+`client-report.schema.json` je od kroku 4B strict allowlist projekcia publikovaného package, nie štvrtý diagnostický source dokument. Server ju deterministicky vytvorí z immutable inspection, diagnosis a manifest metadata až po validnej session. Raw source objects sa nekopírujú cez „all except“ filter.
+
+Projekcia zachová klientsky odborný význam issue scoring rationale, risks, costs, impacts, observations, hypotheses, verifications a recommendations, ale odstraňuje actors, QA, provenance, source/import metadata, raw IDs verzie/reportu, hashe, presnú adresu a storage referencie. Hypothesis `rationale` sa v 4B nevydáva, kým source contract nerozlíši klientsky odborný dôvod od interného pracovného reasoning textu; klient stále vidí statement, mechanism, status a confidence. Evidence sa vydá iba ak je active, `public|client_private` a aktívne relevantné pre viditeľný issue. Presný delivery kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+
 ## Povinné sekcie
 
 ### 1. Executive summary

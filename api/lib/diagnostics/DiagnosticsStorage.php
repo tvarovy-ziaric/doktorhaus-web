@@ -285,7 +285,13 @@ final class DiagnosticsStorage
         return $this->loadPublishedManifestBinding($reportId, $version)['sha256'];
     }
 
-    /** @return array{manifest: array<string, mixed>, sha256: string} */
+    /**
+     * @return array{
+     *   manifest: array<string, mixed>,
+     *   sha256: string,
+     *   package: array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     * }
+     */
     public function loadPublishedManifestBinding(string $reportId, string $version): array
     {
         $manifestPath = $this->publishedDirectory($reportId, $version) . DIRECTORY_SEPARATOR . 'manifest.json';
@@ -302,7 +308,7 @@ final class DiagnosticsStorage
         if (!hash_equals($hashBefore, $hashAfter)) {
             throw new DiagnosticsStorageException('STORAGE_INTEGRITY', 'The published manifest changed during verification.');
         }
-        return ['manifest' => $verified['manifest'], 'sha256' => $hashAfter];
+        return ['manifest' => $verified['manifest'], 'sha256' => $hashAfter, 'package' => $verified];
     }
 
     /** @return array<string, mixed> */
@@ -326,8 +332,38 @@ final class DiagnosticsStorage
     {
         DiagnosticsPackageVerifier::assertSafeRelativePath($relativePath);
         $verified = $this->verifyPublishedPackage($reportId, $version);
+        return $this->resolveVerifiedPublishedFile($reportId, $version, $relativePath, $verified);
+    }
+
+    /**
+     * Resolve from a package snapshot that was fully verified in this request.
+     * This avoids hashing every large package file a second time after session binding.
+     *
+     * @param array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>} $verified
+     * @return array{path: string, role: string, sha256: string, content_type: string, privacy: string, size_bytes?: int}
+     */
+    public function resolveVerifiedPublishedFile(
+        string $reportId,
+        string $version,
+        string $relativePath,
+        array $verified
+    ): array {
+        DiagnosticsPackageVerifier::assertReportId($reportId);
+        DiagnosticsPackageVerifier::assertVersion($version);
+        DiagnosticsPackageVerifier::assertSafeRelativePath($relativePath);
+        if (($verified['manifest']['report']['id'] ?? null) !== $reportId ||
+            ($verified['manifest']['report_version']['version'] ?? null) !== $version ||
+            !isset($verified['files']) || !is_array($verified['files'])) {
+            throw new DiagnosticsStorageException('STORAGE_ID_MISMATCH', 'The verified package snapshot identity is invalid.');
+        }
         if (!isset($verified['files'][$relativePath])) {
             throw new DiagnosticsStorageException('STORAGE_PATH', 'The requested report file is not declared by the manifest.');
+        }
+        $entry = $verified['files'][$relativePath];
+        if (!is_array($entry) || !isset($entry['role'], $entry['sha256'], $entry['content_type'], $entry['privacy']) ||
+            !is_string($entry['role']) || !is_string($entry['sha256']) ||
+            !is_string($entry['content_type']) || !is_string($entry['privacy'])) {
+            throw new DiagnosticsStorageException('STORAGE_INTEGRITY', 'The verified package snapshot entry is invalid.');
         }
         $packageDirectory = $this->publishedDirectory($reportId, $version);
         $absolute = $packageDirectory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
@@ -336,7 +372,6 @@ final class DiagnosticsStorage
         if ($canonical === false || !$this->isPathWithin($packageDirectory, $canonical) || !is_file($canonical)) {
             throw new DiagnosticsStorageException('STORAGE_PATH', 'The requested report file cannot be resolved safely.');
         }
-        $entry = $verified['files'][$relativePath];
         $result = [
             'path' => $canonical,
             'role' => (string)$entry['role'],
