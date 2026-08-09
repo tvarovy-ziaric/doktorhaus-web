@@ -37,17 +37,50 @@ Ak chýba časová séria, `deterioration_rate` má zostať `unknown`, pokiaľ n
 
 Tieto kategórie sa nesmú zlievať. Svedecké tvrdenie môže podporiť hypotézu alebo verification plán, ale nesmie sa automaticky zmeniť na potvrdený technický fakt.
 
-## 4. Materiálový fakt nie je automaticky mechanizmus
+Ak presný zdroj osoby nie je pre klienta odborne významný alebo by zbytočne personalizoval tvrdenie, klientský text má preferovať anonymizovanú formuláciu, napríklad `podľa miestnych svedectiev` alebo `podľa dostupných svedeckých informácií`. Interná provenance vrstva si môže zachovať presnejší typ zdroja.
+
+## 4. Svedecký odhad nie je meranie
+
+Ak tretia osoba opisuje rozsah javu číslom, ktoré nebolo merané alebo inšpektorom overené, číslo sa nesmie automaticky prevziať ako technická veličina.
+
+Príklad: výrok typu `voda býva približne 30 cm` bez merania sa nemá v klientskom reporte prezentovať ako `výška zaplavenia 30 cm`.
+
+Ak je pre rozhodovanie dôležitejšia samotná existencia a opakovanosť javu než neoverený rozmer, preferovať kvalitatívny opis, napríklad:
+
+- `dochádza k lokálnym sezónnym nízkym zaplavovaniam podľa dostupných svedeckých informácií`;
+- `opakovaný výskyt vody pri intenzívnejších zrážkach bol hlásený, rozsah nebol meraný`.
+
+Interná QA/provenance vrstva môže zachovať pôvodný odhad ako neoverený source claim, ak je to užitočné.
+
+## 5. Materiálový fakt nie je automaticky mechanizmus
 
 Ak inšpektor identifikuje materiál, napríklad `stavebné lepidlo`, možno ho zapísať ako potvrdený materiálový detail, ak bol rozpoznaný dostatočne spoľahlivo.
 
 Z toho však automaticky nevyplýva tvrdenie typu `difúzne uzavretá vrstva spôsobila vlhkosť`. Paropriepustnosť, skladba vrstiev a kauzálny význam zostávajú diagnostickou interpretáciou/hypotézou, pokiaľ neboli priamo overené.
 
-## 5. Odhadovaný rozmer musí zostať odhadom
+## 6. Odhadovaný rozmer musí zostať odhadom
 
 Ak rozmer nevznikol meraním, ale vizuálnym alebo terénnym odhadom, musí sa tak označiť. Odhad `0–3 cm` sa nesmie v reportovej vrstve prezentovať ako presné meranie.
 
-## 6. Human QA nesmie prepisovať source observation
+Rovnaké pravidlo platí pre odhadované vzdialenosti, hrúbky, výšky zaplavenia, plochy a deformácie.
+
+## 7. Tvar trhliny je pozorovanie; pohyb je interpretácia
+
+Geometria a orientácia trhliny môžu byť source observation, napríklad:
+
+- vertikálna trhlina;
+- viacero nadväzujúcich trhlín;
+- trhlina sa smerom nahor rozširuje.
+
+Z toho možno vytvoriť odbornú hypotézu alebo interpretation o možnom pohybe muriva, ale samotný tvar trhliny bez časového porovnania nepotvrdzuje aktuálnu aktivitu pohybu ani jeho rýchlosť.
+
+## 8. Degradácia povrchu bez dostatočných dôkazov nemá dostať jednu vymyslenú príčinu
+
+Celoplošné opadávanie alebo degradácia omietky môže mať viac možných mechanizmov, napríklad historické zatekanie, nevhodné zloženie omietky, nedostatok spojiva, chybnú aplikáciu alebo kombináciu faktorov.
+
+Ak zdrojové dáta neumožňujú medzi nimi rozlíšiť, report nemá vybrať jednu príčinu iba preto, aby bol príbeh jednoduchší. Stav sa opíše ako finding a príčina zostane `unknown`, prípadne sa uvedú len odborne obhájiteľné alternatívne hypotheses.
+
+## 9. Human QA nesmie prepisovať source observation
 
 Nová odpoveď inšpektora môže:
 
@@ -59,7 +92,7 @@ Nová odpoveď inšpektora môže:
 
 Nemá spätne prepisovať pôvodnú source observation tak, aby vyzerala istejšie, než bola pri obhliadke.
 
-## 7. Formulár musí ponúkať epistemicky správne možnosti
+## 10. Formulár musí ponúkať epistemicky správne možnosti
 
 Budúci QA formulár nemá všade používať iba binárne `áno/nie`.
 
