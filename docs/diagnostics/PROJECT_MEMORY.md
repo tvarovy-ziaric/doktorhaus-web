@@ -26,11 +26,11 @@ Po vytvorení diagnostického draftu systém vygeneruje iba otázky, ktoré sú 
 
 - áno / nie / neoverené;
 - výber z možností;
-- číslo + jednotka;
-- krátka poznámka;
-- odborná voľná poznámka;
+- číslo + jednotku;
+- krátku poznámku;
+- odbornú voľnú poznámku;
 - dátum;
-- neskôr príloha alebo doplňujúce evidence.
+- neskôr prílohu alebo doplňujúce evidence.
 
 `Neviem / nebolo overené` je legitímna odborná odpoveď a systém nesmie inšpektora nútiť vyrábať istotu, ktorá neexistuje.
 
@@ -151,7 +151,36 @@ Preto sa odkladajú funkcie, ktoré nie sú potrebné pre prvé produkčné prí
 
 Odloženie neznamená, že sa na ne zabúda. Architektúra ich má umožniť bez narušenia source/diagnosis/approval hraníc.
 
-## 10. Zásada aktualizácie tejto pamäte
+## 10. QA musí zobrazovať ľudskú legendu skóre
+
+Inšpektor nemá byť nútený pamätať si interné kódy ako `S4`, `L2`, `U3` alebo `P3`.
+
+V každom QA review, backoffice formulári a diagnostickom diff-e sa má pri kóde zobraziť aj jeho ľudský význam. Minimálne:
+
+- `S1–S5` → závažnosť následku;
+- `L1–L5` → pravdepodobnosť alebo pozorovanosť presne pomenovaného javu;
+- `U1–U5` → odporúčaný čas začatia kroku;
+- `P1–P5` → rozhodovacia priorita;
+- `confidence` → istota diagnostického tvrdenia;
+- `deterioration_rate` → tempo zmeny alebo `unknown`.
+
+Preferovaný QA zápis je napríklad:
+
+`S4 — vysoká závažnosť`
+
+`L2 — možné`
+
+`U3 — približne do 3 mesiacov`
+
+`P3 — plánovať`
+
+Nie iba holé kódy.
+
+Ak sa skóre predkladá inšpektorovi na potvrdenie, systém má zároveň jednou krátkou vetou uviesť, **čo sa danou osou hodnotí**. Najmä pri likelihood musí byť viditeľný `likelihood_subject`, aby inšpektor nehodnotil číslo bez kontextu.
+
+Toto je UX povinnosť systému, nie pamäťová povinnosť inšpektora.
+
+## 11. Zásada aktualizácie tejto pamäte
 
 Tento dokument je trvalá projektová pamäť, nie historický changelog.
 
