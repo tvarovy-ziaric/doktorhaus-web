@@ -201,3 +201,5 @@ Záväzné pravidlá finančného rámca:
 6. Žiadny súčet je lepší než zavádzajúci subtotal. Default pri neúplných množstvách, podmienených variantoch alebo prekrývajúcom sa scope je `total not computed`.
 
 Report-level pricing je additive capability. Nemení zdrojové observations, diagnózu ani ľudskú `APPROVE` bránu.
+
+Runtime klientovi projektuje pricing iba z immutable snapshotu overeného v rovnakom session-bound package. Projekcia je explicitný allowlist, fail-closed overuje identity, viditeľné issue/recommendation väzby, päť cenových tvarov a subtotal. Renderer drží report-level pricing v samostatnej sekcii; `renderCost(issue)` zostáva whole-issue vrstvou.

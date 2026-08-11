@@ -147,7 +147,7 @@ Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportov
 - audit events `report_viewed` a `media_accessed` s fail-closed delivery politikou;
 - uvoľnenie PHP session locku pred media streamom a reuse package snapshotu úplne overeného v session bindingu.
 
-Raw `inspection.json`, `diagnosis.json`, voliteľný `report-pricing.json` a `manifest.json` nie sú client API. `client_report` je jednosmerná allowlist projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Report-pricing runtime projection je additive nasledujúci krok; foundation schema nesprístupňuje internú provenance ani business costing. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+Raw `inspection.json`, `diagnosis.json`, voliteľný `report-pricing.json` a `manifest.json` nie sú client API. `client_report` je jednosmerná allowlist projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Report-pricing runtime používa iba snapshot overený v rovnakom session-bound package, znovu kontroluje identity a linky a projektuje päť cenových tvarov aj agregáciu explicitným allowlistom bez provenance a interného business costingu. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
 Samotný krok 4B ešte nebol klientsky portál: renderer, finálny UX, `inspekcie.html`, backoffice issuance, SafetyCulture adapter, produkčný report a legacy tok zostali nezmenené.
 
@@ -161,6 +161,8 @@ Samotný krok 4B ešte nebol klientsky portál: renderer, finálny UX, `inspekci
 - Node bezpečnostné kontrakty a HTTP smoke integrovaný do diagnostics CI.
 
 Krok 5A nemení source schemas, projekciu, auth/media endpointy, grant issuance, backoffice, SafetyCulture, legacy migráciu, databázu ani PDF generátor. Kompletná hranica je v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
+
+Report-level pricing runtime nad týmito vrstvami rozširuje `DiagnosticsClientProjection` o voliteľný immutable pricing snapshot a renderer o oddelenú sekciu „Finančný rámec“. Nevytvára nový selector, storage lookup, grant, publish ani odborné rozhodnutie a nemení whole-issue `issue.cost_estimate`.
 
 ## Rozhodnutia uzavreté kontraktom 1.0.0
 

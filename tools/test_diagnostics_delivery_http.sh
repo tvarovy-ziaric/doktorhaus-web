@@ -48,6 +48,8 @@ fixture="$(php "$repo_root/tools/test_diagnostics_delivery_fixture.php" --prepar
 access_id="$(json_field "$fixture" access_id)"
 pin="$(json_field "$fixture" pin)"
 report_id="$(json_field "$fixture" report_id)"
+priced_access_id="$(json_field "$fixture" priced_access_id)"
+priced_pin="$(json_field "$fixture" priced_pin)"
 photo_id="$(json_field "$fixture" photo_evidence_id)"
 pdf_id="$(json_field "$fixture" pdf_evidence_id)"
 unsafe_id="$(json_field "$fixture" unsafe_evidence_id)"
@@ -55,6 +57,7 @@ internal_id="$(json_field "$fixture" internal_evidence_id)"
 orphan_id="$(json_field "$fixture" orphan_evidence_id)"
 large_id="$(json_field "$fixture" large_evidence_id)"
 source_report_id="$(json_field "$fixture" source_report_evidence_id)"
+python -c 'import json,sys; assert json.loads(sys.argv[1])["mismatched_pricing_blocked"] is True' "$fixture" || fail "Mismatched report-pricing ownership must fail before delivery."
 
 mkdir -p "$session_root" "$responses"
 cd "$repo_root"
@@ -97,6 +100,7 @@ assert body["document_type"] == "client_report"
 assert body["schema_version"] == "1.0.0"
 assert body["report"]["version"] == "1.0"
 assert body["overview"]["issue_count"] == 1
+assert "pricing" not in body
 forbidden = {
     "qa", "actors", "actor_ids", "approved_by", "observed_by", "captured_by", "performed_by",
     "provenance", "import_metadata", "source_system", "source_inspection_id", "source_item_id",
@@ -122,12 +126,29 @@ assert "media/" not in evidence[sys.argv[3]]["media_url"]
 assert len(body["issues"][0]["impacts"]) == 7
 PY
 
-for query in "reportId=$report_id" "version=9.9" "path=inspection.json"; do
+for query in "reportId=$report_id" "version=9.9" "path=inspection.json" "pricing=report-pricing.json"; do
   code="$(curl -sS -b "$responses/cookies.txt" -o "$responses/report-invalid-${query%%=*}.json" -w '%{http_code}' "$report_url?$query")"
   [[ "$code" == "400" ]] || fail "Report selector query $query must return 400."
 done
 report_method="$(curl -sS -X POST -b "$responses/cookies.txt" -o "$responses/report-method.json" -w '%{http_code}' "$report_url")"
 [[ "$report_method" == "405" ]] || fail "Report POST must return 405."
+
+priced_unlock_payload="{\"action\":\"unlock\",\"accessId\":\"$priced_access_id\",\"pin\":\"$priced_pin\"}"
+priced_unlock_code="$(curl -sS -c "$responses/priced-cookies.txt" -H 'Content-Type: application/json' -d "$priced_unlock_payload" -o "$responses/priced-unlock.json" -w '%{http_code}' "$auth_url")"
+[[ "$priced_unlock_code" == "200" ]] || fail "Valid priced delivery grant must unlock."
+priced_report_code="$(curl -sS -b "$responses/priced-cookies.txt" -o "$responses/priced-report.json" -w '%{http_code}' "$report_url")"
+[[ "$priced_report_code" == "200" ]] || fail "Session-bound priced report must return 200."
+python - "$responses/priced-report.json" <<'PY'
+import json, sys
+body = json.load(open(sys.argv[1], encoding="utf-8"))
+pricing = body["pricing"]
+assert len(pricing["components"]) == 1
+assert pricing["components"][0]["title"] == "Syntetické odborné overenie"
+assert pricing["aggregation"]["status"] == "subtotal"
+encoded = json.dumps(pricing, ensure_ascii=False)
+for forbidden in ("provenance", "source_method", "source_ids", "snapshot_references", "client_visible"):
+    assert forbidden not in encoded
+PY
 
 photo_code="$(curl -sS -D "$responses/photo.headers" -b "$responses/cookies.txt" -o "$responses/photo.bin" -w '%{http_code}' "$media_url?evidence=$photo_id")"
 [[ "$photo_code" == "200" ]] || fail "Visible photo must return 200."
@@ -234,7 +255,7 @@ audit_root = pathlib.Path(sys.argv[1])
 raw = "".join(path.read_text(encoding="utf-8") for path in sorted(audit_root.glob("*.jsonl")))
 events = [json.loads(line) for line in raw.splitlines() if line]
 report_views = [item for item in events if item.get("event") == "report_viewed" and item.get("outcome") == "success"]
-assert len(report_views) == 1, len(report_views)
+assert len(report_views) == 2, len(report_views)
 assert any(item.get("event") == "media_accessed" and item.get("metadata", {}).get("request_type") == "full" for item in events)
 assert any(item.get("event") == "media_accessed" and item.get("metadata", {}).get("request_type") == "range" for item in events)
 assert any(item.get("event") == "media_accessed" and item.get("metadata", {}).get("request_type") == "head" for item in events)

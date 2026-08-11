@@ -70,6 +70,76 @@ const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 assert.doesNotThrow(() => renderer.assertClientReport(fixture));
 assert.ok(renderer.selectPriorityRecommendations(fixture.recommendations, fixture.issues).length > 0);
 
+assert.equal(Object.prototype.hasOwnProperty.call(fixture, "pricing"), false);
+const pricingComponents = [
+  {
+    id: "rpc_0123456789abcdef",
+    title: "Beznákladové opatrenie",
+    pricing_kind: "no_direct_cost",
+    ownership: "not_applicable",
+    conditional: false,
+    pricing: { min: 0, expected: 0, max: 0, currency: "EUR" }
+  },
+  {
+    id: "rpc_1123456789abcdef",
+    title: "Samostatná služba",
+    pricing_kind: "total_range",
+    ownership: "service",
+    conditional: false,
+    pricing: { min: 100, expected: 150, max: 200, currency: "EUR" }
+  },
+  {
+    id: "rpc_2123456789abcdef",
+    title: "Jednotkový materiál",
+    pricing_kind: "unit_range",
+    ownership: "client_owned_material",
+    conditional: false,
+    pricing: { min: 20, expected: 30, max: 40, currency: "EUR", unit: "EUR/ks" }
+  },
+  {
+    id: "rpc_3123456789abcdef",
+    title: "Pevná jednotka",
+    pricing_kind: "fixed_unit",
+    ownership: "service",
+    conditional: true,
+    pricing: { amount: 25, currency: "EUR", unit: "EUR/ks" }
+  },
+  {
+    id: "rpc_4123456789abcdef",
+    title: "Nenacenený rozsah",
+    pricing_kind: "not_estimated",
+    ownership: "service",
+    conditional: false,
+    pricing: { reason: "Chýba výmera." }
+  }
+];
+const pricedFixture = JSON.parse(JSON.stringify(fixture));
+pricedFixture.pricing = {
+  components: pricingComponents,
+  aggregation: { status: "not_computed", reason: "Časť položiek závisí od výmery." }
+};
+assert.doesNotThrow(() => renderer.assertClientReport(pricedFixture));
+assert.throws(() => renderer.assertClientReport(Object.assign({}, fixture, { pricing: [] })), /pricing/);
+assert.deepEqual(
+  renderer.groupReportPricing(pricingComponents).map((group) => group.title),
+  [
+    "Bez priameho nákladu",
+    "Samostatne nacenené kroky",
+    "Materiál a jednotkové ceny",
+    "Podmienené náklady",
+    "Zatiaľ nemožno poctivo naceniť"
+  ]
+);
+assert.equal(renderer.pricingPrimaryText(pricingComponents[0]), "Bez priameho nákladu");
+assert.doesNotMatch(renderer.pricingPrimaryText(pricingComponents[0]), /0\s*€|oprava/i);
+assert.match(renderer.pricingPrimaryText(pricingComponents[1]), /100/);
+assert.match(renderer.pricingPrimaryText(pricingComponents[1]), /200/);
+assert.match(renderer.pricingPrimaryText(pricingComponents[2]), /\/ ks/);
+assert.match(renderer.pricingPrimaryText(pricingComponents[3]), /25/);
+assert.match(renderer.pricingPrimaryText(pricingComponents[3]), /\/ ks/);
+assert.equal(renderer.pricingPrimaryText(pricingComponents[4]), "Zatiaľ bez poctivého cenového rámca");
+assert.doesNotMatch(renderer.pricingPrimaryText(pricingComponents[4]), /€|EUR/);
+
 const inspectedFiles = [
   "inspekcia.html",
   "JSS/diagnostics-report.js",
@@ -93,6 +163,23 @@ for (const relative of inspectedFiles) {
     assert.equal(source.includes(token), false, relative + " contains forbidden client token " + token);
   }
 }
+
+const rendererSource = fs.readFileSync(path.join(repoRoot, "JSS/diagnostics-report.js"), "utf8");
+const renderFlowStart = rendererSource.indexOf("content.append(renderPriorityRecommendations");
+const pricingFlow = rendererSource.indexOf("const pricing = renderReportPricing", renderFlowStart);
+const issuesFlow = rendererSource.indexOf("content.append(renderIssues", pricingFlow);
+assert.ok(renderFlowStart >= 0 && pricingFlow > renderFlowStart && issuesFlow > pricingFlow,
+  "Report-level pricing must render after first steps and before main findings.");
+const costStart = rendererSource.indexOf("function renderCost(documentRef, issue)");
+const costEnd = rendererSource.indexOf("function renderCostEscalation", costStart);
+const costSource = rendererSource.slice(costStart, costEnd);
+assert.match(costSource, /issue\.cost_estimate/);
+assert.doesNotMatch(costSource, /report\.pricing|pricing_kind|linked_issue_ids/);
+assert.match(rendererSource, /Podmienené ďalším overením/);
+assert.match(rendererSource, /Celkový súčet neuvádzame\./);
+assert.match(rendererSource, /Súčet vybraných položiek/);
+assert.match(rendererSource, /nie je cenou všetkých opráv/);
+assert.doesNotMatch(rendererSource, /Celková cena opráv|0 € oprava/);
 
 const html = fs.readFileSync(path.join(repoRoot, "inspekcia.html"), "utf8");
 assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);

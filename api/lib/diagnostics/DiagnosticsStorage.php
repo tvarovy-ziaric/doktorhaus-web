@@ -289,7 +289,7 @@ final class DiagnosticsStorage
      * @return array{
      *   manifest: array<string, mixed>,
      *   sha256: string,
-     *   package: array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     *   package: array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>, report_pricing: array<string, mixed>|null}
      * }
      */
     public function loadPublishedManifestBinding(string $reportId, string $version): array
@@ -339,7 +339,7 @@ final class DiagnosticsStorage
      * Resolve from a package snapshot that was fully verified in this request.
      * This avoids hashing every large package file a second time after session binding.
      *
-     * @param array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>} $verified
+     * @param array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>, report_pricing: array<string, mixed>|null} $verified
      * @return array{path: string, role: string, sha256: string, content_type: string, privacy: string, size_bytes?: int}
      */
     public function resolveVerifiedPublishedFile(
@@ -692,7 +692,7 @@ final class DiagnosticsStorage
     }
 
     /**
-     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>, report_pricing: array<string, mixed>|null}
      */
     private function verifyPublishedPackage(string $reportId, string $version): array
     {

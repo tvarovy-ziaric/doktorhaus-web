@@ -86,7 +86,7 @@ Finančný rámec má dva nezameniteľné zdroje:
 1. `issue.cost_estimate` — iba whole defined issue-scope estimate;
 2. report-level pricing components — partial verification, material, unit, conditional alebo no-direct-cost scope.
 
-Čiastkový komponent nesmie pôsobiť ako cena odstránenia celého issue. Ak celý issue scope nie je naceniteľný, issue zostáva `not_estimated` aj pri existencii čiastkových cien. Budúci samostatný report-level renderer musí komponenty označiť podľa významu, napríklad bez priameho nákladu, overenia, jednotkové materiály, podmienené práce a zatiaľ nenacenené práce.
+Čiastkový komponent nesmie pôsobiť ako cena odstránenia celého issue. Ak celý issue scope nie je naceniteľný, issue zostáva `not_estimated` aj pri existencii čiastkových cien. Samostatný report-level renderer komponenty označuje podľa významu, napríklad bez priameho nákladu, samostatne nacenené kroky, jednotkové materiály, podmienené práce a zatiaľ nenacenené práce.
 
 Report pricing sa publikuje ako voliteľný samostatný `report_pricing` file role v immutable package konkrétnej report version. Staršie package bez tohto file role zostávajú validné.
 
@@ -194,4 +194,4 @@ Blocking schema/domain errors nemožno acknowledge-nuť a obísť. Domain warnin
 
 ## Renderer boundary pre report-level pricing
 
-Aktuálny `renderCost(issue)` zostáva rendererom whole-issue `issue.cost_estimate`. Nesmie dostať čiastkovú cenu recommendation alebo pricing componentu. Nasledujúci implementation krok má načítať client-safe `pricing` projekciu a vytvoriť samostatný report-level financial renderer; tento foundation kontrakt nemení existujúce issue karty ani ich spätnú kompatibilitu.
+`renderCost(issue)` zostáva rendererom whole-issue `issue.cost_estimate` a nedostáva čiastkovú cenu recommendation ani pricing componentu. Client-safe `pricing` projekcia má samostatný report-level renderer umiestnený po prvých krokoch a pred hlavnými zisteniami. Staršie package bez pricingu zostávajú bez tejto sekcie a bez prázdneho placeholdera.

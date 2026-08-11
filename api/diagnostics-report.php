@@ -62,7 +62,12 @@ try {
     $package = $access->consumeVerifiedPackage($context);
 
     $projection = new DiagnosticsClientProjection();
-    $clientReport = $projection->build($package['manifest'], $package['inspection'], $package['diagnosis']);
+    $clientReport = $projection->build(
+        $package['manifest'],
+        $package['inspection'],
+        $package['diagnosis'],
+        $package['report_pricing'] ?? null
+    );
 
     $fingerprint = $access->getAudit()->requestFingerprint($_SERVER);
     $access->getAudit()->append('report_viewed', 'success', [

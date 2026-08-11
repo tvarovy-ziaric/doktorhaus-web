@@ -4,6 +4,7 @@ declare(strict_types=1);
 use DoktorHaus\Diagnostics\DiagnosticsAccessService;
 use DoktorHaus\Diagnostics\DiagnosticsSecurityConfig;
 use DoktorHaus\Diagnostics\DiagnosticsStorage;
+use DoktorHaus\Diagnostics\DiagnosticsStorageException;
 
 require_once __DIR__ . '/../api/lib/diagnostics/DiagnosticsSecurityConfig.php';
 require_once __DIR__ . '/../api/lib/diagnostics/DiagnosticsStorage.php';
@@ -84,6 +85,59 @@ function deliveryFixtureAddEvidence(
             'status' => 'active',
         ];
     }
+}
+
+/** @return array<string, mixed> */
+function deliveryFixturePricing(string $reportId, string $versionId, string $inspectionId, string $issueId, string $recommendationId): array
+{
+    return [
+        'schema_version' => '1.0.0',
+        'document_type' => 'report_pricing',
+        'report_id' => $reportId,
+        'report_version_id' => $versionId,
+        'inspection_id' => $inspectionId,
+        'components' => [[
+            'id' => 'rpc_5555555555555551',
+            'display_code' => 'RP-HTTP-01',
+            'linked_issue_ids' => [$issueId],
+            'linked_recommendation_ids' => [$recommendationId],
+            'title' => 'Syntetické odborné overenie',
+            'scope' => 'Samostatné overenie; nejde o cenu odstránenia celého problému.',
+            'assumptions' => ['Kontrolovaná časť je prístupná.'],
+            'exclusions' => ['Definitívna oprava.'],
+            'conditional' => false,
+            'shared_across_issues' => false,
+            'ownership' => 'service',
+            'client_visible' => true,
+            'client_caveat' => 'Cena overenia nie je cenou všetkých opráv.',
+            'quantity' => ['value' => null, 'unit' => null, 'status' => 'not_applicable'],
+            'pricing_kind' => 'total_range',
+            'pricing' => [
+                'min' => 100,
+                'expected' => 150,
+                'max' => 200,
+                'currency' => 'EUR',
+                'confidence' => 'medium',
+                'price_basis_date' => '2026-08-11',
+                'vat_status' => 'unknown',
+            ],
+            'provenance' => [
+                'source_method' => 'expert_range',
+                'source_ids' => ['SYNTHETIC-HTTP-PRICE'],
+                'snapshot_references' => [],
+            ],
+        ]],
+        'aggregation' => [
+            'status' => 'subtotal',
+            'method' => 'explicit_component_allowlist',
+            'component_ids' => ['rpc_5555555555555551'],
+            'min' => 100,
+            'expected' => 150,
+            'max' => 200,
+            'currency' => 'EUR',
+        ],
+        'generated_at' => '2026-08-11T10:00:00+02:00',
+    ];
 }
 
 /** @return array<string, mixed> */
@@ -200,8 +254,62 @@ function deliveryPrepare(string $storageRoot): array
     $service = new DiagnosticsAccessService($storage, $config);
     $storage->installPublishedPackage($sourceRoot);
     $grant = $service->createGrant($reportId, $version);
+
+    $pricedReportId = 'rpt_5555555555555555';
+    $pricedVersionId = 'rptv_5555555555555555';
+    $pricing = deliveryFixturePricing(
+        $pricedReportId,
+        $pricedVersionId,
+        $inspection['id'],
+        $diagnosis['issues'][0]['id'],
+        $diagnosis['recommendations'][0]['id']
+    );
+    deliveryFixtureWriteJson($sourceRoot . DIRECTORY_SEPARATOR . 'report-pricing.json', $pricing);
+    $manifest['report']['id'] = $pricedReportId;
+    $manifest['report']['current_published_version_id'] = $pricedVersionId;
+    $manifest['report_version']['id'] = $pricedVersionId;
+    $manifest['report_version']['report_id'] = $pricedReportId;
+    $pricingPath = $sourceRoot . DIRECTORY_SEPARATOR . 'report-pricing.json';
+    $manifest['files'][] = [
+        'role' => 'report_pricing',
+        'path' => 'report-pricing.json',
+        'sha256' => hash_file('sha256', $pricingPath),
+        'content_type' => 'application/json',
+        'size_bytes' => filesize($pricingPath),
+        'privacy' => 'client_private',
+    ];
+    deliveryFixtureWriteJson($sourceRoot . DIRECTORY_SEPARATOR . 'manifest.json', $manifest);
+    $storage->installPublishedPackage($sourceRoot);
+    $pricedGrant = $service->createGrant($pricedReportId, $version);
+
+    $mismatchedPricingBlocked = false;
+    $mismatchedReportId = 'rpt_6666666666666666';
+    $mismatchedVersionId = 'rptv_6666666666666666';
+    $manifest['report']['id'] = $mismatchedReportId;
+    $manifest['report']['current_published_version_id'] = $mismatchedVersionId;
+    $manifest['report_version']['id'] = $mismatchedVersionId;
+    $manifest['report_version']['report_id'] = $mismatchedReportId;
+    $pricing['report_version_id'] = 'rptv_ffffffffffffffff';
+    deliveryFixtureWriteJson($pricingPath, $pricing);
+    foreach ($manifest['files'] as &$file) {
+        if (($file['role'] ?? null) === 'report_pricing') {
+            $file['sha256'] = hash_file('sha256', $pricingPath);
+            $file['size_bytes'] = filesize($pricingPath);
+        }
+    }
+    unset($file);
+    deliveryFixtureWriteJson($sourceRoot . DIRECTORY_SEPARATOR . 'manifest.json', $manifest);
+    try {
+        $storage->installPublishedPackage($sourceRoot);
+    } catch (DiagnosticsStorageException $error) {
+        $mismatchedPricingBlocked = $error->getStorageCode() === 'STORAGE_ID_MISMATCH';
+    }
     return array_merge($grant, [
         'report_id' => $reportId,
+        'priced_access_id' => $pricedGrant['access_id'],
+        'priced_pin' => $pricedGrant['pin'],
+        'priced_report_id' => $pricedReportId,
+        'mismatched_pricing_blocked' => $mismatchedPricingBlocked,
         'photo_evidence_id' => 'ev_2222222222222221',
         'pdf_evidence_id' => $pdfId,
         'unsafe_evidence_id' => $unsafeId,

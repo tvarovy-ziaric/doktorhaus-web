@@ -166,6 +166,13 @@
       functional_test: "funkčná skúška",
       thermal: "termografické zistenie",
       other: "iné zistenie"
+    }),
+    vatStatus: Object.freeze({
+      included: "DPH zahrnutá",
+      excluded: "bez DPH",
+      mixed: "DPH sa medzi položkami líši",
+      unknown: "DPH nebola potvrdená",
+      not_applicable: "DPH sa neuplatňuje"
     })
   });
 
@@ -459,6 +466,195 @@
       listNode.append(renderRecommendationCard(documentRef, recommendation, true));
     });
     wrapper.append(listNode);
+    return wrapper;
+  }
+
+  function pricingUnitLabel(unit, currency) {
+    const value = typeof unit === "string" ? unit.trim() : "";
+    const prefix = typeof currency === "string" ? currency + "/" : "";
+    return prefix && value.startsWith(prefix) ? value.slice(prefix.length) : value;
+  }
+
+  function pricingPrimaryText(component) {
+    const pricing = component && component.pricing ? component.pricing : {};
+    const kind = component ? component.pricing_kind : null;
+    if (kind === "no_direct_cost") {
+      return "Bez priameho nákladu";
+    }
+    if (kind === "not_estimated") {
+      return "Zatiaľ bez poctivého cenového rámca";
+    }
+    if (kind === "total_range") {
+      return formatCurrency(pricing.min, pricing.currency) + " – " + formatCurrency(pricing.max, pricing.currency);
+    }
+    const unit = pricingUnitLabel(pricing.unit, pricing.currency);
+    if (kind === "unit_range") {
+      return formatCurrency(pricing.min, pricing.currency) + " – " + formatCurrency(pricing.max, pricing.currency) +
+        (unit ? " / " + unit : "");
+    }
+    if (kind === "fixed_unit") {
+      return formatCurrency(pricing.amount, pricing.currency) + (unit ? " / " + unit : "");
+    }
+    return "Cena nie je uvedená";
+  }
+
+  function groupReportPricing(components) {
+    const groups = [
+      { key: "no_direct_cost", title: "Bez priameho nákladu", components: [] },
+      { key: "service", title: "Samostatne nacenené kroky", components: [] },
+      { key: "unit_material", title: "Materiál a jednotkové ceny", components: [] },
+      { key: "conditional", title: "Podmienené náklady", components: [] },
+      { key: "not_estimated", title: "Zatiaľ nemožno poctivo naceniť", components: [] }
+    ];
+    const byKey = new Map(groups.map(function (group) { return [group.key, group]; }));
+    array(components).forEach(function (component) {
+      let key;
+      if (component.pricing_kind === "no_direct_cost") {
+        key = "no_direct_cost";
+      } else if (component.pricing_kind === "not_estimated") {
+        key = "not_estimated";
+      } else if (component.conditional === true) {
+        key = "conditional";
+      } else if (component.ownership === "service") {
+        key = "service";
+      } else {
+        key = "unit_material";
+      }
+      byKey.get(key).components.push(component);
+    });
+    return groups.filter(function (group) { return group.components.length > 0; });
+  }
+
+  function pricingReferenceText(item) {
+    if (!item) {
+      return null;
+    }
+    return item.display_code ? item.display_code + " — " + item.title : item.title;
+  }
+
+  function renderPricingComponent(documentRef, component, issueById, recommendationById) {
+    const card = element(documentRef, "article", "diag-pricing-card");
+    if (component.conditional) {
+      card.dataset.conditional = "true";
+    }
+    card.append(element(documentRef, "h4", null, component.title));
+    if (component.conditional) {
+      card.append(element(documentRef, "p", "diag-pricing-condition", "Podmienené ďalším overením"));
+    }
+    card.append(element(documentRef, "div", "diag-pricing-value", pricingPrimaryText(component)));
+
+    const pricing = component.pricing || {};
+    if (component.pricing_kind === "total_range") {
+      card.append(element(documentRef, "p", "diag-pricing-expected",
+        "Bežný očakávaný rámec približne " + formatCurrency(pricing.expected, pricing.currency) + "."));
+    } else if (component.pricing_kind === "unit_range" && pricing.computed_total) {
+      card.append(element(documentRef, "p", "diag-pricing-computed",
+        "Pri známom množstve: " + formatCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
+        " – " + formatCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
+    } else if (component.pricing_kind === "fixed_unit" && pricing.computed_total) {
+      card.append(element(documentRef, "p", "diag-pricing-computed",
+        "Pri známom množstve: " + formatCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
+        " – " + formatCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
+    } else if (component.pricing_kind === "not_estimated" && pricing.reason) {
+      card.append(element(documentRef, "p", "diag-pricing-reason", pricing.reason));
+      if (array(pricing.information_needed).length) {
+        const needed = element(documentRef, "div", "diag-pricing-needed");
+        needed.append(element(documentRef, "strong", null, "Čo treba doplniť"));
+        appendList(documentRef, needed, array(pricing.information_needed));
+        card.append(needed);
+      }
+    }
+
+    const scope = element(documentRef, "p", "diag-pricing-scope");
+    scope.append(element(documentRef, "strong", null, "Rozsah: "));
+    scope.append(documentRef.createTextNode(component.scope));
+    card.append(scope);
+
+    if (!["not_estimated"].includes(component.pricing_kind)) {
+      const meta = [
+        ["Istota odhadu", label("confidence", pricing.confidence)],
+        ["Cenová báza", formatDate(pricing.price_basis_date)]
+      ];
+      if (pricing.vat_status && pricing.vat_status !== "not_applicable") {
+        meta.push(["DPH", label("vatStatus", pricing.vat_status)]);
+      }
+      card.append(definitionList(documentRef, meta));
+    }
+
+    if (component.client_caveat) {
+      card.append(element(documentRef, "p", "diag-pricing-caveat", component.client_caveat));
+    }
+
+    const issueReferences = array(component.linked_issue_ids).map(function (id) {
+      return pricingReferenceText(issueById.get(id));
+    }).filter(Boolean);
+    const recommendationReferences = array(component.linked_recommendation_ids).map(function (id) {
+      return pricingReferenceText(recommendationById.get(id));
+    }).filter(Boolean);
+    if (issueReferences.length || recommendationReferences.length) {
+      card.append(definitionList(documentRef, [
+        ["Súvisiace zistenia", issueReferences.join("; ")],
+        ["Súvisiace kroky", recommendationReferences.join("; ")]
+      ]));
+    }
+
+    if (array(component.assumptions).length || array(component.exclusions).length) {
+      const details = element(documentRef, "details", "diag-pricing-details");
+      details.append(element(documentRef, "summary", null, "Čo tento rámec zahŕňa a nezahŕňa"));
+      if (array(component.assumptions).length) {
+        details.append(element(documentRef, "h5", null, "Predpoklady"));
+        appendList(documentRef, details, array(component.assumptions));
+      }
+      if (array(component.exclusions).length) {
+        details.append(element(documentRef, "h5", null, "Čo rámec nezahŕňa"));
+        appendList(documentRef, details, array(component.exclusions));
+      }
+      card.append(details);
+    }
+    return card;
+  }
+
+  function renderPricingAggregation(documentRef, aggregation) {
+    const panel = element(documentRef, "aside", "diag-pricing-aggregation");
+    if (aggregation.status === "subtotal") {
+      panel.append(element(documentRef, "span", null, "Súčet vybraných položiek"));
+      panel.append(element(documentRef, "strong", null,
+        formatCurrency(aggregation.min, aggregation.currency) + " – " + formatCurrency(aggregation.max, aggregation.currency)));
+      panel.append(element(documentRef, "p", null,
+        "Bežný očakávaný rámec vybraných položiek je približne " +
+        formatCurrency(aggregation.expected, aggregation.currency) + "."));
+      panel.append(element(documentRef, "p", "diag-estimate-note",
+        "Tento súčet zahŕňa iba explicitne uvedené položky a nie je cenou všetkých opráv."));
+    } else {
+      panel.append(element(documentRef, "strong", null, "Celkový súčet neuvádzame."));
+      panel.append(element(documentRef, "p", null,
+        "Dôvod uvedený v správe: " + aggregation.reason));
+    }
+    return panel;
+  }
+
+  function renderReportPricing(documentRef, report) {
+    if (!report.pricing) {
+      return null;
+    }
+    const wrapper = section(
+      documentRef,
+      "Finančný rámec",
+      "Uvedené sumy sú orientačné rámce jednotlivých krokov alebo materiálov, nie rozpočet celej opravy. Tam, kde rozsah zatiaľ nie je známy, cenu neuvádzame."
+    );
+    const issueById = new Map(array(report.issues).map(function (item) { return [item.id, item]; }));
+    const recommendationById = new Map(array(report.recommendations).map(function (item) { return [item.id, item]; }));
+    groupReportPricing(report.pricing.components).forEach(function (group) {
+      const groupNode = element(documentRef, "section", "diag-pricing-group");
+      groupNode.append(element(documentRef, "h3", null, group.title));
+      const grid = element(documentRef, "div", "diag-pricing-grid");
+      group.components.forEach(function (component) {
+        grid.append(renderPricingComponent(documentRef, component, issueById, recommendationById));
+      });
+      groupNode.append(grid);
+      wrapper.append(groupNode);
+    });
+    wrapper.append(renderPricingAggregation(documentRef, report.pricing.aggregation));
     return wrapper;
   }
 
@@ -1173,7 +1369,7 @@
   function installPrintBehavior(documentRef) {
     let states = [];
     function beforePrint() {
-      states = Array.from(documentRef.querySelectorAll(".diag-issue-details")).map(function (details) {
+      states = Array.from(documentRef.querySelectorAll(".diag-issue-details, .diag-pricing-details")).map(function (details) {
         const state = details.open;
         details.open = true;
         return [details, state];
@@ -1197,6 +1393,12 @@
         !report.overview || !Array.isArray(report.issues) || !Array.isArray(report.recommendations)) {
       throw new Error("Unsupported client report.");
     }
+    if (Object.prototype.hasOwnProperty.call(report, "pricing") &&
+        (!report.pricing || typeof report.pricing !== "object" || Array.isArray(report.pricing) ||
+          !Array.isArray(report.pricing.components) || !report.pricing.aggregation ||
+          typeof report.pricing.aggregation !== "object" || Array.isArray(report.pricing.aggregation))) {
+      throw new Error("Unsupported client report pricing.");
+    }
   }
 
   function renderReport(report, options) {
@@ -1215,6 +1417,10 @@
     content.append(renderHeader(documentRef, report));
     content.append(renderOverview(documentRef, report));
     content.append(renderPriorityRecommendations(documentRef, report));
+    const pricing = renderReportPricing(documentRef, report);
+    if (pricing) {
+      content.append(pricing);
+    }
     content.append(renderIssues(documentRef, report, pageUrl, viewer));
     content.append(renderRemediationOrder(documentRef, array(report.recommendations)));
     [
@@ -1252,6 +1458,8 @@
     validateAccessId: validateAccessId,
     validateMediaUrl: validateMediaUrl,
     formatCurrency: formatCurrency,
+    pricingPrimaryText: pricingPrimaryText,
+    groupReportPricing: groupReportPricing,
     selectPriorityRecommendations: selectPriorityRecommendations,
     assertClientReport: assertClientReport,
     createPhotoViewer: createPhotoViewer,

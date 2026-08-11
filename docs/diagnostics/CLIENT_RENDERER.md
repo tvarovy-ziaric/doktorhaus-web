@@ -53,6 +53,7 @@ Renderer zachováva poradie publikovaného kontraktu a zobrazí:
 - identitu nehnuteľnosti, dátum obhliadky, verziu a zmenu verzie;
 - prehľad počtov a najvyššej priority/závažnosti bez house score;
 - sekciu „Čo riešiť ako prvé“ z U1/U2 a odporúčaní naviazaných na P1/P2;
+- voliteľný samostatný „Finančný rámec“ z report-level pricing komponentov;
 - zistenia s pokojnou zbalenou orientáciou a úplným rozbaliteľným detailom;
 - pozorovania a merania, interpretáciu, hypotézy, riziká, sedem dopadov, nákladový interval, eskaláciu, dôkazy, chýbajúce informácie, odporúčania a obmedzenia;
 - samostatné poradie nápravy, neoverené položky, plán overení, vzťahy, rozsah/limity a verziu reportu.
@@ -63,7 +64,11 @@ Náklady sa formátujú cez slovenské locale a zobrazujú sa iba v rámci jedno
 
 ### Report-level pricing boundary
 
-Aktuálny `renderCost(issue)` renderuje výhradne whole-issue `issue.cost_estimate`. Report-level pricing components majú samostatný kontrakt a v tomto foundation kroku sa ešte nerenderujú. Nasledujúci implementation krok musí pridať oddelený finančný renderer s vlastnými sekciami; nesmie vložiť partial verification, unit material alebo conditional cenu do issue karty ako cenu celého problému.
+`renderCost(issue)` naďalej renderuje výhradne whole-issue `issue.cost_estimate`; jeho význam sa nezmenil. Voliteľné `report.pricing` renderuje samostatný `renderReportPricing()` medzi sekciami „Čo riešiť ako prvé“ a „Hlavné zistenia“. Ak pricing chýba, nevznikne prázdna sekcia.
+
+Komponenty sa zoskupujú iba podľa štruktúrovaných polí do skupín „Bez priameho nákladu“, „Samostatne nacenené kroky“, „Materiál a jednotkové ceny“, „Podmienené náklady“ a „Zatiaľ nemožno poctivo naceniť“. Renderer nezoskupuje podľa názvu, issue textu ani case-specific ID. `no_direct_cost` sa označuje textom „Bez priameho nákladu“, nie ako oprava za 0 €. `not_estimated` nezobrazuje falošnú sumu a conditional komponent má viditeľný text „Podmienené ďalším overením“.
+
+Pri `not_computed` sa nezobrazuje prázdny total, ale vysvetlenie so source reason. Pri `subtotal` sa používa označenie „Súčet vybraných položiek“ a explicitné upozornenie, že nejde o cenu všetkých opráv. Issue/recommendation väzby sa mapujú na display code + title alebo title; raw `issue_…`, `rec_…` a `rpc_…` nie sú primárnym klientskym textom. Assumptions a exclusions sú natívne `<details>` a print lifecycle ich dočasne otvorí spolu s issue detailmi.
 
 ## Médiá, prístupnosť a tlač
 
@@ -80,7 +85,7 @@ node tools/test_diagnostics_renderer.js
 bash tools/test_diagnostics_renderer_http.sh
 ```
 
-Node test overuje mapovania, urgentný výber, menu, access/media URL hranicu a zakázané klientské API. HTTP test na syntetickom immutable balíku overí stránku a assets, noindex/referrer, neprístupný report pred unlockom a reálny PIN unlock → client report tok. Existujúce projection, auth, storage a media testy zostávajú autoritatívnym dôkazom serverovej hranice.
+Node test overuje mapovania, urgentný výber, menu, access/media URL hranicu, pricing grouping a formulácie, umiestnenie sekcie, nezmenený `renderCost(issue)` boundary a zakázané klientské API. HTTP test na syntetickom immutable balíku overí stránku a assets, noindex/referrer, neprístupný report pred unlockom a reálny PIN unlock → client report tok. Existujúce projection, auth, storage a media testy zostávajú autoritatívnym dôkazom serverovej hranice.
 
 ## Čo krok 5A nerobí
 

@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu, krok 4B strict client-safe report projection s autorizovaným media delivery a krok 5A samostatný bezpečný klientsky renderer. Legacy portál zostáva nezmenený.
+Tento adresár je záväzný doménový a architektonický základ pre systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu, krok 4B strict client-safe report projection s autorizovaným media delivery, krok 5A samostatný bezpečný klientsky renderer a report-level pricing runtime doplnil session-bound client-safe finančný rámec. Legacy portál zostáva nezmenený.
 
 Základný tok informácií je:
 
@@ -92,10 +92,12 @@ Krok 4B z immutable package vytvára `client_report` výhradne cez field allowli
 
 Krok 5A pridáva `inspekcia.html`, oddelený session/PIN lifecycle a čistý DOM renderer client-safe kontraktu. Reportové texty neprechádzajú HTML parserom, media URL musia zostať na presnom same-origin delivery endpointe a pri expirácii/logout sa obsah odstráni z DOM. Podrobnosti sú v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
 
+Voliteľný report-level pricing runtime odovzdáva projekcii iba `report_pricing` snapshot z už overeného package, fail-closed filtruje interné komponenty a väzby a renderuje samostatnú sekciu „Finančný rámec“. Starý package bez pricingu nemení svoj client report a issue `cost_estimate` ostáva cenou celého definovaného issue scope.
+
 Táto verzia stále neobsahuje databázové tabuľky, backoffice issuance UI, upload, SafetyCulture API/webhook, produkčný deploy config, backup/restore, klientsky PDF generátor ani legacy migráciu. Renderer nevydáva granty a nevytvára odborný obsah. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.
 
 ## Roadmap po kroku 5A
 
-Hotové sú: diagnostic foundation, machine contracts, runtime storage, CI execution, secure access authentication, client-safe projection, authorized media delivery a client renderer.
+Hotové sú: diagnostic foundation, machine contracts, runtime storage, CI execution, secure access authentication, client-safe projection, authorized media delivery, client renderer a voliteľný report-level pricing runtime.
 
 Ešte nie sú hotové: reálny diagnostický dataset a expert QA Babiná, reálny report package, access grant issuance v backoffice, production deployment config, SafetyCulture adapter, legacy migrácia, server backup/restore ani PDF generátor.

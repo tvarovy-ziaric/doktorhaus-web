@@ -17,6 +17,25 @@ final class DiagnosticsClientProjection
         'financial',
     ];
 
+    private const PRICING_KINDS = [
+        'total_range',
+        'unit_range',
+        'fixed_unit',
+        'no_direct_cost',
+        'not_estimated',
+    ];
+
+    private const PRICING_OWNERSHIP = [
+        'client_owned_material',
+        'service',
+        'service_provider_equipment',
+        'not_applicable',
+    ];
+
+    private const PRICING_CONFIDENCE = ['low', 'medium', 'high', 'unknown'];
+
+    private const PRICING_VAT_STATUS = ['included', 'excluded', 'mixed', 'unknown', 'not_applicable'];
+
     /** @var array<string, bool> */
     private $visibleEvidenceIds = [];
 
@@ -27,9 +46,10 @@ final class DiagnosticsClientProjection
      * @param array<string, mixed> $manifest
      * @param array<string, mixed> $inspection
      * @param array<string, mixed> $diagnosis
+     * @param array<string, mixed>|null $reportPricing
      * @return array<string, mixed>
      */
-    public function build(array $manifest, array $inspection, array $diagnosis): array
+    public function build(array $manifest, array $inspection, array $diagnosis, ?array $reportPricing = null): array
     {
         $this->visibleEvidenceIds = [];
         $this->visibleMedia = [];
@@ -280,7 +300,7 @@ final class DiagnosticsClientProjection
             $visibleIssueIds
         );
 
-        return [
+        $result = [
             'schema_version' => '1.0.0',
             'document_type' => 'client_report',
             'report' => $this->projectReport($reportVersion),
@@ -292,8 +312,18 @@ final class DiagnosticsClientProjection
             'verifications' => $verifications,
             'issue_relations' => $issueRelations,
             'unverified_items' => $unverifiedItems,
-            'generated_at' => $this->string($reportVersion, 'generated_at'),
         ];
+        if ($reportPricing !== null) {
+            $result['pricing'] = $this->projectReportPricing(
+                $reportPricing,
+                $manifest,
+                $inspection,
+                array_fill_keys(array_column($issues, 'id'), true),
+                array_fill_keys(array_column($recommendations, 'id'), true)
+            );
+        }
+        $result['generated_at'] = $this->string($reportVersion, 'generated_at');
+        return $result;
     }
 
     /** @return array<int, string> */
@@ -655,6 +685,429 @@ final class DiagnosticsClientProjection
             'confidence' => $this->string($source, 'confidence'),
             'rationale' => $this->string($source, 'rationale'),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $manifest
+     * @param array<string, mixed> $inspection
+     * @param array<string, bool> $visibleIssueIds
+     * @param array<string, bool> $visibleRecommendationIds
+     * @return array<string, mixed>
+     */
+    private function projectReportPricing(
+        array $source,
+        array $manifest,
+        array $inspection,
+        array $visibleIssueIds,
+        array $visibleRecommendationIds
+    ): array {
+        $report = $this->object($manifest, 'report');
+        $reportVersion = $this->object($manifest, 'report_version');
+        if (($source['schema_version'] ?? null) !== '1.0.0' ||
+            ($source['document_type'] ?? null) !== 'report_pricing' ||
+            ($source['report_id'] ?? null) !== $this->string($report, 'id') ||
+            ($source['report_version_id'] ?? null) !== $this->string($reportVersion, 'id') ||
+            ($source['inspection_id'] ?? null) !== $this->string($inspection, 'id')) {
+            $this->fail('The report-pricing source identities do not match.');
+        }
+
+        $sourceVisibility = [];
+        $projectedComponents = [];
+        $projectedById = [];
+        foreach ($this->list($source, 'components') as $item) {
+            $component = $this->asObject($item, 'report-pricing component');
+            $id = $this->string($component, 'id');
+            if (preg_match('/^rpc_[0-9a-f]{16,32}$/D', $id) !== 1 || isset($sourceVisibility[$id])) {
+                $this->fail('The report-pricing source contains an invalid or duplicate component identifier.');
+            }
+            $clientVisible = $this->boolean($component, 'client_visible');
+            $ownership = $this->string($component, 'ownership');
+            if (!in_array($ownership, self::PRICING_OWNERSHIP, true)) {
+                $this->fail('A report-pricing component has invalid ownership.');
+            }
+            if ($clientVisible && $ownership === 'service_provider_equipment') {
+                $this->fail('Service-provider equipment cannot be client-visible.');
+            }
+            $sourceVisibility[$id] = $clientVisible;
+            if (!$clientVisible) {
+                continue;
+            }
+            $projected = $this->projectReportPricingComponent(
+                $component,
+                $visibleIssueIds,
+                $visibleRecommendationIds
+            );
+            $projectedComponents[] = $projected;
+            $projectedById[$id] = $projected;
+        }
+
+        return [
+            'components' => $projectedComponents,
+            'aggregation' => $this->projectPricingAggregation(
+                $this->object($source, 'aggregation'),
+                $sourceVisibility,
+                $projectedById
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, bool> $visibleIssueIds
+     * @param array<string, bool> $visibleRecommendationIds
+     * @return array<string, mixed>
+     */
+    private function projectReportPricingComponent(
+        array $source,
+        array $visibleIssueIds,
+        array $visibleRecommendationIds
+    ): array {
+        $issueIds = $this->pricingIdList($source, 'linked_issue_ids', 'issue', '/^issue_[0-9a-f]{16,32}$/D');
+        foreach ($issueIds as $issueId) {
+            if (!isset($visibleIssueIds[$issueId])) {
+                $this->fail('A client-visible pricing component references an unknown or hidden issue.');
+            }
+        }
+        $recommendationIds = $this->pricingIdList(
+            $source,
+            'linked_recommendation_ids',
+            'recommendation',
+            '/^rec_[0-9a-f]{16,32}$/D'
+        );
+        foreach ($recommendationIds as $recommendationId) {
+            if (!isset($visibleRecommendationIds[$recommendationId])) {
+                $this->fail('A client-visible pricing component references an unknown or hidden recommendation.');
+            }
+        }
+
+        $ownership = $this->string($source, 'ownership');
+        if (!in_array($ownership, ['client_owned_material', 'service', 'not_applicable'], true)) {
+            $this->fail('A client-visible pricing component has invalid ownership.');
+        }
+        $kind = $this->string($source, 'pricing_kind');
+        if (!in_array($kind, self::PRICING_KINDS, true)) {
+            $this->fail('A report-pricing component has an unsupported pricing kind.');
+        }
+        $quantity = $this->projectPricingQuantity($this->object($source, 'quantity'));
+        $pricing = $this->projectPricingShape($kind, $this->object($source, 'pricing'), $quantity);
+
+        $result = [
+            'id' => $this->string($source, 'id'),
+            'linked_issue_ids' => $issueIds,
+            'linked_recommendation_ids' => $recommendationIds,
+            'title' => $this->string($source, 'title'),
+            'scope' => $this->string($source, 'scope'),
+            'assumptions' => $this->stringList($source, 'assumptions'),
+            'exclusions' => $this->stringList($source, 'exclusions'),
+            'conditional' => $this->boolean($source, 'conditional'),
+            'shared_across_issues' => $this->boolean($source, 'shared_across_issues'),
+            'ownership' => $ownership,
+            'quantity' => $quantity,
+            'pricing_kind' => $kind,
+            'pricing' => $pricing,
+        ];
+        $this->copyOptionalString($result, $source, 'display_code');
+        $this->copyOptionalString($result, $source, 'client_caveat');
+        return $result;
+    }
+
+    /** @param array<string, mixed> $source @return array<string, mixed> */
+    private function projectPricingQuantity(array $source): array
+    {
+        $status = $this->string($source, 'status');
+        if (!in_array($status, ['known', 'unknown', 'not_applicable'], true) ||
+            !array_key_exists('value', $source) || !array_key_exists('unit', $source)) {
+            $this->fail('A report-pricing component has an invalid quantity.');
+        }
+        $value = $source['value'];
+        $unit = $source['unit'];
+        if ($status === 'known') {
+            if ((!is_int($value) && !is_float($value)) || !is_finite((float)$value) || $value <= 0 ||
+                !is_string($unit) || trim($unit) === '') {
+                $this->fail('A known report-pricing quantity must have a positive value and unit.');
+            }
+        } elseif ($status === 'unknown') {
+            if ($value !== null || ($unit !== null && (!is_string($unit) || trim($unit) === ''))) {
+                $this->fail('An unknown report-pricing quantity has an invalid value or unit.');
+            }
+        } elseif ($value !== null || $unit !== null) {
+            $this->fail('A not-applicable report-pricing quantity must not have a value or unit.');
+        }
+        return ['value' => $value, 'unit' => $unit, 'status' => $status];
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $quantity
+     * @return array<string, mixed>
+     */
+    private function projectPricingShape(string $kind, array $source, array $quantity): array
+    {
+        if ($kind === 'total_range') {
+            return $this->projectPricedRange($source, false, $quantity);
+        }
+        if ($kind === 'unit_range') {
+            return $this->projectPricedRange($source, true, $quantity);
+        }
+        if ($kind === 'fixed_unit') {
+            $amount = $this->nonNegativePricingNumber($source, 'amount');
+            $currency = $this->pricingCurrency($source, 'currency');
+            $result = [
+                'amount' => $amount,
+                'currency' => $currency,
+                'unit' => $this->string($source, 'unit'),
+                'confidence' => $this->pricingConfidence($source),
+                'price_basis_date' => $this->pricingDate($source),
+                'vat_status' => $this->pricingVatStatus($source),
+            ];
+            $this->projectOptionalComputedTotal($result, $source, $quantity, $currency);
+            return $result;
+        }
+        if ($kind === 'no_direct_cost') {
+            foreach (['min', 'expected', 'max'] as $key) {
+                if ($this->nonNegativePricingNumber($source, $key) != 0) {
+                    $this->fail('A no-direct-cost component must contain an explicit zero range.');
+                }
+            }
+            if ($this->string($source, 'vat_status') !== 'not_applicable' ||
+                $this->string($source, 'direct_cost_semantics') !== 'known_zero_for_defined_scope') {
+                $this->fail('A no-direct-cost component has invalid semantics.');
+            }
+            return [
+                'min' => 0,
+                'expected' => 0,
+                'max' => 0,
+                'currency' => $this->pricingCurrency($source, 'currency'),
+                'confidence' => $this->pricingConfidence($source),
+                'price_basis_date' => $this->pricingDate($source),
+                'vat_status' => 'not_applicable',
+                'direct_cost_semantics' => 'known_zero_for_defined_scope',
+            ];
+        }
+        if ($kind === 'not_estimated') {
+            $result = ['reason' => $this->string($source, 'reason')];
+            if (array_key_exists('information_needed', $source)) {
+                $result['information_needed'] = $this->stringList($source, 'information_needed');
+            }
+            return $result;
+        }
+        $this->fail('A report-pricing component has an unsupported pricing kind.');
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $quantity
+     * @return array<string, mixed>
+     */
+    private function projectPricedRange(array $source, bool $withUnit, array $quantity): array
+    {
+        $result = $this->projectMoneyRange($source);
+        $result['confidence'] = $this->pricingConfidence($source);
+        $result['price_basis_date'] = $this->pricingDate($source);
+        $result['vat_status'] = $this->pricingVatStatus($source);
+        if ($withUnit) {
+            $result = [
+                'min' => $result['min'],
+                'expected' => $result['expected'],
+                'max' => $result['max'],
+                'currency' => $result['currency'],
+                'unit' => $this->string($source, 'unit'),
+                'confidence' => $result['confidence'],
+                'price_basis_date' => $result['price_basis_date'],
+                'vat_status' => $result['vat_status'],
+            ];
+            $this->projectOptionalComputedTotal($result, $source, $quantity, (string)$result['currency']);
+        }
+        return $result;
+    }
+
+    /** @param array<string, mixed> $source @return array<string, mixed> */
+    private function projectMoneyRange(array $source): array
+    {
+        $min = $this->nonNegativePricingNumber($source, 'min');
+        $expected = $this->nonNegativePricingNumber($source, 'expected');
+        $max = $this->nonNegativePricingNumber($source, 'max');
+        if ($min > $expected || $expected > $max) {
+            $this->fail('A report-pricing range is not ordered.');
+        }
+        return [
+            'min' => $min,
+            'expected' => $expected,
+            'max' => $max,
+            'currency' => $this->pricingCurrency($source, 'currency'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $target
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $quantity
+     */
+    private function projectOptionalComputedTotal(array &$target, array $source, array $quantity, string $currency): void
+    {
+        if (!array_key_exists('computed_total', $source)) {
+            return;
+        }
+        if (($quantity['status'] ?? null) !== 'known' || !is_numeric($quantity['value'] ?? null) ||
+            (float)$quantity['value'] <= 0) {
+            $this->fail('A computed pricing total requires a known positive quantity.');
+        }
+        $computed = $this->projectMoneyRange($this->object($source, 'computed_total'));
+        if ($computed['currency'] !== $currency) {
+            $this->fail('A computed pricing total uses a different currency.');
+        }
+        $target['computed_total'] = $computed;
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, bool> $sourceVisibility
+     * @param array<string, array<string, mixed>> $projectedById
+     * @return array<string, mixed>
+     */
+    private function projectPricingAggregation(array $source, array $sourceVisibility, array $projectedById): array
+    {
+        $status = $this->string($source, 'status');
+        if ($status === 'not_computed') {
+            return ['status' => $status, 'reason' => $this->string($source, 'reason')];
+        }
+        if ($status !== 'subtotal' || $this->string($source, 'method') !== 'explicit_component_allowlist') {
+            $this->fail('The report-pricing aggregation is unsupported.');
+        }
+        $componentIds = $this->pricingIdList(
+            $source,
+            'component_ids',
+            'pricing component',
+            '/^rpc_[0-9a-f]{16,32}$/D'
+        );
+        if ($componentIds === []) {
+            $this->fail('A pricing subtotal must contain at least one component.');
+        }
+        $sum = ['min' => 0.0, 'expected' => 0.0, 'max' => 0.0];
+        $currency = null;
+        foreach ($componentIds as $componentId) {
+            if (!array_key_exists($componentId, $sourceVisibility) || !$sourceVisibility[$componentId] ||
+                !isset($projectedById[$componentId])) {
+                $this->fail('A pricing subtotal references an unknown or hidden component.');
+            }
+            $component = $projectedById[$componentId];
+            if (($component['conditional'] ?? null) !== false) {
+                $this->fail('A conditional pricing component cannot enter the client subtotal.');
+            }
+            $contribution = $this->pricingSubtotalContribution($component);
+            if ($currency === null) {
+                $currency = $contribution['currency'];
+            } elseif ($currency !== $contribution['currency']) {
+                $this->fail('A pricing subtotal mixes currencies.');
+            }
+            foreach (['min', 'expected', 'max'] as $key) {
+                $sum[$key] += (float)$contribution[$key];
+            }
+        }
+        $projected = $this->projectMoneyRange($source);
+        if ($projected['currency'] !== $currency) {
+            $this->fail('A pricing subtotal currency does not match its components.');
+        }
+        foreach (['min', 'expected', 'max'] as $key) {
+            if (abs((float)$projected[$key] - $sum[$key]) > 0.000001) {
+                $this->fail('A pricing subtotal does not match its explicit components.');
+            }
+        }
+        return [
+            'status' => 'subtotal',
+            'method' => 'explicit_component_allowlist',
+            'component_ids' => $componentIds,
+            'min' => $projected['min'],
+            'expected' => $projected['expected'],
+            'max' => $projected['max'],
+            'currency' => $projected['currency'],
+        ];
+    }
+
+    /** @param array<string, mixed> $component @return array<string, mixed> */
+    private function pricingSubtotalContribution(array $component): array
+    {
+        $kind = (string)($component['pricing_kind'] ?? '');
+        $pricing = $this->asObject($component['pricing'] ?? null, 'projected pricing');
+        if (in_array($kind, ['total_range', 'no_direct_cost'], true)) {
+            return $pricing;
+        }
+        if (in_array($kind, ['unit_range', 'fixed_unit'], true) && isset($pricing['computed_total'])) {
+            return $this->asObject($pricing['computed_total'], 'projected computed total');
+        }
+        $this->fail('A pricing subtotal contains a component without an eligible total.');
+        return [];
+    }
+
+    /** @param array<string, mixed> $source @return int|float */
+    private function nonNegativePricingNumber(array $source, string $key)
+    {
+        $value = $this->number($source, $key);
+        if ($value < 0) {
+            $this->fail('A report-pricing amount cannot be negative.');
+        }
+        return $value;
+    }
+
+    /** @param array<string, mixed> $source */
+    private function pricingCurrency(array $source, string $key): string
+    {
+        $currency = $this->string($source, $key);
+        if (preg_match('/^[A-Z]{3}$/D', $currency) !== 1) {
+            $this->fail('A report-pricing currency is invalid.');
+        }
+        return $currency;
+    }
+
+    /** @param array<string, mixed> $source */
+    private function pricingConfidence(array $source): string
+    {
+        $confidence = $this->string($source, 'confidence');
+        if (!in_array($confidence, self::PRICING_CONFIDENCE, true)) {
+            $this->fail('A report-pricing confidence value is invalid.');
+        }
+        return $confidence;
+    }
+
+    /** @param array<string, mixed> $source */
+    private function pricingVatStatus(array $source): string
+    {
+        $status = $this->string($source, 'vat_status');
+        if (!in_array($status, self::PRICING_VAT_STATUS, true)) {
+            $this->fail('A report-pricing VAT status is invalid.');
+        }
+        return $status;
+    }
+
+    /** @param array<string, mixed> $source */
+    private function pricingDate(array $source): string
+    {
+        $date = $this->string($source, 'price_basis_date');
+        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/D', $date, $parts) !== 1 ||
+            !checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])) {
+            $this->fail('A report-pricing basis date is invalid.');
+        }
+        return $date;
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     * @return array<int, string>
+     */
+    private function pricingIdList(array $source, string $key, string $label, string $pattern): array
+    {
+        $result = [];
+        $seen = [];
+        foreach ($this->list($source, $key) as $value) {
+            if (!is_string($value) || preg_match($pattern, $value) !== 1 || isset($seen[$value])) {
+                $this->fail('A report-pricing ' . $label . ' reference list is invalid.');
+            }
+            $seen[$value] = true;
+            $result[] = $value;
+        }
+        return $result;
     }
 
     /** @param array<string, mixed> $source @return array<string, mixed> */

@@ -279,7 +279,7 @@ final class DiagnosticsAccessService
      * Consume the immutable package snapshot verified by the immediately preceding grant/session check.
      *
      * @param array<string, mixed> $context
-     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>, report_pricing: array<string, mixed>|null}
      */
     public function consumeVerifiedPackage(array $context): array
     {

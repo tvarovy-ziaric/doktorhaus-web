@@ -1,6 +1,6 @@
 # Client-safe report a autorizované médiá
 
-Krok 4B pridáva serverové doručenie jednej nemennej publikovanej verzie, na ktorú je viazaná session z kroku 4A. Nevytvára nový diagnostický source of truth. Autoritatívne dokumenty zostávajú `inspection.json`, `diagnosis.json` a `manifest.json`; `client_report` je deterministická allowlist projekcia vytvorená pri requeste.
+Krok 4B pridáva serverové doručenie jednej nemennej publikovanej verzie, na ktorú je viazaná session z kroku 4A. Nevytvára nový diagnostický source of truth. Autoritatívne dokumenty zostávajú `inspection.json`, `diagnosis.json`, voliteľný `report-pricing.json` a `manifest.json`; `client_report` je deterministická allowlist projekcia vytvorená pri requeste.
 
 ## Hranica raw source a client projection
 
@@ -20,10 +20,15 @@ recommendations
 verifications
 issue_relations
 unverified_items
+pricing?
 generated_at
 ```
 
-Schema povoľuje aj voliteľné `pricing` ako budúcu strict allowlist projekciu samostatného `report_pricing` snapshotu. Runtime `DiagnosticsClientProjection` ho v tomto foundation kroku ešte neemituje; existujúci endpoint a reporty bez pricing preto zostávajú bez zmeny. Nasledujúci implementation krok musí načítať iba manifest file role `report_pricing`, overiť ownership voči session-bound package a explicitne projektovať bezpečné polia.
+Voliteľné `pricing` je strict allowlist projekcia samostatného `report_pricing` snapshotu z rovnakého session-bound immutable package. Endpoint nerobí druhé filesystem čítanie a neprijíma pricing path ani pricing ID z requestu. `DiagnosticsClientProjection` znovu fail-closed overí `schema_version`, `document_type` a ownership `report_id + report_version_id + inspection_id`. Ak package pricing neobsahuje, kľúč `pricing` ostáva neprítomný a starší výstup sa nemení.
+
+Pricing projekcia prepustí iba komponenty s `client_visible: true`; `service_provider_equipment` nesmie prejsť ani pri chybnom visibility nastavení. Väzby klientsky viditeľného komponentu musia smerovať iba na issues a recommendations, ktoré prešli do rovnakej client projection. Unknown, superseded, cancelled alebo inak skrytý cieľ zastaví delivery namiesto tichého odobratia väzby.
+
+Každý z tvarov `total_range`, `unit_range`, `fixed_unit`, `no_direct_cost` a `not_estimated` sa skladá samostatným allowlist constructorom. Runtime kontroluje poradie intervalov, menu computed totalu a oprávnenosť computed totalu pri známom kladnom množstve. Subtotal používa iba explicitný unikátny allowlist viditeľných nepodmienených komponentov s použiteľným totalom, jednotnou menou a presne sediacimi súčtami. Hidden/internal komponent, `not_estimated`, conditional položka alebo unit/fixed položka bez computed totalu subtotal zablokuje.
 
 `report` obsahuje iba version, change type/summary, published timestamp, renderer contract version a voliteľný approved timestamp. Neobsahuje report ID, report-version ID, package hash ani approver actor ID. Property používa privacy-minimizing označenie, typ, krajinu, región a voliteľne obec/okres; presná súkromná adresa a property ID sa nevydávajú. Inspection obsahuje iba type, performed timestamp, scope a limitations.
 
@@ -145,7 +150,7 @@ Reziduálny výkonový limit zostáva: každý nový Range request cez 4A packag
 
 ## Overenie a zostávajúci rozsah
 
-`tools/test_diagnostics_client_projection.php` pokrýva allowlist, denylist, privacy/link filtering, dependency order/cycle, issue relations, sedem impacts, no-new-inference invariant, Range parser, MIME a statický chunk/session-lock check. `tools/test_diagnostics_delivery_http.sh` používa iba temp storage a syntetický 6 MiB súbor; overuje report/media auth, headers, revoke/rotation, internal/orphan 404, full/HEAD/ranges/416, safe/unsafe MIME a audit privacy.
+`tools/test_diagnostics_client_projection.php` pokrýva allowlist, denylist, privacy/link filtering, dependency order/cycle, issue relations, sedem impacts, pricing identity/visibility/linky/tvary/subtotal, no-new-inference invariant, Range parser, MIME a statický chunk/session-lock check. `tools/test_diagnostics_delivery_http.sh` používa iba temp storage a syntetický 6 MiB súbor; overuje report bez pricingu, session-bound report s pricingom, zákaz query selectorov, package ownership fail-closed, report/media auth, headers, revoke/rotation, internal/orphan 404, full/HEAD/ranges/416, safe/unsafe MIME a audit privacy.
 
 Krok 5A pridáva prvého konzumenta tohto delivery kontraktu: `inspekcia.html`, lifecycle `JSS/diagnostics-client.js` a čistý renderer `JSS/diagnostics-report.js`. Klient neposiela report/version/path selectory, nepoužíva raw source, zachováva source order a pred zápisom media URL do DOM overuje presný same-origin endpoint aj evidence ID. Reportové texty zapisuje iba textovými DOM API a náklady nesčítava. `tools/test_diagnostics_renderer_http.sh` rozširuje existujúcu suite o reálny page/assets → PIN unlock → report scenár; nenahrádza delivery test MIME, Range, privacy a audit invariantov.
 

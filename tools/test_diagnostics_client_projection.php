@@ -95,6 +95,165 @@ function addEvidenceCase(
     }
 }
 
+/** @return array<string, mixed> */
+function projectionPricingComponent(
+    string $id,
+    string $title,
+    string $ownership,
+    bool $clientVisible,
+    bool $conditional,
+    string $kind,
+    array $quantity,
+    array $pricing,
+    array $issueIds,
+    array $recommendationIds = []
+): array {
+    return [
+        'id' => $id,
+        'display_code' => 'RP-' . substr($id, -2),
+        'linked_issue_ids' => $issueIds,
+        'linked_recommendation_ids' => $recommendationIds,
+        'title' => $title,
+        'scope' => 'Presne vymedzený syntetický rozsah komponentu.',
+        'assumptions' => ['Rozsah ostáva v uvedenom vymedzení.'],
+        'exclusions' => ['Definitívna oprava mimo uvedeného rozsahu.'],
+        'conditional' => $conditional,
+        'shared_across_issues' => false,
+        'ownership' => $ownership,
+        'client_visible' => $clientVisible,
+        'client_caveat' => 'Orientačný rámec pre uvedený komponent.',
+        'quantity' => $quantity,
+        'pricing_kind' => $kind,
+        'pricing' => $pricing,
+        'provenance' => [
+            'source_method' => $kind === 'no_direct_cost' ? 'none_required' : 'expert_range',
+            'source_ids' => $kind === 'no_direct_cost' ? [] : ['SYNTHETIC-PRICING-SOURCE'],
+            'snapshot_references' => [],
+        ],
+    ];
+}
+
+/** @return array<string, mixed> */
+function projectionPricingFixture(array $manifest, array $inspection, array $diagnosis): array
+{
+    $issueId = $diagnosis['issues'][0]['id'];
+    $recommendationId = $diagnosis['recommendations'][0]['id'];
+    $commonRange = [
+        'currency' => 'EUR',
+        'confidence' => 'medium',
+        'price_basis_date' => '2026-08-11',
+        'vat_status' => 'unknown',
+    ];
+    $components = [
+        projectionPricingComponent(
+            'rpc_4444444444444401',
+            'Samostatné odborné overenie',
+            'service',
+            true,
+            false,
+            'total_range',
+            ['value' => null, 'unit' => null, 'status' => 'not_applicable'],
+            array_merge(['min' => 100, 'expected' => 150, 'max' => 200], $commonRange),
+            [$issueId],
+            [$recommendationId]
+        ),
+        projectionPricingComponent(
+            'rpc_4444444444444402',
+            'Materiál bez známeho množstva',
+            'client_owned_material',
+            true,
+            true,
+            'unit_range',
+            ['value' => null, 'unit' => 'ks', 'status' => 'unknown'],
+            array_merge(['min' => 20, 'expected' => 30, 'max' => 40, 'unit' => 'EUR/ks'], $commonRange),
+            [$issueId]
+        ),
+        projectionPricingComponent(
+            'rpc_4444444444444403',
+            'Pevná jednotková služba',
+            'service',
+            true,
+            false,
+            'fixed_unit',
+            ['value' => 2, 'unit' => 'ks', 'status' => 'known'],
+            [
+                'amount' => 25,
+                'currency' => 'EUR',
+                'unit' => 'EUR/ks',
+                'confidence' => 'high',
+                'price_basis_date' => '2026-08-11',
+                'vat_status' => 'included',
+                'computed_total' => ['min' => 50, 'expected' => 50, 'max' => 50, 'currency' => 'EUR'],
+            ],
+            [$issueId]
+        ),
+        projectionPricingComponent(
+            'rpc_4444444444444404',
+            'Režimové opatrenie',
+            'not_applicable',
+            true,
+            false,
+            'no_direct_cost',
+            ['value' => null, 'unit' => null, 'status' => 'not_applicable'],
+            [
+                'min' => 0,
+                'expected' => 0,
+                'max' => 0,
+                'currency' => 'EUR',
+                'confidence' => 'high',
+                'price_basis_date' => '2026-08-11',
+                'vat_status' => 'not_applicable',
+                'direct_cost_semantics' => 'known_zero_for_defined_scope',
+            ],
+            [$issueId]
+        ),
+        projectionPricingComponent(
+            'rpc_4444444444444405',
+            'Rozsah bez poctivého odhadu',
+            'service',
+            true,
+            false,
+            'not_estimated',
+            ['value' => null, 'unit' => null, 'status' => 'not_applicable'],
+            ['reason' => 'Chýba zameranie rozsahu.', 'information_needed' => ['Doplniť výmeru.']],
+            [$issueId]
+        ),
+        projectionPricingComponent(
+            'rpc_4444444444444406',
+            'Interné vybavenie poskytovateľa',
+            'service_provider_equipment',
+            false,
+            false,
+            'not_estimated',
+            ['value' => null, 'unit' => null, 'status' => 'not_applicable'],
+            ['reason' => 'Nie je klientskym nákladom.'],
+            [$issueId]
+        ),
+    ];
+    return [
+        'schema_version' => '1.0.0',
+        'document_type' => 'report_pricing',
+        'report_id' => $manifest['report']['id'],
+        'report_version_id' => $manifest['report_version']['id'],
+        'inspection_id' => $inspection['id'],
+        'components' => $components,
+        'aggregation' => [
+            'status' => 'subtotal',
+            'method' => 'explicit_component_allowlist',
+            'component_ids' => [
+                'rpc_4444444444444401',
+                'rpc_4444444444444403',
+                'rpc_4444444444444404',
+            ],
+            'min' => 150,
+            'expected' => 200,
+            'max' => 250,
+            'currency' => 'EUR',
+        ],
+        'generated_at' => '2026-08-11T10:00:00+02:00',
+    ];
+}
+
 $failure = null;
 try {
     $fixtureRoot = __DIR__ . '/../docs/diagnostics/fixtures/valid';
@@ -161,7 +320,8 @@ try {
 
     $forbiddenKeys = array_fill_keys([
         'qa', 'actors', 'actor_ids', 'approved_by', 'observed_by', 'captured_by', 'performed_by',
-        'provenance', 'import_metadata', 'source_system', 'source_inspection_id', 'source_item_id',
+        'provenance', 'source_method', 'source_ids', 'snapshot_references', 'client_visible',
+        'import_metadata', 'source_system', 'source_inspection_id', 'source_item_id',
         'source_media_id', 'source_reference', 'source_hash', 'pin', 'pin_hash', 'csrf_token', 'session_id',
         'report_id', 'report_version_id', 'package_manifest_sha256', 'media_reference', 'sha256',
         'address_private', 'storage_path', 'filesystem_path',
@@ -186,6 +346,89 @@ try {
     projectionAssert(!array_key_exists('observed_at', $report['issues'][0]['observations'][0]), 'Observation timestamps are minimized from current view.');
     projectionAssert(!array_key_exists('instrument_id', $report['issues'][0]['observations'][1]['measurement']), 'Instrument IDs must not leak.');
     projectionAssert(!array_key_exists('source_method', $report['issues'][0]['cost_estimate']), 'Internal cost source method must not leak.');
+
+    projectionAssert(!array_key_exists('pricing', $report), 'A package without report-pricing must keep the pricing key absent.');
+    $explicitNullReport = (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, null);
+    projectionAssert($explicitNullReport === $report, 'An explicit null report-pricing input must preserve the legacy projection byte shape.');
+    $pricing = projectionPricingFixture($manifest, $inspection, $diagnosis);
+    $pricedReport = (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $pricing);
+    projectionAssert(isset($pricedReport['pricing']), 'A valid report-pricing snapshot must be projected.');
+    projectionAssert(count($pricedReport['pricing']['components']) === 5, 'Only five client-visible pricing components may be projected.');
+    $pricingById = [];
+    foreach ($pricedReport['pricing']['components'] as $component) {
+        $pricingById[$component['id']] = $component;
+    }
+    projectionAssert(!isset($pricingById['rpc_4444444444444406']), 'Service-provider equipment must stay absent from client pricing.');
+    projectionAssert(!array_key_exists('provenance', $pricingById['rpc_4444444444444401']), 'Pricing provenance must not be projected.');
+    projectionAssert(!array_key_exists('client_visible', $pricingById['rpc_4444444444444401']), 'Pricing visibility controls must not be projected.');
+    projectionAssert($pricingById['rpc_4444444444444404']['pricing'] === [
+        'min' => 0,
+        'expected' => 0,
+        'max' => 0,
+        'currency' => 'EUR',
+        'confidence' => 'high',
+        'price_basis_date' => '2026-08-11',
+        'vat_status' => 'not_applicable',
+        'direct_cost_semantics' => 'known_zero_for_defined_scope',
+    ], 'No-direct-cost must preserve the exact explicit zero semantics.');
+    projectionAssert(!array_key_exists('computed_total', $pricingById['rpc_4444444444444402']['pricing']), 'A unit price without known quantity must not gain a computed total.');
+    projectionAssert($pricingById['rpc_4444444444444402']['conditional'] === true, 'The pricing conditional flag must be preserved.');
+    projectionAssert($pricingById['rpc_4444444444444405']['pricing'] === [
+        'reason' => 'Chýba zameranie rozsahu.',
+        'information_needed' => ['Doplniť výmeru.'],
+    ], 'Not-estimated pricing must not gain numeric fields.');
+    projectionAssert($pricedReport['pricing']['aggregation']['status'] === 'subtotal' &&
+        $pricedReport['pricing']['aggregation']['expected'] === 200, 'A valid explicit subtotal must be projected unchanged.');
+    assertNoForbiddenKeys($pricedReport, $forbiddenKeys);
+
+    $ownershipMismatch = $pricing;
+    $ownershipMismatch['report_version_id'] = 'rptv_ffffffffffffffff';
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $diagnosis, $ownershipMismatch): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $ownershipMismatch);
+    }, 'A mismatched report-pricing identity must fail closed.');
+
+    $equipmentLeak = $pricing;
+    $equipmentLeak['components'][5]['client_visible'] = true;
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $diagnosis, $equipmentLeak): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $equipmentLeak);
+    }, 'Client-visible service-provider equipment must fail closed.');
+
+    $hiddenIssuePricing = $pricing;
+    $hiddenIssuePricing['components'][0]['linked_issue_ids'] = [$supersededIssue['id']];
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $diagnosis, $hiddenIssuePricing): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $hiddenIssuePricing);
+    }, 'Pricing linked to a superseded issue must fail closed.');
+
+    $cancelledDiagnosis = $diagnosis;
+    $cancelledRecommendation = $diagnosis['recommendations'][0];
+    $cancelledRecommendation['id'] = 'rec_3333333333333333';
+    $cancelledRecommendation['display_code'] = 'REC-CANCELLED';
+    $cancelledRecommendation['status'] = 'cancelled';
+    $cancelledDiagnosis['recommendations'][] = $cancelledRecommendation;
+    $cancelledLink = $diagnosis['recommendation_issue_links'][0];
+    $cancelledLink['id'] = 'rel_3333333333333333';
+    $cancelledLink['recommendation_id'] = $cancelledRecommendation['id'];
+    $cancelledDiagnosis['recommendation_issue_links'][] = $cancelledLink;
+    $cancelledPricing = $pricing;
+    $cancelledPricing['components'][0]['linked_recommendation_ids'] = [$cancelledRecommendation['id']];
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $cancelledDiagnosis, $cancelledPricing): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $cancelledDiagnosis, $cancelledPricing);
+    }, 'Pricing linked to a cancelled recommendation must fail closed.');
+
+    $malformedPricing = $pricing;
+    unset($malformedPricing['components'][0]['pricing']['max']);
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $diagnosis, $malformedPricing): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $malformedPricing);
+    }, 'A malformed pricing kind shape must fail closed.');
+
+    $hiddenSubtotal = $pricing;
+    $hiddenSubtotal['aggregation']['component_ids'] = ['rpc_4444444444444406'];
+    $hiddenSubtotal['aggregation']['min'] = 0;
+    $hiddenSubtotal['aggregation']['expected'] = 0;
+    $hiddenSubtotal['aggregation']['max'] = 0;
+    expectDeliveryCode('DELIVERY_PROJECTION', function () use ($manifest, $inspection, $diagnosis, $hiddenSubtotal): void {
+        (new DiagnosticsClientProjection())->build($manifest, $inspection, $diagnosis, $hiddenSubtotal);
+    }, 'A subtotal referencing an internal component must fail closed.');
 
     $cycleDiagnosis = $diagnosis;
     $cycleDiagnosis['recommendation_dependencies'][] = [
