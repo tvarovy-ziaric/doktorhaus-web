@@ -64,6 +64,21 @@ const euro = renderer.formatCurrency(2000, "EUR");
 assert.match(euro, /2[\s\u00a0\u202f]?000/);
 assert.match(euro, /€/);
 assert.match(renderer.formatCurrency(19.5, "not-a-currency"), /€/);
+assert.equal(renderer.formatCurrency(19.5, "EUR"), "20 €");
+
+const pricingCurrencyCases = [
+  [15.10, "15,10 €"],
+  [20.50, "20,50 €"],
+  [29.32, "29,32 €"],
+  [48.35, "48,35 €"],
+  [59.61, "59,61 €"],
+  [196.80, "196,80 €"],
+  [250, "250 €"]
+];
+for (const [value, expected] of pricingCurrencyCases) {
+  assert.equal(renderer.formatPricingCurrency(value, "EUR"), expected);
+}
+assert.equal(renderer.formatPricingCurrency(0.1 + 0.2, "EUR"), "0,30 €");
 
 const fixturePath = path.join(repoRoot, "docs", "diagnostics", "fixtures", "valid", "client-report-example.json");
 const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
@@ -139,6 +154,14 @@ assert.match(renderer.pricingPrimaryText(pricingComponents[3]), /25/);
 assert.match(renderer.pricingPrimaryText(pricingComponents[3]), /\/ ks/);
 assert.equal(renderer.pricingPrimaryText(pricingComponents[4]), "Zatiaľ bez poctivého cenového rámca");
 assert.doesNotMatch(renderer.pricingPrimaryText(pricingComponents[4]), /€|EUR/);
+assert.equal(renderer.pricingPrimaryText({
+  pricing_kind: "unit_range",
+  pricing: { min: 15.10, max: 59.61, currency: "EUR", unit: "bm" }
+}), "15,10 € – 59,61 € / bm");
+assert.equal(renderer.pricingPrimaryText({
+  pricing_kind: "fixed_unit",
+  pricing: { amount: 196.80, currency: "EUR", unit: "objekt do 3 vzoriek" }
+}), "196,80 € / objekt do 3 vzoriek");
 
 const inspectedFiles = [
   "inspekcia.html",
@@ -175,6 +198,13 @@ const costEnd = rendererSource.indexOf("function renderCostEscalation", costStar
 const costSource = rendererSource.slice(costStart, costEnd);
 assert.match(costSource, /issue\.cost_estimate/);
 assert.doesNotMatch(costSource, /report\.pricing|pricing_kind|linked_issue_ids/);
+assert.match(costSource, /formatCurrency\(/);
+assert.doesNotMatch(costSource, /formatPricingCurrency\(/);
+const pricingStart = rendererSource.indexOf("function pricingPrimaryText");
+const pricingEnd = rendererSource.indexOf("function renderScaleDetails", pricingStart);
+const pricingSource = rendererSource.slice(pricingStart, pricingEnd);
+assert.match(pricingSource, /formatPricingCurrency\(/);
+assert.doesNotMatch(pricingSource, /formatCurrency\(/);
 assert.match(rendererSource, /Podmienené ďalším overením/);
 assert.match(rendererSource, /Celkový súčet neuvádzame\./);
 assert.match(rendererSource, /Súčet vybraných položiek/);

@@ -223,6 +223,30 @@
     }
   }
 
+  function formatPricingCurrency(value, currency) {
+    const amount = Number(value);
+    const code = typeof currency === "string" && /^[A-Z]{3}$/.test(currency) ? currency : "EUR";
+    if (!Number.isFinite(amount)) {
+      return "suma nie je uvedená";
+    }
+    const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+    const fractionDigits = Number.isInteger(rounded) ? 0 : 2;
+    try {
+      return new Intl.NumberFormat("sk-SK", {
+        style: "currency",
+        currency: code,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits
+      }).format(rounded);
+    } catch (_error) {
+      const formatted = new Intl.NumberFormat("sk-SK", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits
+      }).format(rounded);
+      return formatted + " " + code;
+    }
+  }
+
   function selectPriorityRecommendations(recommendations, issues) {
     const priorityByIssue = new Map((Array.isArray(issues) ? issues : []).map(function (issue) {
       return [issue.id, issue.priority];
@@ -485,15 +509,15 @@
       return "Zatiaľ bez poctivého cenového rámca";
     }
     if (kind === "total_range") {
-      return formatCurrency(pricing.min, pricing.currency) + " – " + formatCurrency(pricing.max, pricing.currency);
+      return formatPricingCurrency(pricing.min, pricing.currency) + " – " + formatPricingCurrency(pricing.max, pricing.currency);
     }
     const unit = pricingUnitLabel(pricing.unit, pricing.currency);
     if (kind === "unit_range") {
-      return formatCurrency(pricing.min, pricing.currency) + " – " + formatCurrency(pricing.max, pricing.currency) +
+      return formatPricingCurrency(pricing.min, pricing.currency) + " – " + formatPricingCurrency(pricing.max, pricing.currency) +
         (unit ? " / " + unit : "");
     }
     if (kind === "fixed_unit") {
-      return formatCurrency(pricing.amount, pricing.currency) + (unit ? " / " + unit : "");
+      return formatPricingCurrency(pricing.amount, pricing.currency) + (unit ? " / " + unit : "");
     }
     return "Cena nie je uvedená";
   }
@@ -546,15 +570,15 @@
     const pricing = component.pricing || {};
     if (component.pricing_kind === "total_range") {
       card.append(element(documentRef, "p", "diag-pricing-expected",
-        "Bežný očakávaný rámec približne " + formatCurrency(pricing.expected, pricing.currency) + "."));
+        "Bežný očakávaný rámec približne " + formatPricingCurrency(pricing.expected, pricing.currency) + "."));
     } else if (component.pricing_kind === "unit_range" && pricing.computed_total) {
       card.append(element(documentRef, "p", "diag-pricing-computed",
-        "Pri známom množstve: " + formatCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
-        " – " + formatCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
+        "Pri známom množstve: " + formatPricingCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
+        " – " + formatPricingCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
     } else if (component.pricing_kind === "fixed_unit" && pricing.computed_total) {
       card.append(element(documentRef, "p", "diag-pricing-computed",
-        "Pri známom množstve: " + formatCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
-        " – " + formatCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
+        "Pri známom množstve: " + formatPricingCurrency(pricing.computed_total.min, pricing.computed_total.currency) +
+        " – " + formatPricingCurrency(pricing.computed_total.max, pricing.computed_total.currency) + "."));
     } else if (component.pricing_kind === "not_estimated" && pricing.reason) {
       card.append(element(documentRef, "p", "diag-pricing-reason", pricing.reason));
       if (array(pricing.information_needed).length) {
@@ -619,10 +643,10 @@
     if (aggregation.status === "subtotal") {
       panel.append(element(documentRef, "span", null, "Súčet vybraných položiek"));
       panel.append(element(documentRef, "strong", null,
-        formatCurrency(aggregation.min, aggregation.currency) + " – " + formatCurrency(aggregation.max, aggregation.currency)));
+        formatPricingCurrency(aggregation.min, aggregation.currency) + " – " + formatPricingCurrency(aggregation.max, aggregation.currency)));
       panel.append(element(documentRef, "p", null,
         "Bežný očakávaný rámec vybraných položiek je približne " +
-        formatCurrency(aggregation.expected, aggregation.currency) + "."));
+        formatPricingCurrency(aggregation.expected, aggregation.currency) + "."));
       panel.append(element(documentRef, "p", "diag-estimate-note",
         "Tento súčet zahŕňa iba explicitne uvedené položky a nie je cenou všetkých opráv."));
     } else {
@@ -1458,6 +1482,7 @@
     validateAccessId: validateAccessId,
     validateMediaUrl: validateMediaUrl,
     formatCurrency: formatCurrency,
+    formatPricingCurrency: formatPricingCurrency,
     pricingPrimaryText: pricingPrimaryText,
     groupReportPricing: groupReportPricing,
     selectPriorityRecommendations: selectPriorityRecommendations,
