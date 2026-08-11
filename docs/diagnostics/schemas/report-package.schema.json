@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://doktorhaus.sk/schemas/diagnostics/report-package.schema.json",
   "title": "DoktorHaus report package manifest",
-  "description": "Manifest-only contract for an immutable, versioned client report package. The inspection and diagnosis documents remain separate files referenced by checksum.",
+  "description": "Manifest-only contract for an immutable, versioned client report package. Inspection, diagnosis and optional report-level pricing remain separate files referenced by checksum.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "document_type", "report", "report_version", "actors", "files", "created_at"],
@@ -91,7 +91,7 @@
       "additionalProperties": false,
       "required": ["role", "path", "sha256", "content_type", "privacy"],
       "properties": {
-        "role": { "type": "string", "enum": ["inspection_data", "diagnosis_data", "media", "attachment", "source_report", "other"] },
+        "role": { "type": "string", "enum": ["inspection_data", "diagnosis_data", "report_pricing", "media", "attachment", "source_report", "other"] },
         "role_label": { "$ref": "common.schema.json#/$defs/non_empty_string" },
         "path": { "$ref": "common.schema.json#/$defs/relative_manifest_path" },
         "sha256": { "$ref": "common.schema.json#/$defs/sha256" },
@@ -103,6 +103,15 @@
         {
           "if": { "properties": { "role": { "const": "other" } }, "required": ["role"] },
           "then": { "required": ["role_label"] }
+        },
+        {
+          "if": { "properties": { "role": { "const": "report_pricing" } }, "required": ["role"] },
+          "then": {
+            "properties": {
+              "content_type": { "const": "application/json" },
+              "privacy": { "enum": ["client_private", "internal"] }
+            }
+          }
         }
       ]
     }

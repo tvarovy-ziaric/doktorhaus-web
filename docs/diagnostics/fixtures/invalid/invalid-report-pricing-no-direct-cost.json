@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "report_pricing",
+  "report_id": "rpt_1111111111111111",
+  "report_version_id": "rptv_1111111111111111",
+  "inspection_id": "insp_1111111111111111",
+  "components": [{
+    "id": "rpc_1111111111111202",
+    "linked_issue_ids": ["issue_1111111111111111"],
+    "linked_recommendation_ids": [],
+    "title": "Neplatný nenulový priamy náklad",
+    "scope": "Syntetický neplatný príklad.",
+    "assumptions": [],
+    "exclusions": [],
+    "conditional": false,
+    "shared_across_issues": false,
+    "ownership": "not_applicable",
+    "client_visible": true,
+    "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+    "pricing_kind": "no_direct_cost",
+    "pricing": {
+      "min": 50, "expected": 50, "max": 50, "currency": "EUR", "confidence": "high",
+      "price_basis_date": "2026-08-11", "vat_status": "not_applicable",
+      "direct_cost_semantics": "known_zero_for_defined_scope"
+    },
+    "provenance": { "source_method": "none_required", "source_ids": [], "snapshot_references": [] }
+  }],
+  "aggregation": { "status": "not_computed", "reason": "Neplatný testovací príklad." },
+  "generated_at": "2026-08-11T08:00:00+02:00"
+}

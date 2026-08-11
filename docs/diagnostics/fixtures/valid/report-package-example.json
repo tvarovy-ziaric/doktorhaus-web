@@ -49,6 +49,14 @@
       "privacy": "client_private"
     },
     {
+      "role": "report_pricing",
+      "path": "report-pricing.json",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb5",
+      "content_type": "application/json",
+      "size_bytes": 7200,
+      "privacy": "client_private"
+    },
+    {
       "role": "media",
       "path": "media/photos/downpipe-001.jpg",
       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",

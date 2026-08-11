@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "report_pricing",
+  "report_id": "rpt_1111111111111111",
+  "report_version_id": "rptv_1111111111111111",
+  "inspection_id": "insp_1111111111111111",
+  "components": [
+    {
+      "id": "rpc_1111111111111101",
+      "display_code": "RP-001",
+      "linked_issue_ids": ["issue_1111111111111111"],
+      "linked_recommendation_ids": [],
+      "title": "Odborné overenie pred návrhom opravy",
+      "scope": "Jedno presne vymedzené odborné overenie; nejde o cenu odstránenia celého issue.",
+      "assumptions": ["Prístupná kontrolovaná časť."],
+      "exclusions": ["Definitívna oprava", "projektová dokumentácia"],
+      "conditional": false,
+      "shared_across_issues": false,
+      "ownership": "service",
+      "client_visible": true,
+      "client_caveat": "Cena overenia nie je cenou odstránenia celého problému.",
+      "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+      "pricing_kind": "total_range",
+      "pricing": {
+        "min": 100,
+        "expected": 150,
+        "max": 200,
+        "currency": "EUR",
+        "confidence": "medium",
+        "price_basis_date": "2026-08-11",
+        "vat_status": "unknown"
+      },
+      "provenance": {
+        "source_method": "comparable_work",
+        "source_ids": ["SYNTHETIC-SOURCE-001"],
+        "snapshot_references": []
+      }
+    },
+    {
+      "id": "rpc_1111111111111105",
+      "display_code": "RP-005",
+      "linked_issue_ids": ["issue_1111111111111111", "issue_2222222222222222"],
+      "linked_recommendation_ids": [],
+      "title": "Jedno spoločné meranie pre dve technické otázky",
+      "scope": "Jedna fyzická služba zdieľaná medzi dvoma issues.",
+      "assumptions": ["Služba sa vykoná jedným spoločným výjazdom."],
+      "exclusions": ["Opakovaný výjazd"],
+      "conditional": false,
+      "shared_across_issues": true,
+      "ownership": "service",
+      "client_visible": true,
+      "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+      "pricing_kind": "total_range",
+      "pricing": {
+        "min": 50,
+        "expected": 75,
+        "max": 100,
+        "currency": "EUR",
+        "confidence": "medium",
+        "price_basis_date": "2026-08-11",
+        "vat_status": "unknown"
+      },
+      "provenance": {
+        "source_method": "expert_range",
+        "source_ids": ["SYNTHETIC-SOURCE-002"],
+        "snapshot_references": []
+      }
+    }
+  ],
+  "aggregation": {
+    "status": "subtotal",
+    "method": "explicit_component_allowlist",
+    "component_ids": ["rpc_1111111111111101", "rpc_1111111111111105"],
+    "min": 150,
+    "expected": 225,
+    "max": 300,
+    "currency": "EUR"
+  },
+  "generated_at": "2026-08-11T08:00:00+02:00"
+}

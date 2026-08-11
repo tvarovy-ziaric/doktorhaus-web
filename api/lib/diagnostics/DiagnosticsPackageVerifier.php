@@ -16,7 +16,7 @@ final class DiagnosticsPackageVerifier
     /**
      * Verify the complete package without loading binary files into memory.
      *
-     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>}
+     * @return array{manifest: array<string, mixed>, files: array<string, array<string, mixed>>, inspection: array<string, mixed>, diagnosis: array<string, mixed>, report_pricing: array<string, mixed>|null}
      */
     public function verifyPackage(string $packageDirectory): array
     {
@@ -41,6 +41,7 @@ final class DiagnosticsPackageVerifier
         $declaredPaths = [];
         $inspectionEntry = null;
         $diagnosisEntry = null;
+        $reportPricingEntry = null;
         foreach ($entries as $relativePath => $entry) {
             $filePath = $this->pathFromRelative($packageRoot, $relativePath);
             $this->assertPackageFile($packageRoot, $relativePath, $filePath);
@@ -51,6 +52,8 @@ final class DiagnosticsPackageVerifier
                 $inspectionEntry = $entry;
             } elseif ($entry['role'] === 'diagnosis_data') {
                 $diagnosisEntry = $entry;
+            } elseif ($entry['role'] === 'report_pricing') {
+                $reportPricingEntry = $entry;
             }
         }
 
@@ -82,12 +85,21 @@ final class DiagnosticsPackageVerifier
             'STORAGE_JSON'
         );
         $this->validateDataIdentity($manifest, $inspection, $diagnosis);
+        $reportPricing = null;
+        if ($reportPricingEntry !== null) {
+            $reportPricing = $this->readJsonObject(
+                $this->pathFromRelative($packageRoot, (string)$reportPricingEntry['path']),
+                'STORAGE_JSON'
+            );
+            $this->validateReportPricingIdentity($manifest, $reportPricing);
+        }
 
         return [
             'manifest' => $manifest,
             'files' => $entries,
             'inspection' => $inspection,
             'diagnosis' => $diagnosis,
+            'report_pricing' => $reportPricing,
         ];
     }
 
@@ -222,8 +234,8 @@ final class DiagnosticsPackageVerifier
         $entries = [];
         $caseFoldedPaths = [];
         $hashes = [];
-        $roleCounts = ['inspection_data' => 0, 'diagnosis_data' => 0];
-        $allowedRoles = ['inspection_data', 'diagnosis_data', 'media', 'attachment', 'source_report', 'other'];
+        $roleCounts = ['inspection_data' => 0, 'diagnosis_data' => 0, 'report_pricing' => 0];
+        $allowedRoles = ['inspection_data', 'diagnosis_data', 'report_pricing', 'media', 'attachment', 'source_report', 'other'];
         $allowedPrivacy = ['public', 'client_private', 'internal'];
         foreach ($manifest['files'] as $entry) {
             if (!is_array($entry) || $this->isList($entry)) {
@@ -243,6 +255,10 @@ final class DiagnosticsPackageVerifier
             }
             if (array_key_exists('size_bytes', $entry) && (!is_int($entry['size_bytes']) || $entry['size_bytes'] < 0)) {
                 throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'A report package file size is invalid.');
+            }
+            if ($entry['role'] === 'report_pricing' &&
+                ($entry['content_type'] !== 'application/json' || !in_array($entry['privacy'], ['client_private', 'internal'], true))) {
+                throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The report-pricing file entry is not private JSON.');
             }
 
             self::assertSafeRelativePath($entry['path']);
@@ -267,8 +283,25 @@ final class DiagnosticsPackageVerifier
         if ($roleCounts['inspection_data'] !== 1 || $roleCounts['diagnosis_data'] !== 1) {
             throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The report package must declare exactly one inspection and one diagnosis document.');
         }
+        if ($roleCounts['report_pricing'] > 1) {
+            throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The report package may declare at most one report-pricing document.');
+        }
 
         return $entries;
+    }
+
+    /** @param array<string, mixed> $manifest @param array<string, mixed> $reportPricing */
+    private function validateReportPricingIdentity(array $manifest, array $reportPricing): void
+    {
+        if (($reportPricing['schema_version'] ?? null) !== '1.0.0' ||
+            ($reportPricing['document_type'] ?? null) !== 'report_pricing') {
+            throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The report-pricing document has an unsupported contract.');
+        }
+        if (($reportPricing['report_id'] ?? null) !== ($manifest['report']['id'] ?? null) ||
+            ($reportPricing['report_version_id'] ?? null) !== ($manifest['report_version']['id'] ?? null) ||
+            ($reportPricing['inspection_id'] ?? null) !== ($manifest['report']['inspection_id'] ?? null)) {
+            throw new DiagnosticsStorageException('STORAGE_ID_MISMATCH', 'The report-pricing ownership does not match the package.');
+        }
     }
 
     /** @param array<string, mixed> $entry */

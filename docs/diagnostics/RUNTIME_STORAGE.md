@@ -62,6 +62,7 @@ $storage = new DiagnosticsStorage($temporaryRoot, $knownDocumentRoot);
         manifest.json
         inspection.json
         diagnosis.json
+        report-pricing.json  # voliteľný immutable report-level pricing snapshot
         media/
         attachments/
   locks/
@@ -126,6 +127,7 @@ Normatívny manifest zostáva `schemas/report-package.schema.json`. Storage veri
 - neprázdne `approved_by`, `approved_at`, `published_at` s timezone;
 - approvera prítomného v actors s rolou `inspector` alebo `reviewer`;
 - práve jeden súbor s rolou `inspection_data` a práve jeden `diagnosis_data`;
+- najviac jeden voliteľný súbor s rolou `report_pricing`, ktorého report/report-version/inspection ownership sa musí zhodovať s manifestom;
 - unikátne paths bez case-insensitive kolízie a unikátne SHA-256 podľa doménového lint kontraktu;
 - existenciu všetkých deklarovaných súborov a absenciu neočakávaných regular files okrem `manifest.json`;
 - voliteľnú deklarovanú veľkosť;

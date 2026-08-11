@@ -21,6 +21,7 @@
     "verifications": { "type": "array", "items": { "$ref": "#/$defs/verification" } },
     "issue_relations": { "type": "array", "items": { "$ref": "#/$defs/issue_relation" } },
     "unverified_items": { "type": "array", "items": { "$ref": "#/$defs/unverified_item" } },
+    "pricing": { "$ref": "report-pricing.schema.json#/$defs/client_projection" },
     "generated_at": { "$ref": "common.schema.json#/$defs/date_time" }
   },
   "$defs": {

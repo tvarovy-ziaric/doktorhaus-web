@@ -29,6 +29,18 @@ REPORT_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 PUBLIC_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 WINDOWS_ABSOLUTE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+CLIENT_INTERNAL_PRICING_FIELDS = {
+    "internal_tariff",
+    "internal_labour_cost",
+    "equipment_acquisition_cost",
+    "travel_costing",
+    "margin",
+    "markup",
+    "internal_business_notes",
+    "private_supplier_negotiations",
+    "storage_path",
+    "filesystem_path",
+}
 
 
 class Findings:
@@ -203,6 +215,225 @@ def validate_cost(cost: Any, findings: Findings, path: str) -> None:
             findings.error("E_COST_ESTIMATE", "not_estimated cost requires a non-empty reason.", path)
     else:
         findings.error("E_COST_ESTIMATE", "cost_estimate.status must be estimated or not_estimated.", f"{path}.status")
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def validate_pricing_range(value: Any, findings: Findings, path: str) -> bool:
+    if not isinstance(value, dict):
+        findings.error("E_PRICING_SHAPE", "Pricing value must be an object.", path)
+        return False
+    values = (value.get("min"), value.get("expected"), value.get("max"))
+    if not all(is_number(item) and item >= 0 for item in values):
+        findings.error("E_PRICING_SHAPE", "Pricing min/expected/max must be non-negative numbers.", path)
+        return False
+    minimum, expected, maximum = values
+    if not minimum <= expected <= maximum:
+        findings.error("E_PRICING_RANGE", "Pricing invariant min <= expected <= max is violated.", path)
+        return False
+    return True
+
+
+def find_forbidden_pricing_fields(value: Any, path: str = "$") -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}"
+            if key in CLIENT_INTERNAL_PRICING_FIELDS:
+                found.append((key, child_path))
+            found.extend(find_forbidden_pricing_fields(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(find_forbidden_pricing_fields(child, f"{path}[{index}]"))
+    return found
+
+
+def validate_report_pricing(
+    pricing: dict[str, Any],
+    inspection: dict[str, Any],
+    diagnosis: dict[str, Any] | None,
+    findings: Findings,
+) -> None:
+    required = [
+        "schema_version", "document_type", "report_id", "report_version_id", "inspection_id",
+        "components", "aggregation", "generated_at",
+    ]
+    require_top_level(pricing, required, findings, "report pricing")
+    ensure_document_type(pricing, "report_pricing", findings)
+    if pricing.get("inspection_id") != inspection.get("id"):
+        findings.error(
+            "E_INSPECTION_CONSISTENCY",
+            "report pricing inspection_id must equal inspection.id.",
+            "$.inspection_id",
+        )
+
+    components = pricing.get("components") if isinstance(pricing.get("components"), list) else []
+    component_locations: defaultdict[str, list[int]] = defaultdict(list)
+    for index, component in enumerate(components):
+        if isinstance(component, dict) and isinstance(component.get("id"), str):
+            component_locations[component["id"]].append(index)
+    for component_id, indexes in component_locations.items():
+        if len(indexes) > 1:
+            findings.error(
+                "E_DUPLICATE_PRICING_ID",
+                f"Duplicate report-pricing component ID '{component_id}'.",
+                f"$.components[{indexes[1]}].id",
+            )
+
+    issue_ids: set[str] | None = None
+    recommendation_ids: set[str] | None = None
+    if diagnosis is not None:
+        issue_ids = {
+            item.get("id") for item in diagnosis.get("issues", [])
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        recommendation_ids = {
+            item.get("id") for item in diagnosis.get("recommendations", [])
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+
+    components_by_id: dict[str, dict[str, Any]] = {}
+    for index, component in enumerate(components):
+        path = f"$.components[{index}]"
+        if not isinstance(component, dict):
+            findings.error("E_PRICING_SHAPE", "Pricing component must be an object.", path)
+            continue
+        component_id = component.get("id")
+        if isinstance(component_id, str) and component_id not in components_by_id:
+            components_by_id[component_id] = component
+
+        if issue_ids is not None:
+            for linked_id in component.get("linked_issue_ids", []) if isinstance(component.get("linked_issue_ids"), list) else []:
+                if linked_id not in issue_ids:
+                    findings.error("E_DANGLING_REFERENCE", f"Pricing component references unknown issue '{linked_id}'.", f"{path}.linked_issue_ids")
+        if recommendation_ids is not None:
+            for linked_id in component.get("linked_recommendation_ids", []) if isinstance(component.get("linked_recommendation_ids"), list) else []:
+                if linked_id not in recommendation_ids:
+                    findings.error("E_DANGLING_REFERENCE", f"Pricing component references unknown recommendation '{linked_id}'.", f"{path}.linked_recommendation_ids")
+
+        if component.get("client_visible") is True:
+            if component.get("ownership") == "service_provider_equipment":
+                findings.error(
+                    "E_CLIENT_PROVIDER_EQUIPMENT",
+                    "Service-provider equipment must not be a client-visible remediation cost.",
+                    f"{path}.ownership",
+                )
+            for field, field_path in find_forbidden_pricing_fields(component, path):
+                findings.error(
+                    "E_CLIENT_INTERNAL_FIELD",
+                    f"Client-visible pricing component contains forbidden internal business field '{field}'.",
+                    field_path,
+                )
+
+        kind = component.get("pricing_kind")
+        price = component.get("pricing")
+        quantity = component.get("quantity") if isinstance(component.get("quantity"), dict) else {}
+        if kind in {"total_range", "unit_range"}:
+            validate_pricing_range(price, findings, f"{path}.pricing")
+        elif kind == "fixed_unit":
+            if not isinstance(price, dict) or not is_number(price.get("amount")) or price.get("amount") < 0:
+                findings.error("E_PRICING_SHAPE", "fixed_unit requires a non-negative numeric amount.", f"{path}.pricing")
+        elif kind == "no_direct_cost":
+            if not isinstance(price, dict) or any(price.get(key) != 0 for key in ("min", "expected", "max")):
+                findings.error(
+                    "E_PRICING_NO_DIRECT_COST",
+                    "no_direct_cost must explicitly use 0/0/0 for its defined scope.",
+                    f"{path}.pricing",
+                )
+        elif kind == "not_estimated":
+            if not isinstance(price, dict) or not isinstance(price.get("reason"), str) or not price.get("reason", "").strip():
+                findings.error(
+                    "E_PRICING_NOT_ESTIMATED_REASON",
+                    "not_estimated pricing requires a non-empty reason.",
+                    f"{path}.pricing.reason",
+                )
+        else:
+            findings.error("E_PRICING_KIND", "Unsupported report-pricing kind.", f"{path}.pricing_kind")
+
+        if kind in {"unit_range", "fixed_unit"} and isinstance(price, dict) and "computed_total" in price:
+            if quantity.get("status") != "known" or not is_number(quantity.get("value")) or quantity.get("value") <= 0:
+                findings.error(
+                    "E_PRICING_UNIT_TOTAL_WITHOUT_QUANTITY",
+                    "A unit-price component may contain computed_total only with a known positive quantity.",
+                    f"{path}.pricing.computed_total",
+                )
+            validate_pricing_range(price.get("computed_total"), findings, f"{path}.pricing.computed_total")
+
+    aggregation = pricing.get("aggregation") if isinstance(pricing.get("aggregation"), dict) else {}
+    aggregation_status = aggregation.get("status")
+    if aggregation_status == "not_computed":
+        if not isinstance(aggregation.get("reason"), str) or not aggregation.get("reason", "").strip():
+            findings.error("E_PRICING_AGGREGATION", "not_computed aggregation requires a reason.", "$.aggregation.reason")
+    elif aggregation_status == "subtotal":
+        validate_pricing_range(aggregation, findings, "$.aggregation")
+        selected = aggregation.get("component_ids") if isinstance(aggregation.get("component_ids"), list) else []
+        duplicates = [component_id for component_id, count in Counter(selected).items() if count > 1]
+        if duplicates:
+            findings.error(
+                "E_PRICING_DUPLICATE_SUBTOTAL_COMPONENT",
+                f"Subtotal includes component more than once: {', '.join(str(item) for item in duplicates)}.",
+                "$.aggregation.component_ids",
+            )
+
+        subtotal_values = [0.0, 0.0, 0.0]
+        subtotal_currency = aggregation.get("currency")
+        subtotal_can_be_checked = True
+        for component_id in dict.fromkeys(selected):
+            component = components_by_id.get(component_id)
+            if component is None:
+                findings.error("E_DANGLING_REFERENCE", f"Subtotal references unknown pricing component '{component_id}'.", "$.aggregation.component_ids")
+                subtotal_can_be_checked = False
+                continue
+            if component.get("conditional") is True:
+                findings.error(
+                    "E_PRICING_CONDITIONAL_SUBTOTAL",
+                    f"Conditional component '{component_id}' cannot enter an unconditional subtotal.",
+                    "$.aggregation.component_ids",
+                )
+                subtotal_can_be_checked = False
+                continue
+            kind = component.get("pricing_kind")
+            price = component.get("pricing") if isinstance(component.get("pricing"), dict) else {}
+            if kind == "total_range":
+                source = price
+            elif kind in {"unit_range", "fixed_unit"}:
+                source = price.get("computed_total") if isinstance(price.get("computed_total"), dict) else None
+                if source is None:
+                    findings.error(
+                        "E_PRICING_UNIT_TOTAL_WITHOUT_QUANTITY",
+                        f"Unit component '{component_id}' cannot enter subtotal without quantity and computed_total.",
+                        "$.aggregation.component_ids",
+                    )
+                    subtotal_can_be_checked = False
+                    continue
+            elif kind == "no_direct_cost":
+                source = price
+            else:
+                findings.error(
+                    "E_PRICING_INELIGIBLE_SUBTOTAL",
+                    f"Component '{component_id}' is not eligible for subtotal.",
+                    "$.aggregation.component_ids",
+                )
+                subtotal_can_be_checked = False
+                continue
+            if source.get("currency") != subtotal_currency:
+                findings.error("E_PRICING_CURRENCY", f"Component '{component_id}' uses another currency than subtotal.", "$.aggregation.currency")
+                subtotal_can_be_checked = False
+                continue
+            if all(is_number(source.get(key)) for key in ("min", "expected", "max")):
+                subtotal_values[0] += float(source["min"])
+                subtotal_values[1] += float(source["expected"])
+                subtotal_values[2] += float(source["max"])
+            else:
+                subtotal_can_be_checked = False
+        declared = (aggregation.get("min"), aggregation.get("expected"), aggregation.get("max"))
+        if subtotal_can_be_checked and all(is_number(item) for item in declared):
+            if any(abs(float(declared[index]) - subtotal_values[index]) > 1e-7 for index in range(3)):
+                findings.error("E_PRICING_SUBTOTAL_MISMATCH", "Declared subtotal does not equal its explicit component allowlist.", "$.aggregation")
+    else:
+        findings.error("E_PRICING_AGGREGATION", "Aggregation status must be not_computed or subtotal.", "$.aggregation.status")
 
 
 def directed_cycle(nodes: set[str], edges: list[tuple[str, str]]) -> bool:
@@ -465,9 +696,22 @@ def validate_report_package(package: dict[str, Any], inspection: dict[str, Any],
     files = package.get("files") if isinstance(package.get("files"), list) else []
     paths: defaultdict[str, list[int]] = defaultdict(list)
     hashes: defaultdict[str, list[int]] = defaultdict(list)
+    role_counts: Counter[str] = Counter()
+    allowed_roles = {"inspection_data", "diagnosis_data", "report_pricing", "media", "attachment", "source_report", "other"}
     for index, item in enumerate(files):
         if not isinstance(item, dict):
             continue
+        role = item.get("role")
+        if role not in allowed_roles:
+            findings.error("E_MANIFEST_ROLE", f"Unsupported manifest role '{role}'.", f"$.files[{index}].role")
+        elif isinstance(role, str):
+            role_counts[role] += 1
+        if role == "report_pricing" and (item.get("content_type") != "application/json" or item.get("privacy") not in {"client_private", "internal"}):
+            findings.error(
+                "E_MANIFEST_ROLE",
+                "report_pricing must be private/internal application/json and is never a directly public file.",
+                f"$.files[{index}]",
+            )
         path = item.get("path")
         digest = item.get("sha256")
         if isinstance(path, str):
@@ -486,23 +730,46 @@ def validate_report_package(package: dict[str, Any], inspection: dict[str, Any],
     for digest, indexes_for_hash in hashes.items():
         if digest and len(indexes_for_hash) > 1:
             findings.error("E_MANIFEST_DUPLICATE_HASH", f"Manifest sha256 '{digest}' is duplicated across file entries.", f"$.files[{indexes_for_hash[1]}].sha256")
+    if role_counts["inspection_data"] != 1 or role_counts["diagnosis_data"] != 1:
+        findings.error("E_MANIFEST_ROLE", "Manifest must contain exactly one inspection_data and one diagnosis_data file.", "$.files")
+    if role_counts["report_pricing"] > 1:
+        findings.error("E_MANIFEST_ROLE", "Manifest may contain at most one report_pricing file.", "$.files")
 
 
-def run(inspection_path: Path, diagnosis_path: Path | None = None, report_path: Path | None = None) -> tuple[Findings, dict[str, str]]:
+def run(
+    inspection_path: Path,
+    diagnosis_path: Path | None = None,
+    report_path: Path | None = None,
+    pricing_path: Path | None = None,
+) -> tuple[Findings, dict[str, str]]:
     inspection = load_json(inspection_path)
     diagnosis = load_json(diagnosis_path) if diagnosis_path else None
     report = load_json(report_path) if report_path else None
+    pricing = load_json(pricing_path) if pricing_path else None
     findings = Findings()
     indexes = validate_inspection(inspection, findings)
     if diagnosis is not None:
         validate_diagnosis(diagnosis, inspection, indexes, findings)
     if report is not None:
         validate_report_package(report, inspection, findings)
+    if pricing is not None:
+        validate_report_pricing(pricing, inspection, diagnosis, findings)
+        if report is not None:
+            report_obj = report.get("report") if isinstance(report.get("report"), dict) else {}
+            version_obj = report.get("report_version") if isinstance(report.get("report_version"), dict) else {}
+            if pricing.get("report_id") != report_obj.get("id") or pricing.get("report_version_id") != version_obj.get("id"):
+                findings.error(
+                    "E_REPORT_PRICING_OWNERSHIP",
+                    "report pricing must be owned by the same report and report version as its package.",
+                    "$.report_id",
+                )
     inputs = {"inspection": str(inspection_path)}
     if diagnosis_path:
         inputs["diagnosis"] = str(diagnosis_path)
     if report_path:
         inputs["report_package"] = str(report_path)
+    if pricing_path:
+        inputs["report_pricing"] = str(pricing_path)
     return findings, inputs
 
 
@@ -511,13 +778,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--inspection", required=True, type=Path, help="Path to inspection.json")
     parser.add_argument("--diagnosis", type=Path, help="Optional path to diagnosis.json")
     parser.add_argument("--report-package", type=Path, help="Optional path to report package manifest")
+    parser.add_argument("--report-pricing", type=Path, help="Optional path to report-pricing.json")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        findings, inputs = run(args.inspection, args.diagnosis, args.report_package)
+        findings, inputs = run(args.inspection, args.diagnosis, args.report_package, args.report_pricing)
     except ValueError as exc:
         print(json.dumps({"tool_error": {"code": "E_TOOL_INPUT", "message": str(exc)}}, ensure_ascii=False, indent=2))
         return 2

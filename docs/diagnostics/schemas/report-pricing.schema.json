@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doktorhaus.sk/schemas/diagnostics/report-pricing.schema.json",
+  "title": "DoktorHaus report-level pricing snapshot",
+  "description": "Versioned report-level pricing components for partial verification, material, conditional and not-estimated scopes. This document is separate from whole-issue cost_estimate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "document_type", "report_id", "report_version_id", "inspection_id",
+    "components", "aggregation", "generated_at"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "document_type": { "const": "report_pricing" },
+    "report_id": { "$ref": "common.schema.json#/$defs/report_id" },
+    "report_version_id": { "$ref": "common.schema.json#/$defs/report_version_id" },
+    "inspection_id": { "$ref": "common.schema.json#/$defs/inspection_id" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "aggregation": { "$ref": "#/$defs/aggregation" },
+    "generated_at": { "$ref": "common.schema.json#/$defs/date_time" }
+  },
+  "$defs": {
+    "pricing_kind": {
+      "type": "string",
+      "enum": ["total_range", "unit_range", "fixed_unit", "no_direct_cost", "not_estimated"]
+    },
+    "ownership": {
+      "type": "string",
+      "enum": ["client_owned_material", "service", "service_provider_equipment", "not_applicable"]
+    },
+    "vat_status": {
+      "type": "string",
+      "enum": ["included", "excluded", "mixed", "unknown", "not_applicable"]
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "status"],
+      "properties": {
+        "value": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "unit": { "anyOf": [{ "$ref": "common.schema.json#/$defs/non_empty_string" }, { "type": "null" }] },
+        "status": { "type": "string", "enum": ["known", "unknown", "not_applicable"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "known" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "value": { "type": "number", "exclusiveMinimum": 0 },
+              "unit": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "unknown" } }, "required": ["status"] },
+          "then": { "properties": { "value": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_applicable" } }, "required": ["status"] },
+          "then": { "properties": { "value": { "type": "null" }, "unit": { "type": "null" } } }
+        }
+      ]
+    },
+    "money_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "expected", "max", "currency"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+      }
+    },
+    "priced_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "expected", "max", "currency", "confidence", "price_basis_date", "vat_status"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "price_basis_date": { "$ref": "common.schema.json#/$defs/date" },
+        "vat_status": { "$ref": "#/$defs/vat_status" }
+      }
+    },
+    "total_range": { "$ref": "#/$defs/priced_range" },
+    "unit_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "expected", "max", "currency", "unit", "confidence", "price_basis_date", "vat_status"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "unit": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "price_basis_date": { "$ref": "common.schema.json#/$defs/date" },
+        "vat_status": { "$ref": "#/$defs/vat_status" },
+        "computed_total": { "$ref": "#/$defs/money_range" }
+      }
+    },
+    "fixed_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency", "unit", "confidence", "price_basis_date", "vat_status"],
+      "properties": {
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "unit": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "price_basis_date": { "$ref": "common.schema.json#/$defs/date" },
+        "vat_status": { "$ref": "#/$defs/vat_status" },
+        "computed_total": { "$ref": "#/$defs/money_range" }
+      }
+    },
+    "no_direct_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "expected", "max", "currency", "confidence", "price_basis_date", "vat_status", "direct_cost_semantics"],
+      "properties": {
+        "min": { "const": 0 },
+        "expected": { "const": 0 },
+        "max": { "const": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "price_basis_date": { "$ref": "common.schema.json#/$defs/date" },
+        "vat_status": { "const": "not_applicable" },
+        "direct_cost_semantics": { "const": "known_zero_for_defined_scope" }
+      }
+    },
+    "not_estimated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "information_needed": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_method", "source_ids", "snapshot_references"],
+      "properties": {
+        "source_method": {
+          "type": "string",
+          "enum": ["expert_range", "comparable_work", "unit_price_database", "supplier_quote", "mixed", "none_required", "other"]
+        },
+        "source_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+        },
+        "snapshot_references": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/relative_manifest_path" }
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "linked_issue_ids", "linked_recommendation_ids", "title", "scope", "assumptions",
+        "exclusions", "conditional", "shared_across_issues", "ownership", "client_visible",
+        "quantity", "pricing_kind", "pricing", "provenance"
+      ],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/report_pricing_component_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "linked_issue_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/issue_id" }
+        },
+        "linked_recommendation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/recommendation_id" }
+        },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "scope": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "exclusions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "conditional": { "type": "boolean" },
+        "shared_across_issues": { "type": "boolean" },
+        "ownership": { "$ref": "#/$defs/ownership" },
+        "client_visible": { "type": "boolean" },
+        "client_caveat": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "pricing_kind": { "$ref": "#/$defs/pricing_kind" },
+        "pricing": { "type": "object" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "pricing_kind": { "const": "total_range" } }, "required": ["pricing_kind"] },
+          "then": { "properties": { "pricing": { "$ref": "#/$defs/total_range" } } }
+        },
+        {
+          "if": { "properties": { "pricing_kind": { "const": "unit_range" } }, "required": ["pricing_kind"] },
+          "then": { "properties": { "pricing": { "$ref": "#/$defs/unit_range" } } }
+        },
+        {
+          "if": { "properties": { "pricing_kind": { "const": "fixed_unit" } }, "required": ["pricing_kind"] },
+          "then": { "properties": { "pricing": { "$ref": "#/$defs/fixed_unit" } } }
+        },
+        {
+          "if": { "properties": { "pricing_kind": { "const": "no_direct_cost" } }, "required": ["pricing_kind"] },
+          "then": { "properties": { "pricing": { "$ref": "#/$defs/no_direct_cost" } } }
+        },
+        {
+          "if": { "properties": { "pricing_kind": { "const": "not_estimated" } }, "required": ["pricing_kind"] },
+          "then": { "properties": { "pricing": { "$ref": "#/$defs/not_estimated" } } }
+        },
+        {
+          "if": {
+            "properties": {
+              "pricing_kind": { "enum": ["unit_range", "fixed_unit"] },
+              "pricing": { "required": ["computed_total"] }
+            },
+            "required": ["pricing_kind", "pricing"]
+          },
+          "then": {
+            "properties": {
+              "quantity": {
+                "properties": {
+                  "value": { "type": "number", "exclusiveMinimum": 0 },
+                  "status": { "const": "known" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "client_visible": { "const": true } }, "required": ["client_visible"] },
+          "then": { "properties": { "ownership": { "not": { "const": "service_provider_equipment" } } } }
+        },
+        {
+          "if": { "properties": { "ownership": { "const": "service_provider_equipment" } }, "required": ["ownership"] },
+          "then": {
+            "properties": {
+              "client_visible": { "const": false },
+              "pricing_kind": { "const": "not_estimated" }
+            }
+          }
+        }
+      ]
+    },
+    "aggregation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": {
+            "status": { "const": "not_computed" },
+            "reason": { "$ref": "common.schema.json#/$defs/non_empty_string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "method", "component_ids", "min", "expected", "max", "currency"],
+          "properties": {
+            "status": { "const": "subtotal" },
+            "method": { "const": "explicit_component_allowlist" },
+            "component_ids": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "common.schema.json#/$defs/report_pricing_component_id" }
+            },
+            "min": { "type": "number", "minimum": 0 },
+            "expected": { "type": "number", "minimum": 0 },
+            "max": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+          }
+        }
+      ]
+    },
+    "client_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "linked_issue_ids", "linked_recommendation_ids", "title", "scope", "assumptions",
+        "exclusions", "conditional", "shared_across_issues", "ownership", "quantity", "pricing_kind", "pricing"
+      ],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/report_pricing_component_id" },
+        "display_code": { "$ref": "common.schema.json#/$defs/display_code" },
+        "linked_issue_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/issue_id" } },
+        "linked_recommendation_ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/recommendation_id" } },
+        "title": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "scope": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "assumptions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "exclusions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/non_empty_string" } },
+        "conditional": { "type": "boolean" },
+        "shared_across_issues": { "type": "boolean" },
+        "ownership": { "type": "string", "enum": ["client_owned_material", "service", "not_applicable"] },
+        "client_caveat": { "$ref": "common.schema.json#/$defs/non_empty_string" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "pricing_kind": { "$ref": "#/$defs/pricing_kind" },
+        "pricing": { "type": "object" }
+      },
+      "allOf": [
+        { "if": { "properties": { "pricing_kind": { "const": "total_range" } }, "required": ["pricing_kind"] }, "then": { "properties": { "pricing": { "$ref": "#/$defs/total_range" } } } },
+        { "if": { "properties": { "pricing_kind": { "const": "unit_range" } }, "required": ["pricing_kind"] }, "then": { "properties": { "pricing": { "$ref": "#/$defs/unit_range" } } } },
+        { "if": { "properties": { "pricing_kind": { "const": "fixed_unit" } }, "required": ["pricing_kind"] }, "then": { "properties": { "pricing": { "$ref": "#/$defs/fixed_unit" } } } },
+        { "if": { "properties": { "pricing_kind": { "const": "no_direct_cost" } }, "required": ["pricing_kind"] }, "then": { "properties": { "pricing": { "$ref": "#/$defs/no_direct_cost" } } } },
+        { "if": { "properties": { "pricing_kind": { "const": "not_estimated" } }, "required": ["pricing_kind"] }, "then": { "properties": { "pricing": { "$ref": "#/$defs/not_estimated" } } } },
+        {
+          "if": {
+            "properties": {
+              "pricing_kind": { "enum": ["unit_range", "fixed_unit"] },
+              "pricing": { "required": ["computed_total"] }
+            },
+            "required": ["pricing_kind", "pricing"]
+          },
+          "then": {
+            "properties": {
+              "quantity": {
+                "properties": {
+                  "value": { "type": "number", "exclusiveMinimum": 0 },
+                  "status": { "const": "known" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "client_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["components", "aggregation"],
+      "properties": {
+        "components": { "type": "array", "items": { "$ref": "#/$defs/client_component" } },
+        "aggregation": { "$ref": "#/$defs/aggregation" }
+      }
+    }
+  }
+}

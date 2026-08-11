@@ -83,6 +83,7 @@ Strojová validácia kontroluje syntaktické a doménové podmienky, najmä:
 - supporting/contradicting role evidence;
 - platné recommendation dependencies bez cyklov;
 - report completeness podľa `REPORT_CONTRACT.md`;
+- report-level pricing ownership, ranges, quantity/subtotal eligibility, deduplication a client/internal business boundary;
 - zákaz client-private public URL;
 - konzistenčné upozornenia zo `SCORING_RULES.md`.
 
@@ -114,6 +115,8 @@ QA môže vrátiť draft na úpravu. Samotné spustenie validátora nie je QA.
 Oprávnený inšpektor schváli presný snapshot `inspection.json`, `diagnosis.json` a zostaveného reportu. Záznam obsahuje approver, timestamp, verziu a identifikátor/hash schváleného obsahu.
 
 Po approve sa obsah tejto verzie neupravuje. Zmena vyžaduje novú draft verziu a nový QA/APPROVE cyklus.
+
+Ak report používa report-level pricing, jeho `report-pricing.json` je súčasťou rovnakého schváleného snapshotu. Pricing komponenty nemenia diagnosis ani whole-issue význam `issue.cost_estimate`.
 
 ### 9. Publish
 

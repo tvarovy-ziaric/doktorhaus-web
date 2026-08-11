@@ -188,3 +188,16 @@ Tento dokument je trvalá projektová pamäť, nie historický changelog.
 - Nahradené rozhodnutie sa má označiť ako superseded alebo presunúť do krátkeho decision logu, nie ponechať dve protichodné pravidlá.
 - Implementácia významnej funkcie musí odkazovať na príslušný dokument.
 - Pri novom AI/Codex tasku, ktorý sa týka diagnostického workflow, QA alebo agregácie, sa majú tieto pravidlá zahrnúť do source-of-truth čítania.
+
+## 12. Dve oddelené cenové vrstvy
+
+Záväzné pravidlá finančného rámca:
+
+1. `issue.cost_estimate` znamená odhad celého definovaného scope issue, nie cenu jednej recommendation, jedného overenia alebo jedného materiálu.
+2. Čiastkové ceny patria do samostatných report-level pricing components viazaných na konkrétnu report version.
+3. Ak celý scope issue nemožno poctivo naceniť, `issue.cost_estimate` zostáva `not_estimated`, aj keď report-level pricing obsahuje nacenené čiastkové komponenty.
+4. Interný tarif DoktorHaus, interný labour costing, interné cestovné, obstarávacia cena vybavenia, marža, markup a interné obchodné kalkulácie nikdy nevstupujú do klientského reportu ani client projection.
+5. Obstarávacia cena service-provider equipment nie je klientsky remediation cost. Client-owned spotrebný materiál možno naceniť iba vtedy, keď bol daný materiál skutočne zvolený pre klienta.
+6. Žiadny súčet je lepší než zavádzajúci subtotal. Default pri neúplných množstvách, podmienených variantoch alebo prekrývajúcom sa scope je `total not computed`.
+
+Report-level pricing je additive capability. Nemení zdrojové observations, diagnózu ani ľudskú `APPROVE` bránu.

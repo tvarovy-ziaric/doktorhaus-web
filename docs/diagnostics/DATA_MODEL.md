@@ -3,7 +3,7 @@
 ## Zásady
 
 - Model zostáva nezávislý od databázy. Jeho strojovo čitateľný kontrakt určuje JSON Schema Draft 2020-12 verzie `1.0.0` v `schemas/`.
-- Každý doménový objekt má stabilné interné `id` vo formáte `<prefix>_<hex>`, kde hex obsahuje 16–32 lowercase znakov. Prefixy sú `prop`, `insp`, `obs`, `ev`, `issue`, `hyp`, `ver`, `rec`, `imp`, `rel`, `rpt` a `rptv`.
+- Každý doménový objekt má stabilné interné `id` vo formáte `<prefix>_<hex>`, kde hex obsahuje 16–32 lowercase znakov. Prefixy sú `prop`, `insp`, `obs`, `ev`, `issue`, `hyp`, `ver`, `rec`, `imp`, `rel`, `rpt`, `rptv` a `rpc`. Prefix `rpc` patrí report-level pricing componentu.
 - Interné ID nenesie poradie ani význam. Voliteľný `display_code`, napríklad `DI-001`, je čitateľný iba v kontexte reportu a nie je globálnym identifikátorom.
 - Zdrojové fakty a odborné závery sú oddelené. Text reportu nie je primárnym úložiskom diagnózy.
 - Referencie musia smerovať na objekt v rovnakom vlastníckom kontexte, pokiaľ dokument výslovne nepovoľuje vzťah naprieč inšpekciami.
@@ -196,9 +196,17 @@ Impact objects sú jediný source of truth. Každý issue musí mať presne sede
 - `generated_at` a identifikátor verzie kontraktu/renderera, keď bude existovať;
 - `limitations_snapshot` a `unverified_items_snapshot`.
 
-Manifest obsahuje relatívne interné paths, SHA-256, content type, privacy a role minimálne inspection_data, diagnosis_data, media, attachment, source_report alebo other. Publikovaná verzia sa fyzicky pripravuje ako nový adresár `reports/<report-id>/<version>/`; zmena inplace je zakázaná.
+Manifest obsahuje relatívne interné paths, SHA-256, content type, privacy a role minimálne inspection_data, diagnosis_data, voliteľné report_pricing, media, attachment, source_report alebo other. Publikovaná verzia sa fyzicky pripravuje ako nový adresár `reports/<report-id>/<version>/`; zmena inplace je zakázaná.
 
 v1.0 je prvý schválený výstup. v1.1 dopĺňa meranie alebo dôkaz bez zásadnej zmeny charakteru. v2.0 označuje významnú následnú kontrolu, kontrolu po sanácii alebo podstatnú zmenu záverov. Publikovaná verzia sa neupravuje na mieste.
+
+### `report_pricing` a `report_pricing_component`
+
+`report_pricing` je voliteľný samostatný dokument vlastnený konkrétnou trojicou `report_id + report_version_id + inspection_id`. V publikovanom balíku je immutable snapshotom rovnakej report version ako manifest, inspection a diagnosis. Nie je súčasťou diagnosis a nemení význam `diagnostic_issue.cost_estimate`.
+
+`report_pricing_component` má stabilné `rpc_…` ID a môže sa viazať na viac issues aj recommendations. Jedna fyzická alebo obchodná položka sa preto môže zdieľať bez duplikácie medzi viacerými issues. Komponent nesie presný scope, assumptions, exclusions, conditional stav, množstvo, ownership, cenový typ a auditnú provenance.
+
+Ownership rozlišuje minimálne client-owned material, službu, service-provider equipment a not applicable. Service-provider equipment nesmie byť klientsky viditeľným remediation costom a jeho obstarávacia cena sa do klientského kontraktu neserializuje.
 
 ## Many-to-many väzby
 

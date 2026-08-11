@@ -165,6 +165,8 @@ try {
         'source_media_id', 'source_reference', 'source_hash', 'pin', 'pin_hash', 'csrf_token', 'session_id',
         'report_id', 'report_version_id', 'package_manifest_sha256', 'media_reference', 'sha256',
         'address_private', 'storage_path', 'filesystem_path',
+        'internal_tariff', 'internal_labour_cost', 'equipment_acquisition_cost', 'travel_costing',
+        'margin', 'markup', 'internal_business_notes', 'private_supplier_negotiations',
     ], true);
     assertNoForbiddenKeys($report, $forbiddenKeys);
     projectionAssert(strpos(json_encode($report), 'Never expose this exact address') === false, 'Private address value must not leak.');

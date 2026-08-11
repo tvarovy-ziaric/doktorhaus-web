@@ -62,7 +62,7 @@ Od kroku 2 je štruktúrny kontrakt vyjadrený cez JSON Schema Draft 2020-12 v `
 
 Z vybranej, schválenej verzie zostaví klientsky rozhodovací pohľad. Report je projekcia diagnostických dát, nie druhé miesto, kde sa ručne vytvára diagnóza. Publikovaná verzia je nemenný snapshot; doplnenie merania vytvorí novú verziu.
 
-Nemennosť pripravuje versioned manifest: `reports/<report-id>/<version>/manifest.json` referencuje samostatný `inspection.json`, `diagnosis.json` a médiá relatívnymi cestami a SHA-256. Manifest nie je gigantický blob ani renderer output.
+Nemennosť pripravuje versioned manifest: `reports/<report-id>/<version>/manifest.json` referencuje samostatný `inspection.json`, `diagnosis.json`, voliteľný `report-pricing.json` a médiá relatívnymi cestami a SHA-256. Manifest nie je gigantický blob ani renderer output.
 
 Krok 3 túto fyzickú hranicu implementuje cez staging pod rovnakým storage rootom, kontrolované streamujúce kopírovanie, opakovanú hash verifikáciu a atomický rename na dovtedy neexistujúcu verziu. Publikovaný adresár nemá overwrite API. Podrobnosti a prevádzkové predpoklady sú v [RUNTIME_STORAGE.md](RUNTIME_STORAGE.md).
 
@@ -147,7 +147,7 @@ Krok 4A je autorizačné jadro, nie hotový klientsky portál. Nevracia reportov
 - audit events `report_viewed` a `media_accessed` s fail-closed delivery politikou;
 - uvoľnenie PHP session locku pred media streamom a reuse package snapshotu úplne overeného v session bindingu.
 
-Raw `inspection.json`, `diagnosis.json` a `manifest.json` nie sú client API. 4B nemení ich diagnostický význam ani existujúce schemas. `client_report` je jednosmerná projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+Raw `inspection.json`, `diagnosis.json`, voliteľný `report-pricing.json` a `manifest.json` nie sú client API. `client_report` je jednosmerná allowlist projekcia a nesmie spätne meniť source objects alebo vytvárať nové odborné závery. Report-pricing runtime projection je additive nasledujúci krok; foundation schema nesprístupňuje internú provenance ani business costing. Podrobný kontrakt je v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
 Samotný krok 4B ešte nebol klientsky portál: renderer, finálny UX, `inspekcie.html`, backoffice issuance, SafetyCulture adapter, produkčný report a legacy tok zostali nezmenené.
 
@@ -166,6 +166,7 @@ Krok 5A nemení source schemas, projekciu, auth/media endpointy, grant issuance,
 
 - stabilné prefixované ID s 16–32 lowercase hex znakmi a oddeleným `display_code`;
 - `inspection.json` ako normalizovaný faktický dokument a `diagnosis.json` ako diagnostický dokument;
+- voliteľný `report-pricing.json` pre partial/verification/material/conditional scope oddelený od whole-issue `cost_estimate`;
 - explicitné auditovateľné link objects pre many-to-many väzby;
 - impact objects ako jediný source of truth pre sedem povinných dimensions;
 - jednotné confidence a risk enumy, kontrolované issue kategórie, areas, specialty a lifecycle statusy;

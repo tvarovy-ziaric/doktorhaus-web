@@ -73,6 +73,10 @@
       "type": "string",
       "pattern": "^rptv_[0-9a-f]{16,32}$"
     },
+    "report_pricing_component_id": {
+      "type": "string",
+      "pattern": "^rpc_[0-9a-f]{16,32}$"
+    },
     "display_code": {
       "type": "string",
       "pattern": "^[A-Z][A-Z0-9-]{1,23}$"

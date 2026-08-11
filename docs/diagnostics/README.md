@@ -39,6 +39,7 @@ Koncepčný model je od kroku 2 vyjadrený aj cez JSON Schema Draft 2020-12 kont
 - [inspection.schema.json](schemas/inspection.schema.json);
 - [diagnosis.schema.json](schemas/diagnosis.schema.json);
 - [report-package.schema.json](schemas/report-package.schema.json);
+- [report-pricing.schema.json](schemas/report-pricing.schema.json) – voliteľný report-version snapshot čiastkových finančných komponentov;
 - [client-report.schema.json](schemas/client-report.schema.json) – odvodený delivery kontrakt, nie nový source of truth.
 
 Realistické vstupy sú v `fixtures/valid/`; úmyselne neplatné doménové prípady a ich očakávané kódy sú v `fixtures/invalid/`.
@@ -47,6 +48,7 @@ Lokálne kontroly bez produkčných dependencies:
 
 ```text
 python tools/diagnostics_lint.py --inspection docs/diagnostics/fixtures/valid/inspection-example.json --diagnosis docs/diagnostics/fixtures/valid/diagnosis-example.json --report-package docs/diagnostics/fixtures/valid/report-package-example.json
+python tools/diagnostics_lint.py --inspection docs/diagnostics/fixtures/valid/inspection-minimal.json --report-pricing docs/diagnostics/fixtures/valid/report-pricing-example.json
 python tools/test_diagnostics_contracts.py
 ```
 

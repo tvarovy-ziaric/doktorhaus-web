@@ -61,6 +61,10 @@ Severity, likelihood, urgency, priority, confidence, risk, deterioration, status
 
 Náklady sa formátujú cez slovenské locale a zobrazujú sa iba v rámci jednotlivého issue ako minimum–maximum a sekundárna očakávaná hodnota. Renderer nevytvára súčet naprieč issues a zachová scope, confidence, predpoklady, výluky, cenový dátum aj disclaimer.
 
+### Report-level pricing boundary
+
+Aktuálny `renderCost(issue)` renderuje výhradne whole-issue `issue.cost_estimate`. Report-level pricing components majú samostatný kontrakt a v tomto foundation kroku sa ešte nerenderujú. Nasledujúci implementation krok musí pridať oddelený finančný renderer s vlastnými sekciami; nesmie vložiť partial verification, unit material alebo conditional cenu do issue karty ako cenu celého problému.
+
 ## Médiá, prístupnosť a tlač
 
 Obrázky používajú lazy loading a prvých osem dôkazov sa vykreslí bez ďalšieho zásahu; zvyšok otvorí vedomé tlačidlo. Fotografie jedného issue tvoria modálnu galériu s predchádzajúcou/ďalšou položkou, Escape, zatvorením cez pozadie, základným focus trapom a návratom fokusu. Video a audio majú natívne ovládanie bez autoplay. PDF/dokument ostáva autorizovaný same-origin odkaz.

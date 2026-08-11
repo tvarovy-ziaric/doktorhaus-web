@@ -6,6 +6,13 @@ Finančný model dáva klientovi orientačný rámec pre rozhodovanie. Nie je ro
 
 Každý odhad musí byť viazaný na konkrétny scope, assumptions, exclusions, dátum/cenovú bázu a confidence. Ak tieto údaje chýbajú, vhodnejšie je uviesť `not_estimated` než presné číslo.
 
+Finančný model má dve odlišné vrstvy:
+
+- `issue.cost_estimate` je odhad celého definovaného technického scope issue;
+- report-level pricing components sú čiastkové ceny overení, materiálu, jednotkových položiek, podmienených prác alebo presne vymedzených beznákladových opatrení.
+
+Cena jednej recommendation sa nesmie zapísať do `issue.cost_estimate`, ak nepokrýva celý issue scope. Validný stav je napríklad issue `not_estimated`, report pricing odborné overenie `100–200 EUR`, materiál `30 EUR/ks` a definitívna oprava `not_estimated`.
+
 ## Kontrakt cost estimate 1.0.0
 
 `cost_estimate.status` je `estimated` alebo `not_estimated`.
@@ -86,6 +93,28 @@ Finančný rámec reportu má rozlišovať:
 - podmienené práce, ktoré sa nesčítavajú, kým sa nepotvrdí variant.
 
 Report nemá bez úpravy sčítať min/expected/max všetkých issues. Agregácia musí odstrániť duplicity, rešpektovať spoločné recommendations a označiť podmienené varianty. Metóda agregácie musí byť dohľadateľná.
+
+## Report-level pricing components
+
+Normatívny additive kontrakt je `schemas/report-pricing.schema.json`. Podporuje:
+
+- `total_range` pre legitímne vymedzený celkový scope komponentu;
+- `unit_range` a `fixed_unit` pre materiál alebo službu podľa jednotky;
+- `no_direct_cost` ako explicitné `0/0/0` pre presný scope, nie ako náhradu neznámej ceny;
+- `not_estimated` s neprázdnym dôvodom a voliteľným zoznamom údajov, ktoré treba doplniť.
+
+Jednotková položka bez známeho množstva je platná, ale nesmie mať `computed_total` ani vstúpiť do subtotalu. Podmienený komponent je mimo nepodmieneného subtotalu. Zdieľaný komponent môže odkazovať na viac issues, ale v explicitnom allowliste subtotalu sa objaví iba raz. `not_estimated` sa nesčítava. `no_direct_cost` môže prispieť nulou, ale nesmie meniť interpretáciu agregácie.
+
+Agregácia má iba dva stavy:
+
+- `not_computed` s dôvodom — preferovaný pri neúplných alebo neporovnateľných údajoch;
+- `subtotal` nad explicitným allowlistom spôsobilých komponentov, s kontrolou meny, duplicít a súčtu min/expected/max.
+
+## Ownership a interné obchodné dáta
+
+Client-owned consumable alebo material možno klientsky naceniť iba po skutočnom výbere daného riešenia. Service-provider equipment je opakovane používané vybavenie poskytovateľa; jeho obstarávacia cena nie je klientsky remediation cost.
+
+Interný tarif DoktorHaus, interný labour costing, equipment acquisition cost, interné cestovné, margin, markup, interné obchodné poznámky a súkromné dodávateľské rokovania nesmú vstúpiť do client diagnostic report, client pricing projection, client delivery payload ani client-visible report package projection. Môžu existovať iba v samostatnom private/internal business systéme. Klientské kontrakty sú allowlist-based a tieto polia nesmú odvodiť ani serializovať.
 
 ## Budúca databáza jednotkových cien
 

@@ -47,8 +47,8 @@ def resolve_pointer(document: Any, fragment: str) -> bool:
 
 def validate_schemas(failures: list[str]) -> None:
     schema_paths = sorted(SCHEMA_DIR.glob("*.schema.json"))
-    if len(schema_paths) != 5:
-        failures.append(f"Expected 5 schemas, found {len(schema_paths)}")
+    if len(schema_paths) != 6:
+        failures.append(f"Expected 6 schemas, found {len(schema_paths)}")
     loaded: dict[Path, dict[str, Any]] = {}
     for path in schema_paths:
         try:
@@ -93,12 +93,49 @@ def validate_schemas(failures: list[str]) -> None:
                 failures.append(f"Broken local $ref fragment in {path.name}: {ref}")
 
 
-def lint_command(inspection: Path, diagnosis: Path | None = None, report: Path | None = None) -> tuple[int, dict[str, Any], str]:
+def validate_report_pricing_schema_contract(failures: list[str]) -> None:
+    try:
+        with (SCHEMA_DIR / "report-pricing.schema.json").open("r", encoding="utf-8") as handle:
+            schema = json.load(handle)
+        with (SCHEMA_DIR / "client-report.schema.json").open("r", encoding="utf-8") as handle:
+            client_schema = json.load(handle)
+        with (SCHEMA_DIR / "report-package.schema.json").open("r", encoding="utf-8") as handle:
+            package_schema = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        failures.append(f"Report-pricing schema contract cannot be read: {exc}")
+        return
+
+    expected_kinds = {"total_range", "unit_range", "fixed_unit", "no_direct_cost", "not_estimated"}
+    actual_kinds = set(schema.get("$defs", {}).get("pricing_kind", {}).get("enum", []))
+    if actual_kinds != expected_kinds:
+        failures.append(f"Report-pricing kinds differ: {sorted(actual_kinds ^ expected_kinds)}")
+    component = schema.get("$defs", {}).get("component", {})
+    if component.get("additionalProperties") is not False:
+        failures.append("Report-pricing component must use additionalProperties false")
+    if len(component.get("allOf", [])) < 7:
+        failures.append("Report-pricing component lacks mutually constrained pricing/ownership shapes")
+    if client_schema.get("properties", {}).get("pricing", {}).get("$ref") != "report-pricing.schema.json#/$defs/client_projection":
+        failures.append("Client-report schema lacks optional strict pricing projection reference")
+    package_roles = set(
+        package_schema.get("$defs", {}).get("manifest_file", {}).get("properties", {}).get("role", {}).get("enum", [])
+    )
+    if "report_pricing" not in package_roles:
+        failures.append("Report package schema lacks report_pricing file role")
+
+
+def lint_command(
+    inspection: Path,
+    diagnosis: Path | None = None,
+    report: Path | None = None,
+    pricing: Path | None = None,
+) -> tuple[int, dict[str, Any], str]:
     command = [sys.executable, str(LINT), "--inspection", str(inspection)]
     if diagnosis:
         command.extend(["--diagnosis", str(diagnosis)])
     if report:
         command.extend(["--report-package", str(report)])
+    if pricing:
+        command.extend(["--report-pricing", str(pricing)])
     completed = subprocess.run(command, cwd=REPO_ROOT, text=True, capture_output=True, encoding="utf-8")
     try:
         payload = json.loads(completed.stdout)
@@ -133,6 +170,128 @@ def validate_valid_fixtures(failures: list[str]) -> None:
         if code != 0 or errors:
             failures.append(f"Valid case '{label}' failed with exit {code}: {detail or json.dumps(payload, ensure_ascii=False)}")
 
+    pricing_cases = [
+        ("report pricing explicit subtotal", VALID_DIR / "report-pricing-example.json"),
+        ("report pricing total not computed", VALID_DIR / "report-pricing-not-computed.json"),
+    ]
+    for label, pricing in pricing_cases:
+        code, payload, detail = lint_command(minimal_inspection, pricing=pricing)
+        errors = payload.get("errors") if isinstance(payload, dict) else None
+        if code != 0 or errors:
+            failures.append(f"Valid case '{label}' failed with exit {code}: {detail or json.dumps(payload, ensure_ascii=False)}")
+
+
+def validate_pricing_scenarios(failures: list[str]) -> None:
+    try:
+        with (VALID_DIR / "diagnosis-minimal.json").open("r", encoding="utf-8") as handle:
+            diagnosis = json.load(handle)
+        with (VALID_DIR / "report-pricing-example.json").open("r", encoding="utf-8") as handle:
+            subtotal = json.load(handle)
+        with (VALID_DIR / "report-pricing-not-computed.json").open("r", encoding="utf-8") as handle:
+            no_total = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        failures.append(f"Pricing scenarios cannot be read: {exc}")
+        return
+
+    components = {item.get("display_code"): item for item in subtotal.get("components", []) if isinstance(item, dict)}
+    no_total_components = {item.get("display_code"): item for item in no_total.get("components", []) if isinstance(item, dict)}
+    issue = diagnosis.get("issues", [{}])[0]
+    if issue.get("cost_estimate", {}).get("status") != "not_estimated" or issue.get("id") not in components.get("RP-001", {}).get("linked_issue_ids", []):
+        failures.append("PASS A must preserve whole issue not_estimated while partial verification is priced")
+    if no_total_components.get("RP-002", {}).get("quantity", {}).get("value") is not None or "computed_total" in no_total_components.get("RP-002", {}).get("pricing", {}):
+        failures.append("PASS B must keep unit material without quantity outside a computed total")
+    direct = no_total_components.get("RP-003", {}).get("pricing", {})
+    if [direct.get("min"), direct.get("expected"), direct.get("max")] != [0, 0, 0]:
+        failures.append("PASS C must encode no_direct_cost as explicit 0/0/0")
+    if no_total_components.get("RP-004", {}).get("conditional") is not True or no_total.get("aggregation", {}).get("status") != "not_computed":
+        failures.append("PASS D must keep conditional repair outside an unconditional subtotal")
+    shared = components.get("RP-005", {})
+    selected = subtotal.get("aggregation", {}).get("component_ids", [])
+    if len(shared.get("linked_issue_ids", [])) != 2 or selected.count(shared.get("id")) != 1:
+        failures.append("PASS E must link one shared component to two issues and count it once")
+
+
+def validate_pricing_domain_mutations(failures: list[str]) -> None:
+    inspection = VALID_DIR / "inspection-minimal.json"
+    try:
+        with (VALID_DIR / "report-pricing-not-computed.json").open("r", encoding="utf-8") as handle:
+            no_total = json.load(handle)
+        with (VALID_DIR / "report-pricing-example.json").open("r", encoding="utf-8") as handle:
+            subtotal = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        failures.append(f"Pricing domain mutations cannot be read: {exc}")
+        return
+
+    mutations: list[tuple[str, dict[str, Any], str]] = []
+    conditional = json.loads(json.dumps(no_total))
+    conditional_component = next(item for item in conditional["components"] if item.get("display_code") == "RP-004")
+    conditional["aggregation"] = {
+        "status": "subtotal",
+        "method": "explicit_component_allowlist",
+        "component_ids": [conditional_component["id"]],
+        "min": 500,
+        "expected": 750,
+        "max": 1000,
+        "currency": "EUR",
+    }
+    mutations.append(("conditional subtotal", conditional, "E_PRICING_CONDITIONAL_SUBTOTAL"))
+
+    shared_duplicate = json.loads(json.dumps(subtotal))
+    shared_id = next(item["id"] for item in shared_duplicate["components"] if item.get("shared_across_issues"))
+    shared_duplicate["aggregation"]["component_ids"].append(shared_id)
+    mutations.append(("shared duplicate subtotal", shared_duplicate, "E_PRICING_DUPLICATE_SUBTOTAL_COMPONENT"))
+
+    duplicate_id = json.loads(json.dumps(no_total))
+    duplicate_id["components"][1]["id"] = duplicate_id["components"][0]["id"]
+    mutations.append(("duplicate pricing ID", duplicate_id, "E_DUPLICATE_PRICING_ID"))
+
+    provider_visible = json.loads(json.dumps(no_total))
+    provider = next(item for item in provider_visible["components"] if item.get("ownership") == "service_provider_equipment")
+    provider["client_visible"] = True
+    mutations.append(("provider equipment client visibility", provider_visible, "E_CLIENT_PROVIDER_EQUIPMENT"))
+
+    with tempfile.TemporaryDirectory(prefix="diagnostics-pricing-domain-") as temp_dir:
+        for index, (label, document, expected_code) in enumerate(mutations):
+            path = Path(temp_dir) / f"pricing-{index}.json"
+            with path.open("w", encoding="utf-8") as handle:
+                json.dump(document, handle, ensure_ascii=False)
+            code, payload, detail = lint_command(inspection, pricing=path)
+            actual_codes = {item.get("code") for item in payload.get("errors", [])} if isinstance(payload, dict) else set()
+            if code != 1 or expected_code not in actual_codes:
+                failures.append(f"Pricing mutation '{label}' expected {expected_code}, got exit {code}: {detail or payload}")
+
+
+def validate_pricing_package_ownership(failures: list[str]) -> None:
+    inspection = VALID_DIR / "inspection-example.json"
+    package = VALID_DIR / "report-package-example.json"
+    try:
+        with (VALID_DIR / "report-pricing-example.json").open("r", encoding="utf-8") as handle:
+            pricing = json.load(handle)
+        with package.open("r", encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        failures.append(f"Pricing package ownership fixtures cannot be read: {exc}")
+        return
+
+    pricing["report_id"] = manifest["report"]["id"]
+    pricing["report_version_id"] = manifest["report_version"]["id"]
+    pricing["inspection_id"] = manifest["report"]["inspection_id"]
+    with tempfile.TemporaryDirectory(prefix="diagnostics-pricing-ownership-") as temp_dir:
+        pricing_path = Path(temp_dir) / "report-pricing.json"
+        with pricing_path.open("w", encoding="utf-8") as handle:
+            json.dump(pricing, handle, ensure_ascii=False)
+        code, payload, detail = lint_command(inspection, report=package, pricing=pricing_path)
+        if code != 0 or payload.get("errors"):
+            failures.append(f"Matching report-pricing/package ownership failed: {detail or payload}")
+
+        pricing["report_version_id"] = "rptv_ffffffffffffffff"
+        with pricing_path.open("w", encoding="utf-8") as handle:
+            json.dump(pricing, handle, ensure_ascii=False)
+        code, payload, detail = lint_command(inspection, report=package, pricing=pricing_path)
+        codes = {item.get("code") for item in payload.get("errors", [])} if isinstance(payload, dict) else set()
+        if code != 1 or "E_REPORT_PRICING_OWNERSHIP" not in codes:
+            failures.append(f"Mismatched report-pricing/package ownership was not blocked: {detail or payload}")
+
 
 def validate_invalid_fixtures(failures: list[str]) -> None:
     minimal_inspection = VALID_DIR / "inspection-minimal.json"
@@ -143,12 +302,21 @@ def validate_invalid_fixtures(failures: list[str]) -> None:
         "invalid-impact-count.json": ("diagnosis", "E_IMPACT_DIMENSIONS"),
         "dependency-cycle.json": ("diagnosis", "E_DEPENDENCY_CYCLE"),
         "invalid-report-approval.json": ("report", "E_REPORT_APPROVAL"),
+        "invalid-report-pricing-unit-total.json": ("pricing", "E_PRICING_UNIT_TOTAL_WITHOUT_QUANTITY"),
+        "invalid-report-pricing-no-direct-cost.json": ("pricing", "E_PRICING_NO_DIRECT_COST"),
+        "invalid-report-pricing-not-estimated.json": ("pricing", "E_PRICING_NOT_ESTIMATED_REASON"),
+        "invalid-report-pricing-range.json": ("pricing", "E_PRICING_RANGE"),
+        "invalid-report-pricing-reference.json": ("pricing_with_diagnosis", "E_DANGLING_REFERENCE"),
+        "invalid-report-pricing-internal-field.json": ("pricing", "E_CLIENT_INTERNAL_FIELD"),
     }
     for filename, (kind, expected_code) in cases.items():
         path = INVALID_DIR / filename
         diagnosis = path if kind == "diagnosis" else None
         report = path if kind == "report" else None
-        code, payload, detail = lint_command(minimal_inspection, diagnosis, report)
+        pricing = path if kind in {"pricing", "pricing_with_diagnosis"} else None
+        if kind == "pricing_with_diagnosis":
+            diagnosis = VALID_DIR / "diagnosis-minimal.json"
+        code, payload, detail = lint_command(minimal_inspection, diagnosis, report, pricing)
         actual_codes = {item.get("code") for item in payload.get("errors", [])} if isinstance(payload, dict) else set()
         if code != 1:
             failures.append(f"Invalid fixture {filename} returned exit {code}, expected 1: {detail}")
@@ -180,6 +348,8 @@ def validate_client_report_fixture(failures: list[str]) -> None:
         "source_media_id", "source_reference", "source_hash", "pin", "pin_hash", "csrf_token",
         "session_id", "report_id", "report_version_id", "package_manifest_sha256", "media_reference",
         "sha256", "address_private", "storage_path", "filesystem_path",
+        "internal_tariff", "internal_labour_cost", "equipment_acquisition_cost", "travel_costing",
+        "margin", "markup", "internal_business_notes", "private_supplier_negotiations",
     }
 
     def scan(value: Any, location: str = "$") -> None:
@@ -229,8 +399,12 @@ def validate_warning_exit_semantics(failures: list[str]) -> None:
 def main() -> int:
     failures: list[str] = []
     validate_schemas(failures)
+    validate_report_pricing_schema_contract(failures)
     validate_json_fixtures(failures)
     validate_valid_fixtures(failures)
+    validate_pricing_scenarios(failures)
+    validate_pricing_domain_mutations(failures)
+    validate_pricing_package_ownership(failures)
     validate_invalid_fixtures(failures)
     validate_client_report_fixture(failures)
     validate_warning_exit_semantics(failures)

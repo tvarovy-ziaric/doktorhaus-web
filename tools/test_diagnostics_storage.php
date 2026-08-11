@@ -94,6 +94,20 @@ function createPackage(string $testRoot, string $reportId, string $version): str
     writeTestJson($package . DIRECTORY_SEPARATOR . 'diagnosis.json', $diagnosis);
 
     $versionId = reportVersionId($reportId, $version);
+    $reportPricing = [
+        'schema_version' => '1.0.0',
+        'document_type' => 'report_pricing',
+        'report_id' => $reportId,
+        'report_version_id' => $versionId,
+        'inspection_id' => $inspection['id'],
+        'components' => [],
+        'aggregation' => [
+            'status' => 'not_computed',
+            'reason' => 'Syntetický testovací package nemá cenové komponenty.',
+        ],
+        'generated_at' => '2026-08-08T08:00:00+02:00',
+    ];
+    writeTestJson($package . DIRECTORY_SEPARATOR . 'report-pricing.json', $reportPricing);
     $manifest = [
         'schema_version' => '1.0.0',
         'document_type' => 'report_package',
@@ -127,6 +141,7 @@ function createPackage(string $testRoot, string $reportId, string $version): str
     foreach ([
         ['inspection_data', 'inspection.json'],
         ['diagnosis_data', 'diagnosis.json'],
+        ['report_pricing', 'report-pricing.json'],
     ] as $file) {
         $path = $package . DIRECTORY_SEPARATOR . $file[1];
         $manifest['files'][] = [
@@ -264,6 +279,20 @@ try {
     $validPackage = createPackage($testRoot, 'rpt_aaaaaaaaaaaaaaaa', '1.0');
     $verified = $verifier->verifyPackage($validPackage);
     testAssert($verified['manifest']['report']['id'] === 'rpt_aaaaaaaaaaaaaaaa', 'A valid synthetic package must verify.');
+    testAssert(($verified['report_pricing']['document_type'] ?? null) === 'report_pricing', 'A valid optional report-pricing snapshot must verify with the package.');
+
+    $publicPricing = createPackage($testRoot, 'rpt_abababababababab', '1.0');
+    mutateManifest($publicPricing, function (array &$manifest): void {
+        foreach ($manifest['files'] as &$entry) {
+            if ($entry['role'] === 'report_pricing') {
+                $entry['privacy'] = 'public';
+            }
+        }
+        unset($entry);
+    });
+    expectStorageCode('STORAGE_MANIFEST', function () use ($verifier, $publicPricing): void {
+        $verifier->verifyPackage($publicPricing);
+    }, 'A raw report-pricing source file must not be public.');
 
     $wrongHash = createPackage($testRoot, 'rpt_bbbbbbbbbbbbbbbb', '1.0');
     file_put_contents($wrongHash . DIRECTORY_SEPARATOR . 'inspection.json', "changed-after-manifest\n", FILE_APPEND);
@@ -427,6 +456,8 @@ try {
     testAssert($storage->loadPublishedManifest($reportId, '1.0')['report']['id'] === $reportId, 'The published manifest must load.');
     testAssert($storage->loadPublishedInspection($reportId, '1.0')['document_type'] === 'inspection', 'The published inspection must load.');
     testAssert($storage->loadPublishedDiagnosis($reportId, '1.0')['document_type'] === 'diagnosis', 'The published diagnosis must load.');
+    $pricingResolved = $storage->resolvePublishedFile($reportId, '1.0', 'report-pricing.json');
+    testAssert(is_file($pricingResolved['path']) && $pricingResolved['role'] === 'report_pricing', 'A report-pricing snapshot must install and resolve by its dedicated role.');
     $resolved = $storage->resolvePublishedFile($reportId, '1.0', 'inspection.json');
     testAssert(is_file($resolved['path']) && $resolved['role'] === 'inspection_data', 'A declared published file must resolve with metadata.');
     $binding = $storage->loadPublishedManifestBinding($reportId, '1.0');

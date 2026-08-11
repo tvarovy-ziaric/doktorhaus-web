@@ -23,6 +23,8 @@ unverified_items
 generated_at
 ```
 
+Schema povoľuje aj voliteľné `pricing` ako budúcu strict allowlist projekciu samostatného `report_pricing` snapshotu. Runtime `DiagnosticsClientProjection` ho v tomto foundation kroku ešte neemituje; existujúci endpoint a reporty bez pricing preto zostávajú bez zmeny. Nasledujúci implementation krok musí načítať iba manifest file role `report_pricing`, overiť ownership voči session-bound package a explicitne projektovať bezpečné polia.
+
 `report` obsahuje iba version, change type/summary, published timestamp, renderer contract version a voliteľný approved timestamp. Neobsahuje report ID, report-version ID, package hash ani approver actor ID. Property používa privacy-minimizing označenie, typ, krajinu, región a voliteľne obec/okres; presná súkromná adresa a property ID sa nevydávajú. Inspection obsahuje iba type, performed timestamp, scope a limitations.
 
 Overview je mechanický count/rank súhrn. Negeneruje text, house score, percento kvality ani farebný verdikt. Náklady sa nesčítavajú naprieč issues.
@@ -65,6 +67,10 @@ media_reference, sha256, address_private, storage_path, filesystem_path
 ```
 
 Rovnako sa nevydávajú link audit metadata, approver/creator actor IDs, raw package role/path/hash, cost `source_method` ani private address lines.
+
+Pre report pricing sú client-safe iba explicitne kontraktované polia komponentu: ID/display code, bezpečné issue/recommendation väzby, title, pricing kind, conditional/shared stav, scope, quantity/unit, klientsky ownership, cena, currency, confidence, price basis, VAT, assumptions, exclusions, client caveat a not-estimated reason. Provenance môže zostať v internom/auditnom snapshot-e, ale klientovi sa neprojektuje.
+
+Zakázané sú najmä `internal_tariff`, `internal_labour_cost`, `equipment_acquisition_cost`, `travel_costing`, `margin`, `markup`, `internal_business_notes`, `private_supplier_negotiations`, secrets a raw storage/filesystem paths. Service-provider equipment sa do client pricing projekcie nevydáva. Client-owned materiál možno vydať iba ako skutočne zvolený klientsky komponent.
 
 ## Evidence visibility
 

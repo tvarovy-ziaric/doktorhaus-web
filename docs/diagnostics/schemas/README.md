@@ -6,6 +6,7 @@ Adresár obsahuje normatívne JSON Schema Draft 2020-12 kontrakty verzie `1.0.0`
 - `inspection.schema.json` – normalizované fakty, observations, evidence a provenance;
 - `diagnosis.schema.json` – diagnostické issues, hypotheses, impacts, verifications, recommendations, link objects a QA;
 - `report-package.schema.json` – manifest nemennej verzie reportového balíka;
+- `report-pricing.schema.json` – voliteľný snapshot čiastkových report-level finančných komponentov a explicitnej agregácie;
 - `client-report.schema.json` – strict allowlist kontrakt odvodeného klientského delivery payloadu.
 
 `client-report.schema.json` nie je ďalší ručne editovaný diagnostický dokument. Source of truth zostávajú inspection, diagnosis a report-package manifest; client report sa z nich vytvára deterministicky až po autorizácii.
@@ -21,11 +22,11 @@ Pre budúce CI je vhodné pridať samostatný, verziovo uzamknutý Draft 2020-12
 ## Lokálne použitie
 
 ```text
-python tools/diagnostics_lint.py --inspection path/to/inspection.json --diagnosis path/to/diagnosis.json --report-package path/to/manifest.json
+python tools/diagnostics_lint.py --inspection path/to/inspection.json --diagnosis path/to/diagnosis.json --report-package path/to/manifest.json --report-pricing path/to/report-pricing.json
 python tools/test_diagnostics_contracts.py
 ```
 
-`--diagnosis` a `--report-package` sú voliteľné. Diagnosis vyžaduje inspection, aby bolo možné overiť odkazy na observations a evidence.
+`--diagnosis`, `--report-package` a `--report-pricing` sú voliteľné. Diagnosis vyžaduje inspection, aby bolo možné overiť odkazy na observations a evidence. Report-pricing väzby na issues/recommendations sa kontrolujú, keď je spolu dodaná diagnosis.
 
 Exit codes:
 

@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0.0",
+  "document_type": "report_pricing",
+  "report_id": "rpt_1111111111111111",
+  "report_version_id": "rptv_1111111111111111",
+  "inspection_id": "insp_1111111111111111",
+  "components": [
+    {
+      "id": "rpc_1111111111111102",
+      "display_code": "RP-002",
+      "linked_issue_ids": ["issue_1111111111111111"],
+      "linked_recommendation_ids": [],
+      "title": "Materiál podľa skutočného množstva",
+      "scope": "Materiálová položka s jednotkovým rámcom bez zameraného množstva.",
+      "assumptions": ["Konečný typ sa potvrdí po zameraní."],
+      "exclusions": ["Montáž", "doprava"],
+      "conditional": false,
+      "shared_across_issues": false,
+      "ownership": "client_owned_material",
+      "client_visible": true,
+      "quantity": { "value": null, "unit": "ks", "status": "unknown" },
+      "pricing_kind": "unit_range",
+      "pricing": {
+        "min": 20,
+        "expected": 30,
+        "max": 40,
+        "currency": "EUR",
+        "unit": "EUR/ks",
+        "confidence": "medium",
+        "price_basis_date": "2026-08-11",
+        "vat_status": "included"
+      },
+      "provenance": {
+        "source_method": "unit_price_database",
+        "source_ids": ["SYNTHETIC-SOURCE-003"],
+        "snapshot_references": []
+      }
+    },
+    {
+      "id": "rpc_1111111111111103",
+      "display_code": "RP-003",
+      "linked_issue_ids": ["issue_1111111111111111"],
+      "linked_recommendation_ids": [],
+      "title": "Dočasné režimové opatrenie",
+      "scope": "Presne vymedzená zmena režimu bez nákupu a externej práce.",
+      "assumptions": ["Nevyžaduje technológiu."],
+      "exclusions": ["Dodávka zariadenia", "platená služba"],
+      "conditional": false,
+      "shared_across_issues": false,
+      "ownership": "not_applicable",
+      "client_visible": true,
+      "client_caveat": "Nula znamená známy nulový priamy náklad iba v uvedenom rozsahu.",
+      "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+      "pricing_kind": "no_direct_cost",
+      "pricing": {
+        "min": 0,
+        "expected": 0,
+        "max": 0,
+        "currency": "EUR",
+        "confidence": "high",
+        "price_basis_date": "2026-08-11",
+        "vat_status": "not_applicable",
+        "direct_cost_semantics": "known_zero_for_defined_scope"
+      },
+      "provenance": {
+        "source_method": "none_required",
+        "source_ids": [],
+        "snapshot_references": []
+      }
+    },
+    {
+      "id": "rpc_1111111111111104",
+      "display_code": "RP-004",
+      "linked_issue_ids": ["issue_1111111111111111"],
+      "linked_recommendation_ids": [],
+      "title": "Podmienená oprava po overení",
+      "scope": "Oprava sa vykoná iba pri potvrdení definovanej technickej podmienky.",
+      "assumptions": ["Rozsah sa nemení po odkrytí detailu."],
+      "exclusions": ["Skryté poškodenia"],
+      "conditional": true,
+      "shared_across_issues": false,
+      "ownership": "service",
+      "client_visible": true,
+      "client_caveat": "Položka je mimo nepodmieneného súčtu.",
+      "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+      "pricing_kind": "total_range",
+      "pricing": {
+        "min": 500,
+        "expected": 750,
+        "max": 1000,
+        "currency": "EUR",
+        "confidence": "low",
+        "price_basis_date": "2026-08-11",
+        "vat_status": "unknown"
+      },
+      "provenance": {
+        "source_method": "expert_range",
+        "source_ids": ["SYNTHETIC-SOURCE-004"],
+        "snapshot_references": []
+      }
+    },
+    {
+      "id": "rpc_1111111111111106",
+      "display_code": "RP-006",
+      "linked_issue_ids": ["issue_1111111111111111"],
+      "linked_recommendation_ids": [],
+      "title": "Meracie vybavenie poskytovateľa",
+      "scope": "Vybavenie poskytovateľa používané pri službe; nejde o klientsky materiál ani náklad opravy.",
+      "assumptions": [],
+      "exclusions": ["Obstarávacia cena vybavenia"],
+      "conditional": false,
+      "shared_across_issues": false,
+      "ownership": "service_provider_equipment",
+      "client_visible": false,
+      "quantity": { "value": null, "unit": null, "status": "not_applicable" },
+      "pricing_kind": "not_estimated",
+      "pricing": {
+        "reason": "Vybavenie poskytovateľa nie je klientsky remediation cost."
+      },
+      "provenance": {
+        "source_method": "none_required",
+        "source_ids": [],
+        "snapshot_references": []
+      }
+    }
+  ],
+  "aggregation": {
+    "status": "not_computed",
+    "reason": "Jednotková položka nemá množstvo a podmienená práca sa nesčítava."
+  },
+  "generated_at": "2026-08-11T08:00:00+02:00"
+}
