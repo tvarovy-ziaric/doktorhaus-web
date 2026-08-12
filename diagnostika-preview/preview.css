@@ -1,0 +1,130 @@
+.dh-preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: .6rem 1rem;
+  background: #365e57;
+  color: #fff;
+  text-align: center;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.dh-preview-admin {
+  max-width: 780px;
+}
+
+.dh-preview-form {
+  display: grid;
+  gap: .9rem;
+  margin-top: 1.4rem;
+}
+
+.dh-preview-form > label {
+  font-weight: 700;
+}
+
+.dh-preview-form input[type="file"] {
+  width: 100%;
+  padding: .85rem;
+  border: 1px solid #d9dfdb;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.dh-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .7rem;
+}
+
+.dh-preview-result {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #d9dfdb;
+  border-radius: 8px;
+  background: #edf1ee;
+}
+
+.dh-source-appendix {
+  margin-top: 3rem;
+  padding-top: 2.25rem;
+  border-top: 3px solid #365e57;
+}
+
+.dh-source-appendix-intro {
+  max-width: 72ch;
+  color: #667077;
+}
+
+.dh-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.4rem;
+}
+
+.dh-source-card {
+  overflow: hidden;
+  border: 1px solid #d9dfdb;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.dh-source-photo-button {
+  display: grid;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1c1f23;
+  text-align: left;
+  cursor: zoom-in;
+}
+
+.dh-source-photo-button img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #edf1ee;
+}
+
+.dh-source-meta,
+.dh-source-caption {
+  display: block;
+  padding-inline: .85rem;
+}
+
+.dh-source-meta {
+  padding-top: .75rem;
+  color: #365e57;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.dh-source-caption {
+  padding-top: .3rem;
+  padding-bottom: .9rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .dh-source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .dh-preview-banner {
+    padding: .55rem .45rem;
+    font-size: .68rem;
+    letter-spacing: .045em;
+  }
+  .dh-source-grid { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .dh-preview-banner { position: static; }
+  .dh-source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8mm; }
+  .dh-source-card { break-inside: avoid; }
+  .dh-source-photo-button img { aspect-ratio: 4 / 3; }
+}

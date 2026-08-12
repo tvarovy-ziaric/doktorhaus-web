@@ -1,0 +1,10 @@
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+RewriteRule ^(pvw_[0-9a-f]{32})/?$ preview.php?preview=$1 [L,QSA]
+RewriteRule ^(pvw_[0-9a-f]{32})/api/diagnostics-media\.php$ api/diagnostics-media.php?preview=$1 [L,QSA]
+
+<FilesMatch "^(?:\.htaccess|.*\.(?:zip|json|log|ini|env))$">
+  Require all denied
+</FilesMatch>

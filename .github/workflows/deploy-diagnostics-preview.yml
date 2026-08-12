@@ -1,0 +1,126 @@
+name: Deploy protected diagnostics preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      protocol:
+        description: FTP protocol
+        required: true
+        default: ftps
+        type: choice
+        options:
+          - ftps
+          - ftps-legacy
+          - ftp
+      port:
+        description: FTP port
+        required: true
+        default: "21"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-diagnostics-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate and upload only diagnostics preview
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout selected revision
+        uses: actions/checkout@v4
+
+      - name: Guard selective feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "codex/diagnostics-online-draft-preview"
+
+      - name: Install deployment and PHP validation tools
+        run: sudo apt-get update && sudo apt-get install -y lftp php-cli php-zip
+
+      - name: Validate protected preview runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          find diagnostika-preview -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tools/test_diagnostics_preview.php
+          bash tools/test_diagnostics_preview_http.sh
+          node tools/test_diagnostics_preview_static.js
+
+      - name: Check FTP secrets
+        shell: bash
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD FTP_SERVER_DIR; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing secret::$name is not configured."
+              missing=1
+            fi
+          done
+          test "$missing" -eq 0
+
+      - name: Upload only diagnostika-preview
+        shell: bash
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+          FTP_PROTOCOL: ${{ inputs.protocol }}
+          FTP_PORT: ${{ inputs.port }}
+        run: |
+          set -euo pipefail
+
+          local_dir="$GITHUB_WORKSPACE/diagnostika-preview/"
+          remote_dir="${FTP_SERVER_DIR%/}/diagnostika-preview/"
+          test -d "$local_dir"
+
+          if [ "$FTP_PROTOCOL" = "ftp" ]; then
+            lftp_ssl="false"
+            lftp_url="ftp://$FTP_SERVER:$FTP_PORT"
+          elif [ "$FTP_PROTOCOL" = "ftps" ]; then
+            lftp_ssl="true"
+            lftp_url="ftp://$FTP_SERVER:$FTP_PORT"
+          else
+            lftp_ssl="true"
+            lftp_url="ftps://$FTP_SERVER:$FTP_PORT"
+          fi
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$lftp_url" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-allow $lftp_ssl
+          set ftp:ssl-force $lftp_ssl
+          set ftp:ssl-protect-data $lftp_ssl
+          set ftp:passive-mode on
+          set net:timeout 30
+          set net:max-retries 3
+          set net:reconnect-interval-base 5
+          mkdir -p "$remote_dir"
+          mirror --reverse --verbose --only-newer --parallel=1 --no-perms \
+            "$local_dir" "$remote_dir"
+          bye
+          EOF
+
+      - name: HTTPS admin smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(mktemp)"
+          curl --fail --silent --show-error --location --max-time 30 \
+            --dump-header "$headers" --output /dev/null \
+            https://doktorhaus.sk/diagnostika-preview/
+          grep -Eiq '^cache-control:.*no-store' "$headers"
+          grep -Eiq '^x-content-type-options:[[:space:]]*nosniff' "$headers"

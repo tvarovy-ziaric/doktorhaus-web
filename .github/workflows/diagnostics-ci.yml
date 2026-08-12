@@ -12,6 +12,8 @@ on:
       - "styles/diagnostics-report.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
+      - "diagnostika-preview/**"
+      - ".github/workflows/deploy-diagnostics-preview.yml"
       - ".github/workflows/diagnostics-ci.yml"
   push:
     branches:
@@ -26,6 +28,8 @@ on:
       - "styles/diagnostics-report.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
+      - "diagnostika-preview/**"
+      - ".github/workflows/deploy-diagnostics-preview.yml"
       - ".github/workflows/diagnostics-ci.yml"
   workflow_dispatch:
 
@@ -54,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y php-cli
+          sudo apt-get install -y php-cli php-zip
           php -v
 
       - name: Test diagnostic contracts
@@ -70,6 +74,15 @@ jobs:
         run: |
           set -euo pipefail
           node tools/test_diagnostics_renderer.js
+
+      - name: Test protected diagnostics draft preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          find diagnostika-preview -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tools/test_diagnostics_preview.php
+          bash tools/test_diagnostics_preview_http.sh
+          node tools/test_diagnostics_preview_static.js
 
       - name: Lint diagnostic PHP files
         shell: bash
@@ -155,7 +168,8 @@ jobs:
           base_sha=""
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             base_sha="$PULL_REQUEST_BASE_SHA"
-          elif [[ -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+          elif [[ -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]] \
+            && git cat-file -e "${PUSH_BEFORE_SHA}^{commit}" 2>/dev/null; then
             base_sha="$PUSH_BEFORE_SHA"
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base_sha="$(git rev-parse HEAD^)"
