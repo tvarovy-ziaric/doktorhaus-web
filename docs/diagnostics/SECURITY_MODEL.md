@@ -179,3 +179,9 @@ Validný, ale neprístupný evidence ID má vždy generic 404 bez potvrdenia jeh
 Lifecycle volá iba same-origin auth/report endpointy s `credentials: same-origin` a `cache: no-store`. Serverový text chyby sa neodráža do UI. 401 pri report requeste odstráni súkromný obsah z DOM a vyžiada nové overenie; logout používa session CSRF token a vykoná rovnaké vyčistenie.
 
 Renderer používa výhradne textové DOM API, takže payload z client-safe kontraktu sa neinterpretuje ako HTML. Media URL má ďalšiu klientsku allowlist kontrolu presného originu, endpointu, jediného evidence parametra a opaque ID. Táto defense-in-depth kontrola neznižuje požiadavku na serverovú session, BOLA ochranu, MIME a `nosniff` z kroku 4B. Podrobnosti a testy sú v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
+
+## Final delivery companion a same-PIN hranica
+
+Admin aktivácia môže vytvoriť diagnostics grant s už vydaným inspection PINom bez vrátenia alebo uloženia plaintextu v diagnostics store. Existujúce naviazanie je idempotentné iba po overení rovnakého PINu a rovnakého immutable package.
+
+Source-documentation appendix je samostatný session-bound allowlist, nie všeobecný download. Interná media mapa ani raw appendix paths/provenance sa klientovi nevydávajú. Fotografia je dostupná iba ak ju verifier nájde v rovnakom package, source evidence je client-safe photo a presná položka client reportu alebo appendixu ju autorizuje.

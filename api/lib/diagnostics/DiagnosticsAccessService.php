@@ -62,6 +62,31 @@ final class DiagnosticsAccessService
      */
     public function createGrant(string $reportId, string $version, ?string $expiresAt = null): array
     {
+        $pin = (string)random_int(100000, 999999);
+        $grant = $this->createGrantUsingPin($reportId, $version, $pin, $expiresAt);
+        $grant['pin'] = $pin;
+        return $grant;
+    }
+
+    /**
+     * Create a grant bound to an already-issued six-digit client PIN.
+     * The plaintext PIN is deliberately not returned or persisted.
+     *
+     * @return array{access_id: string, report_version: string, expires_at: string|null, generation: int}
+     */
+    public function createGrantWithPin(string $reportId, string $version, string $pin, ?string $expiresAt = null): array
+    {
+        if (preg_match('/^[0-9]{6}$/D', $pin) !== 1) {
+            throw new DiagnosticsAccessException('ACCESS_PIN_INVALID', 'The access credentials are invalid.');
+        }
+        return $this->createGrantUsingPin($reportId, $version, $pin, $expiresAt);
+    }
+
+    /**
+     * @return array{access_id: string, report_version: string, expires_at: string|null, generation: int}
+     */
+    private function createGrantUsingPin(string $reportId, string $version, string $pin, ?string $expiresAt): array
+    {
         $now = $this->now();
         try {
             $binding = $this->storage->loadPublishedManifestBinding($reportId, $version);
@@ -80,7 +105,6 @@ final class DiagnosticsAccessService
         }
         $canonicalExpiry = $this->canonicalExpiry($expiresAt, $now);
         $accessId = 'acc_' . bin2hex(random_bytes(16));
-        $pin = (string)random_int(100000, 999999);
         $timestamp = $this->timestamp($now);
         $grant = [
             'access_id' => $accessId,
@@ -104,7 +128,6 @@ final class DiagnosticsAccessService
 
         return [
             'access_id' => $accessId,
-            'pin' => $pin,
             'report_version' => $version,
             'expires_at' => $canonicalExpiry,
             'generation' => 1,

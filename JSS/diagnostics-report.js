@@ -1671,6 +1671,71 @@
     }
   }
 
+  function renderSourceDocumentationAppendix(appendix, options) {
+    if (!appendix || appendix.schema_version !== "1.0.0-helper" ||
+        appendix.document_type !== "source_documentation_appendix" ||
+        !Array.isArray(appendix.items) || appendix.items.length < 1 ||
+        appendix.photo_count !== appendix.items.length) {
+      throw new Error("Unsupported source documentation appendix.");
+    }
+    const documentRef = options && options.document ? options.document : document;
+    const pageUrl = options && options.pageUrl
+      ? options.pageUrl
+      : documentRef.defaultView.location.href;
+    const viewer = options && options.photoViewer
+      ? options.photoViewer
+      : createPhotoViewer(documentRef);
+    const wrapper = section(
+      documentRef,
+      typeof appendix.title === "string" ? appendix.title : "Zdrojová fotodokumentácia",
+      typeof appendix.intro === "string" ? appendix.intro : null,
+      "diag-section-source-photos",
+      "Zdrojová fotodokumentácia"
+    );
+    wrapper.classList.add("dh-source-appendix");
+    const heading = wrapper.querySelector(".diag-section-heading");
+    if (heading) {
+      heading.classList.add("dh-source-appendix-intro");
+      heading.insertBefore(
+        element(documentRef, "p", "eyebrow", "Pôvodná dokumentácia obhliadky"),
+        heading.firstChild
+      );
+    }
+    const grid = element(documentRef, "div", "dh-source-grid");
+    const viewerItems = [];
+    appendix.items.forEach(function (item) {
+      if (!item || typeof item !== "object" ||
+          !/^ev_[0-9a-f]{16,32}$/.test(item.evidence_id || "") ||
+          typeof item.display_code !== "string" || typeof item.source_identity !== "string") {
+        throw new Error("Unsupported source documentation appendix item.");
+      }
+      const mediaUrl = validateMediaUrl(item.media_url, pageUrl);
+      if (!mediaUrl) {
+        throw new Error("Unsupported source documentation appendix media.");
+      }
+      const displayCaption = sanitizePhotoCaption(item.source_caption) ||
+        ("Dokumentačná fotografia · " + item.source_identity);
+      const card = element(documentRef, "article", "dh-source-card");
+      const button = element(documentRef, "button", "dh-source-photo-button");
+      button.type = "button";
+      const image = element(documentRef, "img");
+      image.src = mediaUrl;
+      image.alt = displayCaption;
+      image.loading = "lazy";
+      image.decoding = "async";
+      const meta = element(documentRef, "span", "dh-source-meta", item.display_code + " · " + item.source_identity);
+      const caption = element(documentRef, "span", "dh-source-caption", displayCaption);
+      button.append(image, meta, caption);
+      card.append(button);
+      grid.append(card);
+      const index = viewerItems.length;
+      viewerItems.push({url: mediaUrl, title: displayCaption, code: meta.textContent, alt: image.alt});
+      button.addEventListener("click", function () { viewer.open(viewerItems, index, button); });
+    });
+    wrapper.append(grid);
+    return wrapper;
+  }
+
   function renderReport(report, options) {
     assertClientReport(report);
     scorePopoverSequence = 0;
@@ -1741,6 +1806,7 @@
     assertClientReport: assertClientReport,
     createPhotoViewer: createPhotoViewer,
     refreshSectionNavigation: refreshSectionNavigation,
+    renderSourceDocumentationAppendix: renderSourceDocumentationAppendix,
     installScorePopoverBehavior: installScorePopoverBehavior,
     installPrintBehavior: installPrintBehavior,
     renderReport: renderReport

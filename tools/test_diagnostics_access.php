@@ -262,6 +262,18 @@ try {
     accessAssert($stored['report_version_id'] === accessReportVersionId($reportId, '1.0'), 'Grant must bind version ID.');
     accessAssert(hash_equals($stored['package_manifest_sha256'], $storage->getPublishedManifestSha256($reportId, '1.0')), 'Grant must bind manifest hash.');
 
+    $explicitPin = '482615';
+    $explicit = $service->createGrantWithPin($reportId, '1.0', $explicitPin);
+    accessAssert(!array_key_exists('pin', $explicit), 'Explicit-PIN grant creation must not return the plaintext PIN.');
+    $explicitPath = $storage->getRoot() . '/access/grants/' . $explicit['access_id'] . '.json';
+    $explicitRaw = file_get_contents($explicitPath);
+    accessAssert(is_string($explicitRaw) && strpos($explicitRaw, $explicitPin) === false, 'Explicit plaintext PIN must not persist.');
+    $explicitVerified = $service->verifyPin($explicit['access_id'], $explicitPin, ['REMOTE_ADDR' => '203.0.113.9']);
+    accessAssert($explicitVerified['access_id'] === $explicit['access_id'], 'Explicit-PIN grant must verify with the supplied PIN.');
+    expectAccessCode('ACCESS_PIN_INVALID', function () use ($service, $reportId): void {
+        $service->createGrantWithPin($reportId, '1.0', '12345');
+    }, 'Explicit-PIN grant creation must reject a non-six-digit PIN.');
+
     $request = ['REMOTE_ADDR' => '203.0.113.10', 'HTTP_USER_AGENT' => 'AccessTest/1.0'];
     $verified = $service->verifyPin($issued['access_id'], $issued['pin'], $request);
     accessAssert($verified['access_id'] === $issued['access_id'], 'Correct PIN must authenticate.');

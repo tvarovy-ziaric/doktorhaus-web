@@ -44,13 +44,14 @@ for (const marker of ["ZIP symlinks are not allowed", "ZIP contains duplicate pa
 }
 
 const preview = read("diagnostika-preview/preview.js");
+const renderer = read("JSS/diagnostics-report.js");
 assert(preview.includes("DoktorHausDiagnosticsReport"), "Production renderer reuse is missing.");
-assert(preview.includes("Zdrojová fotodokumentácia"), "Draft appendix composer is missing.");
-assert(preview.includes("appendix.photo_count !== 18"), "Appendix exact-count guard is missing.");
-assert(preview.includes('section.id = "diag-section-source-photos"'), "Appendix stable anchor is missing.");
-assert(preview.includes('section.dataset.diagNavigationLabel = "Zdrojová fotodokumentácia"'), "Appendix navigation label is missing.");
+assert(preview.includes("renderer.renderSourceDocumentationAppendix"), "Shared appendix renderer reuse is missing.");
+assert(renderer.includes("Zdrojová fotodokumentácia"), "Shared appendix composer is missing.");
+assert(renderer.includes('"diag-section-source-photos"'), "Appendix stable anchor is missing.");
+assert(renderer.includes("appendix.photo_count !== appendix.items.length"), "Appendix count guard is missing.");
 assert(preview.includes("renderer.refreshSectionNavigation(content, document)"), "Appendix navigation refresh is missing.");
-assert(preview.includes("renderer.sanitizePhotoCaption(item.source_caption)"), "Photo boilerplate is not removed from the client caption.");
-assert(preview.includes("button.append(image, meta, caption)"), "Recovered photos must remain visible in the appendix.");
+assert(renderer.includes("sanitizePhotoCaption(item.source_caption)"), "Photo boilerplate is not removed from the client caption.");
+assert(renderer.includes("button.append(image, meta, caption)"), "Recovered photos must remain visible in the appendix.");
 
 console.log("Protected diagnostics preview static tests: PASS");

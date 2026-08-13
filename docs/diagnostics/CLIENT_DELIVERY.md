@@ -154,4 +154,10 @@ Reziduálny výkonový limit zostáva: každý nový Range request cez 4A packag
 
 Krok 5A pridáva prvého konzumenta tohto delivery kontraktu: `inspekcia.html`, lifecycle `JSS/diagnostics-client.js` a čistý renderer `JSS/diagnostics-report.js`. Klient neposiela report/version/path selectory, nepoužíva raw source, zachováva source order a pred zápisom media URL do DOM overuje presný same-origin endpoint aj evidence ID. Reportové texty zapisuje iba textovými DOM API a náklady nesčítava. `tools/test_diagnostics_renderer_http.sh` rozširuje existujúcu suite o reálny page/assets → PIN unlock → report scenár; nenahrádza delivery test MIME, Range, privacy a audit invariantov.
 
-Po 5A máme secure authentication, client-safe report API, authorized media delivery a súkromný responsive/print klientsky renderer. Stále nemáme backoffice grant issuance UI, SafetyCulture adapter, production deployment config/PHP verification, backup/restore policy, Babiná production report, samostatný PDF generátor, legacy PIN migráciu, databázu, AI diagnostiku ani automatické finančné agregácie.
+Po 5A máme secure authentication, client-safe report API, authorized media delivery a súkromný responsive/print klientsky renderer. Neskorší final-delivery krok dopĺňa minimálnu admin aktiváciu existujúcim inspection PINom a immutable companion delivery. Naďalej nemáme SafetyCulture adapter, automatický PDF artifact, databázu, AI diagnostiku ani automatické finančné agregácie.
+
+## Immutable client companions
+
+Publikovaný package môže voliteľne deklarovať attachmenty `client_report` (`client_private` JSON), `source_documentation_appendix` (`client_private` JSON) a `media_attachments` (`internal` JSON). Nejde o zmenu client-report schémy ani všeobecný attachment download. Package verifier kontroluje jedinečnosť, identity, privacy, content types, paths, hashe a úplnosť autorizačných množín.
+
+Appendix endpoint neprijíma report, version ani path selector a vracia iba client-safe projekciu. Media endpoint smie pri companion package vydať iba `role=media` image explicitne viditeľný ako linked evidence alebo položka appendixu v tom istom session-bound package.

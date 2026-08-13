@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DoktorHaus\Diagnostics;
 
 require_once __DIR__ . '/DiagnosticsStorageException.php';
+require_once __DIR__ . '/DiagnosticsClientArtifacts.php';
 
 final class DiagnosticsPackageVerifier
 {
@@ -42,6 +43,9 @@ final class DiagnosticsPackageVerifier
         $inspectionEntry = null;
         $diagnosisEntry = null;
         $reportPricingEntry = null;
+        $clientReportEntry = null;
+        $appendixEntry = null;
+        $mediaMapEntry = null;
         foreach ($entries as $relativePath => $entry) {
             $filePath = $this->pathFromRelative($packageRoot, $relativePath);
             $this->assertPackageFile($packageRoot, $relativePath, $filePath);
@@ -54,6 +58,24 @@ final class DiagnosticsPackageVerifier
                 $diagnosisEntry = $entry;
             } elseif ($entry['role'] === 'report_pricing') {
                 $reportPricingEntry = $entry;
+            } elseif ($entry['role'] === 'attachment') {
+                $label = $entry['role_label'] ?? null;
+                if ($label === DiagnosticsClientArtifacts::CLIENT_REPORT_LABEL) {
+                    if ($clientReportEntry !== null) {
+                        throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The client report companion is duplicated.');
+                    }
+                    $clientReportEntry = $entry;
+                } elseif ($label === DiagnosticsClientArtifacts::APPENDIX_LABEL) {
+                    if ($appendixEntry !== null) {
+                        throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The source documentation appendix is duplicated.');
+                    }
+                    $appendixEntry = $entry;
+                } elseif ($label === DiagnosticsClientArtifacts::MEDIA_MAP_LABEL) {
+                    if ($mediaMapEntry !== null) {
+                        throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'The media attachment companion is duplicated.');
+                    }
+                    $mediaMapEntry = $entry;
+                }
             }
         }
 
@@ -94,13 +116,46 @@ final class DiagnosticsPackageVerifier
             $this->validateReportPricingIdentity($manifest, $reportPricing);
         }
 
+        $clientReport = $this->readOptionalClientJson($packageRoot, $clientReportEntry, 'client_private');
+        $appendix = $this->readOptionalClientJson($packageRoot, $appendixEntry, 'client_private');
+        $mediaMap = $this->readOptionalClientJson($packageRoot, $mediaMapEntry, 'internal');
+        $clientArtifacts = DiagnosticsClientArtifacts::validate(
+            $manifest,
+            $inspection,
+            $entries,
+            $clientReport,
+            $appendix,
+            $mediaMap
+        );
+
         return [
             'manifest' => $manifest,
             'files' => $entries,
             'inspection' => $inspection,
             'diagnosis' => $diagnosis,
             'report_pricing' => $reportPricing,
+            'client_report' => $clientArtifacts['client_report'],
+            'source_documentation_appendix' => $clientArtifacts['source_documentation_appendix'],
+            'media_attachments' => $clientArtifacts['media_attachments'],
         ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $entry
+     * @return array<string, mixed>|null
+     */
+    private function readOptionalClientJson(string $packageRoot, ?array $entry, string $privacy): ?array
+    {
+        if ($entry === null) {
+            return null;
+        }
+        if (($entry['content_type'] ?? null) !== 'application/json' || ($entry['privacy'] ?? null) !== $privacy) {
+            throw new DiagnosticsStorageException('STORAGE_MANIFEST', 'A client companion declaration is invalid.');
+        }
+        return $this->readJsonObject(
+            $this->pathFromRelative($packageRoot, (string)$entry['path']),
+            'STORAGE_JSON'
+        );
     }
 
     public static function assertInspectionId(string $inspectionId): void

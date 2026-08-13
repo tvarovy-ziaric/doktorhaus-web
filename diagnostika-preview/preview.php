@@ -21,8 +21,8 @@ dh_preview_page_headers();
   <meta name="referrer" content="no-referrer">
   <title>Náhľad technickej diagnostiky | DoktorHaus</title>
   <link rel="stylesheet" href="/styles/style.css?v=14">
-  <link rel="stylesheet" href="/styles/diagnostics-report.css?v=4">
-  <link rel="stylesheet" href="../preview.css?v=2">
+  <link rel="stylesheet" href="/styles/diagnostics-report.css?v=5">
+  <link rel="stylesheet" href="../preview.css?v=3">
 </head>
 <body class="diag-page dh-preview-report-page">
   <div class="dh-preview-banner" role="status">NÁHĽAD — NEPUBLIKOVANÁ VERZIA</div>
@@ -91,7 +91,7 @@ dh_preview_page_headers();
     </section>
   </div>
 
-  <script src="/JSS/diagnostics-report.js?v=4" defer></script>
-  <script src="../preview.js?v=2" defer></script>
+  <script src="/JSS/diagnostics-report.js?v=5" defer></script>
+  <script src="../preview.js?v=3" defer></script>
 </body>
 </html>

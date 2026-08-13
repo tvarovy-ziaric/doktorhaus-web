@@ -215,3 +215,9 @@ Po odbornom schválení, immutable publish a samostatnom vydaní grantu môže k
 8. Nové odborné zistenie alebo zmena záveru vyžaduje nový doménový/publikačný cyklus a verziu, nie edit v rendereri.
 
 Klientská tlač je zobrazenie publikovanej verzie v prehliadači. Nie je novou publikovanou verziou ani náhradou budúceho riadeného PDF artifactu. Prevádzkový opis je v [CLIENT_RENDERER.md](CLIENT_RENDERER.md).
+
+### Final client delivery activation
+
+Po ľudskom schválení sa zostaví a overí immutable published package. Voliteľné client companion artefakty sú súčasťou rovnakého manifestu a nesmú meniť source observations, diagnosis ani pricing. Produkčný kód a private package sa nasadzujú oddelene; runtime `data/inspections.json` sa nepripravuje naslepo mimo servera.
+
+Po nahratí package administrátor na existujúcej `ready|sent` inspection zadá report ID a verziu a vykoná `activate-diagnostics`. Grant použije už vydaný klientsky PIN a klient pokračuje tokom `inspekcie.html → PIN → diagnostics session → inspekcia.html` bez druhého PINu.

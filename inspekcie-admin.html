@@ -78,6 +78,20 @@
 
       <div class="form-row">
         <label>
+          Report ID
+          <input type="text" name="diagnosticsReportId" pattern="rpt_[0-9a-f]{16,32}" placeholder="rpt_0123456789abcdef01234567" autocomplete="off" spellcheck="false">
+        </label>
+        <label>
+          Verzia
+          <input type="text" name="diagnosticsVersion" pattern="[1-9][0-9]*\.[0-9]+" value="1.0" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+      <div class="form-actions" id="diagnostics-activation-actions" hidden>
+        <button class="btn" id="activate-diagnostics-btn" type="button">Aktivovať diagnostickú správu</button>
+      </div>
+
+      <div class="form-row">
+        <label>
           PDF správa
           <input type="text" name="reportUrl" placeholder="uploads/inspekcie/.../sprava.pdf">
         </label>
@@ -171,6 +185,8 @@
   const generatedPin = document.getElementById("generated-pin");
   const emailText = document.getElementById("email-text");
   const copyEmailBtn = document.getElementById("copy-email-btn");
+  const diagnosticsActivationActions = document.getElementById("diagnostics-activation-actions");
+  const activateDiagnosticsBtn = document.getElementById("activate-diagnostics-btn");
   let inspections = [];
 
   function setStatus(message, isError = false) {
@@ -247,6 +263,7 @@
     form.elements.clientEmail.value = item.clientEmail || "";
     form.elements.summary.value = item.summary || "";
     form.elements.diagnosticsAccessId.value = item.diagnosticsAccessId || "";
+    diagnosticsActivationActions.hidden = !["ready", "sent"].includes(item.status);
     form.elements.reportUrl.value = item.media?.reportUrl || "";
     form.elements.docsUrl.value = item.media?.docsUrl || "";
     form.elements.panoravenUrl.value = item.media?.panoravenUrl || "";
@@ -264,6 +281,7 @@
     form.reset();
     form.elements.adminPin.value = pin;
     form.elements.id.value = "";
+    diagnosticsActivationActions.hidden = true;
     generatedPin.value = "";
     emailText.value = "";
     setStatus("Pripravený nový koncept.");
@@ -337,6 +355,32 @@
       setStatus("Inšpekcia je uložená ako koncept.");
     } catch (error) {
       setStatus(error.message, true);
+    }
+  });
+
+  activateDiagnosticsBtn.addEventListener("click", async () => {
+    const id = form.elements.id.value;
+    if (!id) {
+      setStatus("Najprv načítajte pripravenú alebo odoslanú inšpekciu.", true);
+      return;
+    }
+    setStatus("Aktivujem diagnostickú správu...");
+    activateDiagnosticsBtn.disabled = true;
+    try {
+      const result = await api({
+        action: "activate-diagnostics",
+        adminPin: adminPin(),
+        id,
+        reportId: form.elements.diagnosticsReportId.value.trim(),
+        version: form.elements.diagnosticsVersion.value.trim()
+      });
+      form.elements.diagnosticsAccessId.value = result.accessId || "";
+      await loadInspections();
+      setStatus("Diagnostická správa je naviazaná na klientsky PIN.");
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      activateDiagnosticsBtn.disabled = false;
     }
   });
 

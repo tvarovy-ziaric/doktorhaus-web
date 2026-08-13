@@ -92,3 +92,7 @@ Node test overuje mapovania, urgentný výber, menu, access/media URL hranicu, p
 ## Čo krok 5A nerobí
 
 Krok 5A nevytvára Babiná ani iné produkčné dáta, nevydáva grant/PIN, nemení backoffice, neintegruje SafetyCulture, nemigruje legacy inšpekcie, negeneruje klientsky PDF artifact, nezavádza databázu a nemení serverové schémy, projekciu, session či media autorizáciu.
+
+## Source documentation appendix
+
+Produkčný klient načíta voliteľný appendix zo samostatného session-bound endpointu. `404` znamená, že konkrétna verzia appendix nemá; iné chyby zlyhajú bezpečne. Produkčný klient a owner preview používajú rovnakú renderer funkciu. Sekcia a navigačná položka vzniknú iba pri reálnom appendixe; interaktívne menu ostáva v tlači skryté a fotografie appendixu sú zahrnuté.

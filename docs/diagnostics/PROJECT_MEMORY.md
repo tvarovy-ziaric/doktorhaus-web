@@ -203,3 +203,9 @@ Záväzné pravidlá finančného rámca:
 Report-level pricing je additive capability. Nemení zdrojové observations, diagnózu ani ľudskú `APPROVE` bránu.
 
 Runtime klientovi projektuje pricing iba z immutable snapshotu overeného v rovnakom session-bound package. Projekcia je explicitný allowlist, fail-closed overuje identity, viditeľné issue/recommendation väzby, päť cenových tvarov a subtotal. Renderer drží report-level pricing v samostatnej sekcii; `renderCost(issue)` zostáva whole-issue vrstvou.
+
+## 13. Publikované klientské companion artefakty
+
+Schválená klientská prezentácia môže bez zmeny `client_report` schémy 1.0.0 uložiť do rovnakého immutable package presne pomenované attachmenty `client_report`, `source_documentation_appendix` a interný `media_attachments` mapovací dokument. Appendix nevytvára issue/evidence väzby, interná mapa sa klientovi nevydáva a každý obrázok musí byť deklarovaný, hashovo overený a autorizovaný tou istou session-bound report version.
+
+Legacy inspection PIN možno po explicitnej admin aktivácii použiť aj pre diagnostics grant. Server ho okamžite prehashuje a uloží iba password hash; aktivačná odpoveď plaintext PIN nevracia. Existujúci binding je idempotentný iba pri rovnakom package a rovnakom PINe, inak zlyhá fail closed.

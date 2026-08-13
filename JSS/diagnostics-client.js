@@ -8,7 +8,8 @@
 
   const API = Object.freeze({
     auth: "api/diagnostics-auth.php",
-    report: "api/diagnostics-report.php"
+    report: "api/diagnostics-report.php",
+    appendix: "api/diagnostics-appendix.php"
   });
   const views = [
     document.getElementById("diag-loading"),
@@ -140,8 +141,10 @@
   async function loadReport() {
     showLoading("Načítavam diagnostickú správu…");
     try {
-      const response = await request(API.report);
-      if (response.status === 401) {
+      const responses = await Promise.all([request(API.report), request(API.appendix)]);
+      const response = responses[0];
+      const appendixResponse = responses[1];
+      if (response.status === 401 || appendixResponse.status === 401) {
         csrfToken = null;
         showPin("Platnosť prístupu v tomto okne vypršala. Zadajte PIN znova.");
         return;
@@ -154,17 +157,36 @@
         showError();
         return;
       }
+      if (!appendixResponse.ok && appendixResponse.status !== 404) {
+        showError(appendixResponse.status === 503
+          ? "Služba je dočasne nedostupná. Skúste to prosím neskôr."
+          : undefined);
+        return;
+      }
       const report = await readJson(response);
       if (!report) {
         showError();
         return;
       }
-      reportToolkit.renderReport(report, {
+      const content = reportToolkit.renderReport(report, {
         document: document,
         pageUrl: window.location.href,
         container: reportContent,
         photoViewer: photoViewer
       });
+      if (appendixResponse.ok) {
+        const appendix = await readJson(appendixResponse);
+        if (!appendix) {
+          showError();
+          return;
+        }
+        content.append(reportToolkit.renderSourceDocumentationAppendix(appendix, {
+          document: document,
+          pageUrl: window.location.href,
+          photoViewer: photoViewer
+        }));
+        reportToolkit.refreshSectionNavigation(content, document);
+      }
       showView(reportShell);
       const reportHeading = document.getElementById("diag-report-title");
       if (reportHeading) {

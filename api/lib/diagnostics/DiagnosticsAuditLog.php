@@ -22,6 +22,7 @@ final class DiagnosticsAuditLog
         'session_invalidated',
         'logout',
         'report_viewed',
+        'appendix_viewed',
         'media_accessed',
     ];
 
@@ -31,6 +32,7 @@ final class DiagnosticsAuditLog
         'idle_seconds',
         'absolute_seconds',
         'evidence_id',
+        'photo_count',
         'request_type',
     ];
 

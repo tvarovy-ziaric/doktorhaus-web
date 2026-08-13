@@ -322,6 +322,83 @@ if ($action === 'admin-list') {
     respond(200, ['ok' => true, 'items' => $items, 'inspectionLink' => inspection_link($baseUrl)]);
 }
 
+if ($action === 'activate-diagnostics') {
+    $id = clean_text((string)($payload['id'] ?? ''), 40);
+    $reportId = clean_text((string)($payload['reportId'] ?? ''), 36);
+    $version = clean_text((string)($payload['version'] ?? ''), 20);
+    $index = find_item_index($items, $id);
+    if ($index < 0) {
+        respond(404, ['ok' => false, 'error' => 'Inšpekcia sa nenašla.']);
+    }
+    if (!in_array(($items[$index]['status'] ?? ''), ['ready', 'sent'], true)) {
+        respond(409, ['ok' => false, 'error' => 'Diagnostickú správu možno aktivovať až pre pripravenú alebo odoslanú inšpekciu.']);
+    }
+    $pin = $items[$index]['pin'] ?? null;
+    if (!is_string($pin) || preg_match('/^[0-9]{6}$/D', $pin) !== 1 ||
+        preg_match('/^rpt_[0-9a-f]{16,32}$/D', $reportId) !== 1 ||
+        preg_match('/^[1-9][0-9]*\.[0-9]+$/D', $version) !== 1) {
+        respond(422, ['ok' => false, 'error' => 'Aktivačné údaje nie sú platné.']);
+    }
+
+    try {
+        $diagnosticsConfig = DiagnosticsSecurityConfig::fromEnvironment();
+        $diagnosticsStorage = DiagnosticsStorage::fromEnvironment();
+        $diagnosticsAccess = new DiagnosticsAccessService($diagnosticsStorage, $diagnosticsConfig);
+        $existingAccessId = $items[$index]['diagnosticsAccessId'] ?? null;
+        if (is_string($existingAccessId) && $existingAccessId !== '') {
+            if (preg_match('/^acc_[0-9a-f]{32}$/D', $existingAccessId) !== 1) {
+                respond(409, ['ok' => false, 'error' => 'Existujúce diagnostické naviazanie nie je platné.']);
+            }
+            $grant = $diagnosticsAccess->verifyPin($existingAccessId, $pin, $_SERVER);
+            if (($grant['report_id'] ?? null) !== $reportId || ($grant['report_version'] ?? null) !== $version) {
+                respond(409, ['ok' => false, 'error' => 'Inšpekcia je naviazaná na inú diagnostickú správu. Vyžaduje vedomú opravu.']);
+            }
+            respond(200, [
+                'ok' => true,
+                'idempotent' => true,
+                'accessId' => $existingAccessId,
+                'reportId' => $reportId,
+                'version' => $version,
+            ]);
+        }
+
+        $created = $diagnosticsAccess->createGrantWithPin($reportId, $version, $pin);
+        $accessId = (string)$created['access_id'];
+        $items[$index]['diagnosticsAccessId'] = $accessId;
+        $items[$index]['updatedAt'] = date('c');
+        try {
+            save_items($dataFile, $items);
+        } catch (Throwable $writeError) {
+            try {
+                $diagnosticsAccess->revokeGrant($accessId);
+            } catch (Throwable $revokeError) {
+                error_log('DoktorHaus diagnostics activation rollback failed.');
+            }
+            throw $writeError;
+        }
+        respond(200, [
+            'ok' => true,
+            'idempotent' => false,
+            'accessId' => $accessId,
+            'reportId' => $reportId,
+            'version' => $version,
+        ]);
+    } catch (DiagnosticsAccessException $error) {
+        if ($error->getAccessCode() === 'ACCESS_RATE_LIMITED') {
+            header('Retry-After: ' . max(1, (int)$error->getRetryAfter()));
+            respond(429, ['ok' => false, 'error' => 'Priveľa pokusov. Skúste to znova neskôr.']);
+        }
+        if (in_array($error->getAccessCode(), ['ACCESS_CONFIG', 'ACCESS_HTTPS_REQUIRED', 'ACCESS_AUDIT'], true)) {
+            respond(503, ['ok' => false, 'error' => 'Diagnostická služba nie je dostupná.']);
+        }
+        respond(409, ['ok' => false, 'error' => 'Diagnostickú správu sa nepodarilo bezpečne naviazať.']);
+    } catch (DiagnosticsStorageException $error) {
+        respond(503, ['ok' => false, 'error' => 'Diagnostická služba nie je dostupná.']);
+    } catch (Throwable $error) {
+        respond(500, ['ok' => false, 'error' => 'Diagnostickú správu sa nepodarilo aktivovať.']);
+    }
+}
+
 if ($action === 'save') {
     $id = clean_text((string)($payload['id'] ?? ''), 40);
     $index = $id !== '' ? find_item_index($items, $id) : -1;

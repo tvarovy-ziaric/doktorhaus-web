@@ -397,6 +397,39 @@ assert.equal(renderedScoreTriggers[0].getAttribute("aria-expanded"), "true");
 renderedFirstWrapper.emit("mouseleave");
 assert.equal(renderedScoreTriggers[0].getAttribute("aria-expanded"), "false");
 
+const appendixDocument = new FakeDocument(false);
+const appendix = {
+  schema_version: "1.0.0-helper",
+  document_type: "source_documentation_appendix",
+  title: "Zdrojov\u00e1 fotodokument\u00e1cia",
+  intro: "P\u00f4vodn\u00e1 dokument\u00e1cia obhliadky.",
+  photo_count: 18,
+  items: Array.from({length: 18}, (_, index) => {
+    const suffix = (index + 1).toString(16).padStart(16, "0");
+    return {
+      evidence_id: "ev_" + suffix,
+      display_code: "EV-" + String(index + 1).padStart(3, "0"),
+      source_identity: "Photo " + (index + 1),
+      source_caption: "Photo " + (index + 1) + " \u2013 Detail. Origin\u00e1lny medi\u00e1lny s\u00fabor nebol extrahovan\u00fd.",
+      media_url: "api/diagnostics-media.php?evidence=ev_" + suffix,
+      content_type: "image/jpeg",
+      order: index + 1
+    };
+  })
+};
+const appendixSection = renderer.renderSourceDocumentationAppendix(appendix, {
+  document: appendixDocument,
+  pageUrl,
+  photoViewer: {open() {}}
+});
+assert.equal(appendixSection.id, "diag-section-source-photos");
+assert.equal(appendixSection.dataset.diagNavigationLabel, "Zdrojov\u00e1 fotodokument\u00e1cia");
+assert.equal(appendixSection.querySelectorAll(".dh-source-card").length, 18);
+assert.equal(appendixSection.querySelectorAll(".dh-source-caption").length, 18);
+for (const caption of appendixSection.querySelectorAll(".dh-source-caption")) {
+  assert.doesNotMatch(caption.textContent, /Origin\u00e1lny medi\u00e1lny s\u00fabor nebol extrahovan\u00fd\./);
+}
+
 assert.equal(Object.prototype.hasOwnProperty.call(fixture, "pricing"), false);
 const pricingComponents = [
   {

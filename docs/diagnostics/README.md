@@ -94,10 +94,10 @@ Krok 5A pridáva `inspekcia.html`, oddelený session/PIN lifecycle a čistý DOM
 
 Voliteľný report-level pricing runtime odovzdáva projekcii iba `report_pricing` snapshot z už overeného package, fail-closed filtruje interné komponenty a väzby a renderuje samostatnú sekciu „Finančný rámec“. Starý package bez pricingu nemení svoj client report a issue `cost_estimate` ostáva cenou celého definovaného issue scope.
 
-Táto verzia stále neobsahuje databázové tabuľky, backoffice issuance UI, upload, SafetyCulture API/webhook, produkčný deploy config, backup/restore, klientsky PDF generátor ani legacy migráciu. Renderer nevydáva granty a nevytvára odborný obsah. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`. Nezavádza produkčný framework alebo dependency a nemení existujúce správanie legacy webu.
+Final-delivery vrstva dopĺňa voliteľný immutable source-documentation appendix a minimálnu admin aktiváciu published package existujúcim inspection PINom. Stále neobsahuje databázové tabuľky, všeobecný backoffice issuance modul, SafetyCulture API/webhook, backup/restore ani samostatný klientsky PDF generátor. Renderer nevydáva granty a nevytvára odborný obsah. Storage, auth ani delivery úspech nie je schema/domain validácia alebo odborné `APPROVE`.
 
 ## Roadmap po kroku 5A
 
-Hotové sú: diagnostic foundation, machine contracts, runtime storage, CI execution, secure access authentication, client-safe projection, authorized media delivery, client renderer a voliteľný report-level pricing runtime.
+Hotové sú: diagnostic foundation, machine contracts, runtime storage, CI execution, secure access authentication, client-safe projection, authorized linked/appendix media delivery, client renderer, voliteľný report-level pricing runtime a minimálna same-PIN admin aktivácia.
 
-Ešte nie sú hotové: reálny diagnostický dataset a expert QA Babiná, reálny report package, access grant issuance v backoffice, production deployment config, SafetyCulture adapter, legacy migrácia, server backup/restore ani PDF generátor.
+Reálne klientské dáta a published packages zostávajú výhradne v private storage mimo verejného repozitára. Ešte nie sú hotové: všeobecný issuance/backoffice modul, SafetyCulture adapter, legacy migrácia, server backup/restore ani samostatný PDF generátor.

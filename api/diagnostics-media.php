@@ -68,9 +68,14 @@ try {
     $context = $clientSession->current($_SERVER);
     $package = $access->consumeVerifiedPackage($context);
 
-    $projection = new DiagnosticsClientProjection();
-    $projection->build($package['manifest'], $package['inspection'], $package['diagnosis']);
-    $visibleMedia = $projection->clientVisibleMedia($evidenceId);
+    $companionMedia = $package['media_attachments'] ?? [];
+    if (is_array($companionMedia) && $companionMedia !== []) {
+        $visibleMedia = $companionMedia[$evidenceId] ?? null;
+    } else {
+        $projection = new DiagnosticsClientProjection();
+        $projection->build($package['manifest'], $package['inspection'], $package['diagnosis']);
+        $visibleMedia = $projection->clientVisibleMedia($evidenceId);
+    }
     if ($visibleMedia === null) {
         throw new DiagnosticsDeliveryException('DELIVERY_MEDIA_NOT_FOUND', 'The requested media is unavailable.');
     }
@@ -81,7 +86,8 @@ try {
         $visibleMedia['media_reference'],
         $package
     );
-    if (!in_array($file['role'], ['media', 'attachment'], true) ||
+    $allowedRoles = $companionMedia !== [] ? ['media'] : ['media', 'attachment'];
+    if (!in_array($file['role'], $allowedRoles, true) ||
         !in_array($file['privacy'], ['public', 'client_private'], true)) {
         throw new DiagnosticsDeliveryException('DELIVERY_MEDIA_NOT_FOUND', 'The requested media is unavailable.');
     }
