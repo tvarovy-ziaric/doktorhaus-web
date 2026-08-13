@@ -487,6 +487,7 @@
 }
 
 .diag-badge-row {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
@@ -504,6 +505,88 @@
   color: var(--text);
   font-size: 0.8rem;
   line-height: 1.25;
+}
+
+.diag-score-help {
+  position: relative;
+  display: inline-flex;
+}
+
+.diag-score-trigger {
+  cursor: help;
+  font: inherit;
+  text-align: left;
+}
+
+.diag-score-help-mark {
+  display: inline-grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-left: 0.18rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  place-items: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.72;
+}
+
+.diag-score-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 40;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(24rem, 70vh);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 0.7rem 1.6rem rgba(28, 31, 35, 0.16);
+  color: var(--text);
+}
+
+.diag-score-help:nth-last-child(-n + 2) .diag-score-popover {
+  right: 0;
+  left: auto;
+}
+
+.diag-score-popover-title,
+.diag-score-legend,
+.diag-score-legend-row {
+  display: block;
+}
+
+.diag-score-popover-title {
+  margin-bottom: 0.55rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.diag-score-legend {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.diag-score-legend-row {
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.diag-score-legend-row[data-current="true"] {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.diag-score-legend-code {
+  color: var(--accent);
 }
 
 .diag-badge strong {
@@ -1190,6 +1273,18 @@
   .diag-photo-nav {
     min-width: 2.5rem;
   }
+
+  .diag-score-help {
+    position: static;
+  }
+
+  .diag-score-popover,
+  .diag-score-help:nth-last-child(-n + 2) .diag-score-popover {
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1216,6 +1311,8 @@
   .diag-site-footer,
   .diag-report-toolbar,
   .diag-report-navigation,
+  .diag-score-help-mark,
+  .diag-score-popover,
   .diag-state-card,
   .diag-photo-modal,
   .diag-show-more,

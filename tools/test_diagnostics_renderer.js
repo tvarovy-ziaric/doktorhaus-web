@@ -44,6 +44,286 @@ assert.equal(renderer.LABELS.priority.P1, "riešiť ako prvé");
 assert.equal(renderer.LABELS.urgency.U2, "približne do 1 mesiaca");
 assert.equal(renderer.LABELS.risk.high, "vysoké");
 assert.equal(renderer.LABELS.verificationType.specialist_assessment, "posúdenie špecialistom");
+assert.deepEqual(
+  renderer.scoreLegendEntries("priority", "P1").map((entry) => [entry.code, entry.label, entry.current]),
+  [
+    ["P1", "riešiť ako prvé", true],
+    ["P2", "vysoká priorita", false],
+    ["P3", "plánovať", false],
+    ["P4", "nižšia priorita", false],
+    ["P5", "sledovať", false]
+  ]
+);
+assert.deepEqual(
+  renderer.scoreLegendEntries("severity", "S4").map((entry) => [entry.code, entry.label, entry.current]),
+  [
+    ["S1", "zanedbateľná", false],
+    ["S2", "nízka", false],
+    ["S3", "stredná", false],
+    ["S4", "vysoká", true],
+    ["S5", "kritická", false]
+  ]
+);
+assert.deepEqual(
+  renderer.scoreLegendEntries("urgency", "U1").map((entry) => [entry.code, entry.label, entry.current]),
+  [
+    ["U1", "bez odkladu", true],
+    ["U2", "približne do 1 mesiaca", false],
+    ["U3", "približne do 3 mesiacov", false],
+    ["U4", "približne do 12 mesiacov", false],
+    ["U5", "plánovaná údržba / sledovanie", false]
+  ]
+);
+assert.deepEqual(
+  renderer.scoreLegendEntries("confidence", "medium").map((entry) => [entry.code, entry.label, entry.current]),
+  [
+    [null, "neurčená", false],
+    [null, "nízka", false],
+    [null, "stredná", true],
+    [null, "vysoká", false]
+  ]
+);
+assert.equal(renderer.SCORE_LEGENDS.priority.title, "Priorita");
+assert.equal(renderer.SCORE_LEGENDS.severity.title, "Závažnosť");
+assert.equal(renderer.SCORE_LEGENDS.urgency.title, "Naliehavosť");
+assert.equal(renderer.SCORE_LEGENDS.confidence.title, "Istota záveru");
+
+class FakeEventTarget {
+  constructor() {
+    this.listeners = new Map();
+  }
+
+  addEventListener(type, handler) {
+    const handlers = this.listeners.get(type) || [];
+    handlers.push(handler);
+    this.listeners.set(type, handlers);
+  }
+
+  removeEventListener(type, handler) {
+    this.listeners.set(type, (this.listeners.get(type) || []).filter((item) => item !== handler));
+  }
+
+  emit(type, properties = {}) {
+    const event = Object.assign({
+      key: null,
+      relatedTarget: null,
+      target: this,
+      defaultPrevented: false,
+      preventDefault() { this.defaultPrevented = true; }
+    }, properties);
+    for (const handler of this.listeners.get(type) || []) {
+      handler(event);
+    }
+    return event;
+  }
+}
+
+class FakeNode extends FakeEventTarget {
+  constructor(className = "", tagName = "div") {
+    super();
+    this.className = className;
+    this.tagName = tagName.toUpperCase();
+    this.nodeType = 1;
+    this.children = [];
+    this.attributes = new Map();
+    this.dataset = {};
+    this.hidden = false;
+    this.focused = false;
+    this.id = "";
+    this.parentNode = null;
+    this.textContent = "";
+    this.classList = {
+      add: (...names) => {
+        const classes = new Set(this.className.split(/\s+/).filter(Boolean));
+        names.forEach((name) => classes.add(name));
+        this.className = Array.from(classes).join(" ");
+      }
+    };
+  }
+
+  append(...children) {
+    children.forEach((child) => { child.parentNode = this; });
+    this.children.push(...children);
+  }
+
+  insertBefore(child, reference) {
+    child.parentNode = this;
+    const index = reference ? this.children.indexOf(reference) : -1;
+    if (index >= 0) {
+      this.children.splice(index, 0, child);
+    } else {
+      this.children.push(child);
+    }
+  }
+
+  replaceChildren(...children) {
+    this.children.forEach((child) => { child.parentNode = null; });
+    this.children = [];
+    this.append(...children);
+  }
+
+  remove() {
+    if (!this.parentNode) {
+      return;
+    }
+    this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
+    this.parentNode = null;
+  }
+
+  get nextSibling() {
+    if (!this.parentNode) {
+      return null;
+    }
+    const index = this.parentNode.children.indexOf(this);
+    return index >= 0 ? this.parentNode.children[index + 1] || null : null;
+  }
+
+  get firstChild() {
+    return this.children[0] || null;
+  }
+
+  get childElementCount() {
+    return this.children.filter((child) => child.nodeType === 1).length;
+  }
+
+  contains(target) {
+    return target === this || this.children.some((child) => child.contains && child.contains(target));
+  }
+
+  querySelector(selector) {
+    return this.querySelectorAll(selector)[0] || null;
+  }
+
+  querySelectorAll(selector) {
+    const matches = [];
+    const visit = (node) => {
+      if (node.nodeType === 1 && node.matches(selector)) {
+        matches.push(node);
+      }
+      node.children.forEach(visit);
+    };
+    visit(this);
+    return matches;
+  }
+
+  matches(selector) {
+    if (selector.startsWith("#")) {
+      return this.id === selector.slice(1);
+    }
+    const classMatch = selector.match(/^\.([a-z0-9_-]+)/i);
+    if (classMatch && !this.className.split(/\s+/).includes(classMatch[1])) {
+      return false;
+    }
+    if (selector.includes("[id]") && !this.id) {
+      return false;
+    }
+    if (selector.includes("[data-diag-navigation-label]") && !this.dataset.diagNavigationLabel) {
+      return false;
+    }
+    if (selector.includes("[data-current=\"true\"]") && this.dataset.current !== "true") {
+      return false;
+    }
+    return Boolean(classMatch);
+  }
+
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+  }
+
+  getAttribute(name) {
+    return this.attributes.has(name) ? this.attributes.get(name) : null;
+  }
+
+  removeAttribute(name) {
+    this.attributes.delete(name);
+  }
+
+  focus() {
+    this.focused = true;
+  }
+}
+
+class FakeTextNode extends FakeNode {
+  constructor(text) {
+    super("", "#text");
+    this.nodeType = 3;
+    this.textContent = String(text);
+  }
+
+  matches() {
+    return false;
+  }
+}
+
+class FakeDocument extends FakeEventTarget {
+  constructor(hoverCapable) {
+    super();
+    this.defaultView = {
+      location: { href: pageUrl },
+      matchMedia: () => ({ matches: hoverCapable })
+    };
+  }
+
+  createElement(tagName) {
+    return new FakeNode("", tagName);
+  }
+
+  createTextNode(text) {
+    return new FakeTextNode(text);
+  }
+
+  getElementById() {
+    return null;
+  }
+}
+
+function scorePopoverFixture(hoverCapable) {
+  const documentRef = new FakeEventTarget();
+  documentRef.defaultView = { matchMedia: () => ({ matches: hoverCapable }) };
+  const container = new FakeNode();
+  const wrapper = new FakeNode("diag-score-help");
+  const trigger = new FakeNode("diag-score-trigger");
+  const popover = new FakeNode("diag-score-popover");
+  trigger.setAttribute("aria-expanded", "false");
+  popover.hidden = true;
+  wrapper.append(trigger, popover);
+  container.querySelectorAll = (selector) => selector === ".diag-score-help" ? [wrapper] : [];
+  return { documentRef, container, wrapper, trigger, popover, outside: new FakeNode() };
+}
+
+const desktopPopover = scorePopoverFixture(true);
+const cleanupDesktopPopover = renderer.installScorePopoverBehavior(desktopPopover.documentRef, desktopPopover.container);
+desktopPopover.wrapper.emit("mouseenter");
+assert.equal(desktopPopover.trigger.getAttribute("aria-expanded"), "true");
+assert.equal(desktopPopover.popover.hidden, false);
+desktopPopover.wrapper.emit("mouseleave");
+assert.equal(desktopPopover.trigger.getAttribute("aria-expanded"), "false");
+desktopPopover.wrapper.emit("focusin", { target: desktopPopover.trigger });
+assert.equal(desktopPopover.popover.hidden, false);
+const escapeEvent = desktopPopover.documentRef.emit("keydown", { key: "Escape" });
+assert.equal(escapeEvent.defaultPrevented, true);
+assert.equal(desktopPopover.popover.hidden, true);
+assert.equal(desktopPopover.trigger.focused, true);
+desktopPopover.wrapper.emit("focusin", { target: desktopPopover.trigger });
+desktopPopover.wrapper.emit("focusout", { relatedTarget: desktopPopover.outside });
+assert.equal(desktopPopover.popover.hidden, true);
+cleanupDesktopPopover();
+
+const mobilePopover = scorePopoverFixture(false);
+const cleanupMobilePopover = renderer.installScorePopoverBehavior(mobilePopover.documentRef, mobilePopover.container);
+mobilePopover.trigger.emit("pointerdown");
+mobilePopover.wrapper.emit("focusin", { target: mobilePopover.trigger });
+mobilePopover.trigger.emit("click");
+assert.equal(mobilePopover.popover.hidden, false);
+mobilePopover.documentRef.emit("click", { target: mobilePopover.outside });
+assert.equal(mobilePopover.popover.hidden, true);
+mobilePopover.trigger.emit("pointerdown");
+mobilePopover.trigger.emit("click");
+assert.equal(mobilePopover.popover.hidden, false);
+mobilePopover.trigger.emit("pointerdown");
+mobilePopover.trigger.emit("click");
+assert.equal(mobilePopover.popover.hidden, true);
+cleanupMobilePopover();
 
 const recommendations = [
   { id: "rec_1", target_timeframe: { urgency: "U3" }, issue_ids: ["issue_1"] },
@@ -90,6 +370,32 @@ const fixturePath = path.join(repoRoot, "docs", "diagnostics", "fixtures", "vali
 const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 assert.doesNotThrow(() => renderer.assertClientReport(fixture));
 assert.ok(renderer.selectPriorityRecommendations(fixture.recommendations, fixture.issues).length > 0);
+const renderDocument = new FakeDocument(true);
+const renderContainer = new FakeNode();
+const renderedReport = renderer.renderReport(fixture, {
+  document: renderDocument,
+  container: renderContainer,
+  pageUrl,
+  photoViewer: { open() {} }
+});
+const renderedScoreTriggers = renderContainer.querySelectorAll(".diag-score-trigger");
+assert.equal(renderedScoreTriggers.length, fixture.issues.length * 4);
+for (const trigger of renderedScoreTriggers) {
+  assert.equal(trigger.tagName, "BUTTON");
+  assert.equal(trigger.getAttribute("aria-haspopup"), "dialog");
+  assert.equal(trigger.getAttribute("aria-expanded"), "false");
+  assert.ok(renderedReport.querySelector("#" + trigger.getAttribute("aria-controls")));
+  assert.equal(trigger.getAttribute("title"), null);
+}
+const renderedPriorityPopover = renderedReport.querySelector(".diag-score-popover");
+assert.equal(renderedPriorityPopover.getAttribute("role"), "dialog");
+assert.equal(renderedPriorityPopover.querySelectorAll(".diag-score-legend-row").length, 5);
+assert.equal(renderedPriorityPopover.querySelectorAll(".diag-score-legend-row[data-current=\"true\"]").length, 1);
+const renderedFirstWrapper = renderedReport.querySelector(".diag-score-help");
+renderedFirstWrapper.emit("mouseenter");
+assert.equal(renderedScoreTriggers[0].getAttribute("aria-expanded"), "true");
+renderedFirstWrapper.emit("mouseleave");
+assert.equal(renderedScoreTriggers[0].getAttribute("aria-expanded"), "false");
 
 assert.equal(Object.prototype.hasOwnProperty.call(fixture, "pricing"), false);
 const pricingComponents = [
@@ -243,5 +549,12 @@ const rendererCss = fs.readFileSync(path.join(repoRoot, "styles", "diagnostics-r
 assert.match(rendererCss, /\.diag-report-navigation-scroll\s*\{[^}]*overflow-x:\s*auto/s);
 assert.match(rendererCss, /\.diag-section\[id\]\s*\{[^}]*scroll-margin-top:/s);
 assert.match(rendererCss, /@media print[\s\S]*\.diag-report-navigation,[\s\S]*display:\s*none\s*!important/);
+assert.match(rendererCss, /\.diag-score-popover\s*\{[^}]*width:\s*min\(18rem, calc\(100vw - 2rem\)\)/s);
+assert.match(rendererCss, /@media \(max-width: 619px\)[\s\S]*\.diag-score-popover,[\s\S]*width:\s*auto/s);
+assert.match(rendererCss, /\.diag-score-legend-row\[data-current="true"\]\s*\{[^}]*background:\s*var\(--accent-soft\)/s);
+assert.match(rendererCss, /@media print[\s\S]*\.diag-score-popover,[\s\S]*display:\s*none\s*!important/);
+const printCss = rendererCss.slice(rendererCss.indexOf("@media print"));
+assert.match(printCss, /\.diag-score-help-mark,/);
+assert.doesNotMatch(printCss, /\.diag-score-trigger/);
 
 console.log("Diagnostics renderer tests passed: labels, priority, currency, URL boundary and client safety.");

@@ -181,6 +181,14 @@
   const PHOTO_CAPTION_BOILERPLATE = "Originálny mediálny súbor nebol extrahovaný.";
   const IMAGE_TYPES = new Set(["photo", "thermal_image", "drone_photo", "photo_360"]);
   const MAX_INITIAL_IMAGES = 8;
+  const SCORE_LEGENDS = Object.freeze({
+    priority: Object.freeze({ title: "Priorita", values: Object.freeze(["P1", "P2", "P3", "P4", "P5"]), showCodes: true }),
+    severity: Object.freeze({ title: "Závažnosť", values: Object.freeze(["S1", "S2", "S3", "S4", "S5"]), showCodes: true }),
+    urgency: Object.freeze({ title: "Naliehavosť", values: Object.freeze(["U1", "U2", "U3", "U4", "U5"]), showCodes: true }),
+    confidence: Object.freeze({ title: "Istota záveru", values: Object.freeze(["unknown", "low", "medium", "high"]), showCodes: false })
+  });
+  const scorePopoverCleanupByContainer = new WeakMap();
+  let scorePopoverSequence = 0;
 
   function validateAccessId(value) {
     return typeof value === "string" && ACCESS_ID_PATTERN.test(value);
@@ -292,6 +300,21 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function scoreLegendEntries(group, currentValue) {
+    const legend = SCORE_LEGENDS[group];
+    if (!legend || !LABELS[group]) {
+      return [];
+    }
+    return legend.values.map(function (value) {
+      return {
+        value: value,
+        code: legend.showCodes ? value : null,
+        label: LABELS[group][value],
+        current: value === currentValue
+      };
+    });
+  }
+
   function sanitizePhotoCaption(value) {
     if (typeof value !== "string") {
       return "";
@@ -371,6 +394,173 @@
     }
     node.append(documentRef.createTextNode(text ? " " + text : ""));
     return node;
+  }
+
+  function scoreBadge(documentRef, group, value, code, text, tone) {
+    const legend = SCORE_LEGENDS[group];
+    const entries = scoreLegendEntries(group, value);
+    if (!legend || !entries.length) {
+      return badge(documentRef, code, text, tone);
+    }
+    scorePopoverSequence += 1;
+    const popoverId = "diag-score-popover-" + scorePopoverSequence;
+    const titleId = popoverId + "-title";
+    const wrapper = element(documentRef, "span", "diag-score-help");
+    const trigger = element(documentRef, "button", "diag-badge diag-score-trigger");
+    trigger.type = "button";
+    if (tone) {
+      trigger.dataset.tone = tone;
+    }
+    if (code) {
+      trigger.append(element(documentRef, "strong", null, code));
+    }
+    trigger.append(documentRef.createTextNode(text ? " " + text : ""));
+    trigger.append(element(documentRef, "span", "diag-score-help-mark", "?"));
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", popoverId);
+    trigger.setAttribute("aria-haspopup", "dialog");
+    trigger.setAttribute("aria-label", (code ? code + " " : "") + text + ". Zobraziť vysvetlenie celej stupnice.");
+
+    const popover = element(documentRef, "span", "diag-score-popover");
+    popover.id = popoverId;
+    popover.hidden = true;
+    popover.setAttribute("role", "dialog");
+    popover.setAttribute("aria-labelledby", titleId);
+    const popoverTitle = element(documentRef, "strong", "diag-score-popover-title", legend.title);
+    popoverTitle.id = titleId;
+    popover.append(popoverTitle);
+    const list = element(documentRef, "span", "diag-score-legend");
+    list.setAttribute("role", "list");
+    entries.forEach(function (entry) {
+      const row = element(documentRef, "span", "diag-score-legend-row");
+      row.setAttribute("role", "listitem");
+      if (entry.current) {
+        row.dataset.current = "true";
+        row.setAttribute("aria-current", "true");
+      }
+      if (entry.code) {
+        row.append(element(documentRef, "strong", "diag-score-legend-code", entry.code));
+        row.append(documentRef.createTextNode(" — "));
+      }
+      row.append(element(documentRef, "span", null, entry.label));
+      list.append(row);
+    });
+    popover.append(list);
+    wrapper.append(trigger, popover);
+    return wrapper;
+  }
+
+  function installScorePopoverBehavior(documentRef, container) {
+    const previousCleanup = scorePopoverCleanupByContainer.get(container);
+    if (previousCleanup) {
+      previousCleanup();
+    }
+    const records = Array.from(container.querySelectorAll(".diag-score-help")).map(function (wrapper) {
+      return {
+        wrapper: wrapper,
+        trigger: wrapper.querySelector(".diag-score-trigger"),
+        popover: wrapper.querySelector(".diag-score-popover"),
+        pointerStartedOpen: false,
+        pointerInside: false,
+        focusInside: false
+      };
+    }).filter(function (record) {
+      return record.trigger && record.popover;
+    });
+    const removers = [];
+    const defaultView = documentRef.defaultView;
+    const hoverCapable = !defaultView || typeof defaultView.matchMedia !== "function"
+      ? true
+      : defaultView.matchMedia("(hover: hover)").matches;
+
+    function listen(target, type, handler) {
+      target.addEventListener(type, handler);
+      removers.push(function () { target.removeEventListener(type, handler); });
+    }
+
+    function setOpen(record, open) {
+      record.trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      record.popover.hidden = !open;
+    }
+
+    function closeAll(except) {
+      records.forEach(function (record) {
+        if (record !== except) {
+          setOpen(record, false);
+        }
+      });
+    }
+
+    function open(record) {
+      closeAll(record);
+      setOpen(record, true);
+    }
+
+    records.forEach(function (record) {
+      if (hoverCapable) {
+        listen(record.wrapper, "mouseenter", function () {
+          record.pointerInside = true;
+          open(record);
+        });
+        listen(record.wrapper, "mouseleave", function () {
+          record.pointerInside = false;
+          if (!record.focusInside) {
+            setOpen(record, false);
+          }
+        });
+      }
+      listen(record.wrapper, "focusin", function () {
+        record.focusInside = true;
+        open(record);
+      });
+      listen(record.wrapper, "focusout", function (event) {
+        record.focusInside = record.wrapper.contains(event.relatedTarget);
+        if (!record.focusInside && !record.pointerInside) {
+          setOpen(record, false);
+        }
+      });
+      listen(record.trigger, "pointerdown", function () {
+        record.pointerStartedOpen = record.trigger.getAttribute("aria-expanded") === "true";
+      });
+      listen(record.trigger, "click", function (event) {
+        event.preventDefault();
+        if (hoverCapable || !record.pointerStartedOpen) {
+          open(record);
+        } else {
+          setOpen(record, false);
+        }
+        record.pointerStartedOpen = false;
+      });
+    });
+
+    function handleDocumentClick(event) {
+      if (!records.some(function (record) { return record.wrapper.contains(event.target); })) {
+        closeAll(null);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      const active = records.find(function (record) {
+        return record.trigger.getAttribute("aria-expanded") === "true";
+      });
+      if (active) {
+        event.preventDefault();
+        active.trigger.focus();
+        setOpen(active, false);
+      }
+    }
+
+    listen(documentRef, "click", handleDocumentClick);
+    listen(documentRef, "keydown", handleEscape);
+    const cleanup = function () {
+      removers.forEach(function (remove) { remove(); });
+      scorePopoverCleanupByContainer.delete(container);
+    };
+    scorePopoverCleanupByContainer.set(container, cleanup);
+    return cleanup;
   }
 
   function toneForScale(value) {
@@ -1097,10 +1287,10 @@
     main.append(element(documentRef, "p", "diag-issue-area",
       array(issue.affected_areas).map(areaText).join(" · ")));
     const badges = element(documentRef, "div", "diag-badge-row");
-    badges.append(badge(documentRef, issue.priority, label("priority", issue.priority), toneForScale(issue.priority)));
-    badges.append(badge(documentRef, issue.severity, label("severity", issue.severity), toneForScale(issue.severity)));
-    badges.append(badge(documentRef, issue.urgency, label("urgency", issue.urgency), toneForScale(issue.urgency)));
-    badges.append(badge(documentRef, null, "Istota: " + label("confidence", issue.confidence), "neutral"));
+    badges.append(scoreBadge(documentRef, "priority", issue.priority, issue.priority, label("priority", issue.priority), toneForScale(issue.priority)));
+    badges.append(scoreBadge(documentRef, "severity", issue.severity, issue.severity, label("severity", issue.severity), toneForScale(issue.severity)));
+    badges.append(scoreBadge(documentRef, "urgency", issue.urgency, issue.urgency, label("urgency", issue.urgency), toneForScale(issue.urgency)));
+    badges.append(scoreBadge(documentRef, "confidence", issue.confidence, null, "Istota: " + label("confidence", issue.confidence), "neutral"));
     main.append(badges);
     main.append(element(documentRef, "p", "diag-issue-summary", issue.summary));
     article.append(main);
@@ -1483,6 +1673,7 @@
 
   function renderReport(report, options) {
     assertClientReport(report);
+    scorePopoverSequence = 0;
     const documentRef = options && options.document ? options.document : document;
     const pageUrl = options && options.pageUrl
       ? options.pageUrl
@@ -1522,6 +1713,7 @@
     content.append(end);
     refreshSectionNavigation(content, documentRef);
     container.replaceChildren(content);
+    installScorePopoverBehavior(documentRef, container);
 
     const printProperty = documentRef.getElementById("diag-print-property");
     const printMeta = documentRef.getElementById("diag-print-meta");
@@ -1541,12 +1733,15 @@
     formatCurrency: formatCurrency,
     formatPricingCurrency: formatPricingCurrency,
     sanitizePhotoCaption: sanitizePhotoCaption,
+    SCORE_LEGENDS: SCORE_LEGENDS,
+    scoreLegendEntries: scoreLegendEntries,
     pricingPrimaryText: pricingPrimaryText,
     groupReportPricing: groupReportPricing,
     selectPriorityRecommendations: selectPriorityRecommendations,
     assertClientReport: assertClientReport,
     createPhotoViewer: createPhotoViewer,
     refreshSectionNavigation: refreshSectionNavigation,
+    installScorePopoverBehavior: installScorePopoverBehavior,
     installPrintBehavior: installPrintBehavior,
     renderReport: renderReport
   });
