@@ -79,6 +79,12 @@ for (const [value, expected] of pricingCurrencyCases) {
   assert.equal(renderer.formatPricingCurrency(value, "EUR"), expected);
 }
 assert.equal(renderer.formatPricingCurrency(0.1 + 0.2, "EUR"), "0,30 €");
+const recoveredPhotoCaption = renderer.sanitizePhotoCaption(
+  "Fotografia priložená v SafetyCulture reporte k otázke „Je detail v poriadku?“. " +
+  "Originálny mediálny súbor nebol extrahovaný."
+);
+assert.equal(recoveredPhotoCaption, "Fotografia priložená v SafetyCulture reporte k otázke „Je detail v poriadku?“.");
+assert.doesNotMatch(recoveredPhotoCaption, /Originálny mediálny súbor nebol extrahovaný\./);
 
 const fixturePath = path.join(repoRoot, "docs", "diagnostics", "fixtures", "valid", "client-report-example.json");
 const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
@@ -188,6 +194,22 @@ for (const relative of inspectedFiles) {
 }
 
 const rendererSource = fs.readFileSync(path.join(repoRoot, "JSS/diagnostics-report.js"), "utf8");
+for (const section of [
+  ["diag-section-overview", "Prehľad"],
+  ["diag-section-priority", "Čo riešiť ako prvé"],
+  ["diag-section-pricing", "Finančný rámec"],
+  ["diag-section-findings", "Hlavné zistenia"],
+  ["diag-section-actions", "Odporúčané poradie krokov"],
+  ["diag-section-unverified", "Čo nebolo overené"],
+  ["diag-section-verifications", "Odporúčané a vykonané overenia"],
+  ["diag-section-relations", "Súvislosti medzi zisteniami"]
+]) {
+  assert.match(rendererSource, new RegExp(section[0]));
+  assert.match(rendererSource, new RegExp(section[1]));
+}
+assert.match(rendererSource, /querySelectorAll\("\.diag-section\[id\]\[data-diag-navigation-label\]"\)/);
+assert.match(rendererSource, /link\.setAttribute\("href", "#" \+ target\.id\)/);
+assert.match(rendererSource, /refreshSectionNavigation\(content, documentRef\)/);
 const renderFlowStart = rendererSource.indexOf("content.append(renderPriorityRecommendations");
 const pricingFlow = rendererSource.indexOf("const pricing = renderReportPricing", renderFlowStart);
 const issuesFlow = rendererSource.indexOf("content.append(renderIssues", pricingFlow);
@@ -216,5 +238,10 @@ assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
 assert.match(html, /<meta name="referrer" content="no-referrer">/);
 assert.doesNotMatch(html, /(?:src|href)=["']https?:\/\//i);
 assert.doesNotMatch(html, /analytics|gtag|googletagmanager|facebook\.net/i);
+
+const rendererCss = fs.readFileSync(path.join(repoRoot, "styles", "diagnostics-report.css"), "utf8");
+assert.match(rendererCss, /\.diag-report-navigation-scroll\s*\{[^}]*overflow-x:\s*auto/s);
+assert.match(rendererCss, /\.diag-section\[id\]\s*\{[^}]*scroll-margin-top:/s);
+assert.match(rendererCss, /@media print[\s\S]*\.diag-report-navigation,[\s\S]*display:\s*none\s*!important/);
 
 console.log("Diagnostics renderer tests passed: labels, priority, currency, URL boundary and client safety.");

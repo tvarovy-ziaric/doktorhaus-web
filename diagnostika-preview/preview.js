@@ -24,6 +24,12 @@
     return response.json();
   }
 
+  function clientPhotoCaption(item) {
+    var fallback = "Dokumentačná fotografia · " + item.source_identity;
+    var caption = renderer.sanitizePhotoCaption(item.source_caption);
+    return caption || fallback;
+  }
+
   function appendixSection(appendix, viewer) {
     if (!appendix || appendix.document_type !== "source_documentation_appendix" || appendix.photo_count !== 18 ||
         !Array.isArray(appendix.items) || appendix.items.length !== 18) {
@@ -31,6 +37,8 @@
     }
     var section = document.createElement("section");
     section.className = "diag-section dh-source-appendix";
+    section.id = "diag-section-source-photos";
+    section.dataset.diagNavigationLabel = "Zdrojová fotodokumentácia";
     section.setAttribute("aria-labelledby", "dh-source-appendix-title");
     var eyebrow = document.createElement("p");
     eyebrow.className = "eyebrow";
@@ -56,8 +64,9 @@
       button.className = "dh-source-photo-button";
       button.type = "button";
       var image = document.createElement("img");
+      var displayCaption = clientPhotoCaption(item);
       image.src = mediaUrl;
-      image.alt = item.source_caption || item.source_identity || "Dokumentačná fotografia";
+      image.alt = displayCaption || item.source_identity || "Dokumentačná fotografia";
       image.loading = "lazy";
       image.decoding = "async";
       var meta = document.createElement("span");
@@ -65,7 +74,7 @@
       meta.textContent = item.display_code + " · " + item.source_identity;
       var caption = document.createElement("span");
       caption.className = "dh-source-caption";
-      caption.textContent = item.source_caption || ("Dokumentačná fotografia · " + item.source_identity);
+      caption.textContent = displayCaption;
       button.append(image, meta, caption);
       card.append(button);
       grid.append(card);
@@ -101,6 +110,7 @@
         pageUrl: window.location.href
       });
       content.append(appendixSection(responses[1], viewer));
+      renderer.refreshSectionNavigation(content, document);
       renderer.installPrintBehavior(document);
       show(reportArticle);
     } catch (loadError) {

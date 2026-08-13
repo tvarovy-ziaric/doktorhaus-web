@@ -178,6 +178,7 @@
 
   const ACCESS_ID_PATTERN = /^acc_[0-9a-f]{32}$/;
   const EVIDENCE_ID_PATTERN = /^ev_[0-9a-f]{16,32}$/;
+  const PHOTO_CAPTION_BOILERPLATE = "Originálny mediálny súbor nebol extrahovaný.";
   const IMAGE_TYPES = new Set(["photo", "thermal_image", "drone_photo", "photo_360"]);
   const MAX_INITIAL_IMAGES = 8;
 
@@ -291,6 +292,13 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function sanitizePhotoCaption(value) {
+    if (typeof value !== "string") {
+      return "";
+    }
+    return value.replace(PHOTO_CAPTION_BOILERPLATE, "").trim();
+  }
+
   function element(documentRef, tag, className, text) {
     const node = documentRef.createElement(tag);
     if (className) {
@@ -302,10 +310,13 @@
     return node;
   }
 
-  function section(documentRef, title, description, id) {
+  function section(documentRef, title, description, id, navigationLabel) {
     const wrapper = element(documentRef, "section", "diag-section");
     if (id) {
       wrapper.id = id;
+    }
+    if (navigationLabel) {
+      wrapper.dataset.diagNavigationLabel = navigationLabel;
     }
     const heading = element(documentRef, "div", "diag-section-heading");
     heading.append(element(documentRef, "h2", null, title));
@@ -314,6 +325,34 @@
     }
     wrapper.append(heading);
     return wrapper;
+  }
+
+  function refreshSectionNavigation(content, documentRef) {
+    const existing = content.querySelector(".diag-report-navigation");
+    if (existing) {
+      existing.remove();
+    }
+    const sections = Array.from(content.querySelectorAll(".diag-section[id][data-diag-navigation-label]"));
+    if (!sections.length) {
+      return null;
+    }
+    const navigation = element(documentRef, "nav", "diag-report-navigation");
+    navigation.setAttribute("aria-label", "Obsah správy");
+    navigation.append(element(documentRef, "span", "diag-report-navigation-label", "Obsah správy"));
+    const scroll = element(documentRef, "div", "diag-report-navigation-scroll");
+    const list = element(documentRef, "ul", "diag-report-navigation-list");
+    sections.forEach(function (target) {
+      const item = element(documentRef, "li");
+      const link = element(documentRef, "a", null, target.dataset.diagNavigationLabel);
+      link.setAttribute("href", "#" + target.id);
+      item.append(link);
+      list.append(item);
+    });
+    scroll.append(list);
+    navigation.append(scroll);
+    const header = content.querySelector(".diag-report-header");
+    content.insertBefore(navigation, header ? header.nextSibling : content.firstChild);
+    return navigation;
   }
 
   function subsection(documentRef, title) {
@@ -426,7 +465,9 @@
     const wrapper = section(
       documentRef,
       "Prehľad",
-      "Rýchla orientácia v hlavných zisteniach a odporúčaných krokoch. Hodnoty nemenia odborný obsah správy."
+      "Rýchla orientácia v hlavných zisteniach a odporúčaných krokoch. Hodnoty nemenia odborný obsah správy.",
+      "diag-section-overview",
+      "Prehľad"
     );
     const overview = report.overview || {};
     const values = [
@@ -478,7 +519,9 @@
     const wrapper = section(
       documentRef,
       "Čo riešiť ako prvé",
-      "Kroky sú prevzaté zo schválenej správy a zachovávajú jej poradie aj väzby."
+      "Kroky sú prevzaté zo schválenej správy a zachovávajú jej poradie aj väzby.",
+      "diag-section-priority",
+      "Čo riešiť ako prvé"
     );
     const priority = selectPriorityRecommendations(report.recommendations, report.issues);
     if (!priority.length) {
@@ -664,7 +707,9 @@
     const wrapper = section(
       documentRef,
       "Finančný rámec",
-      "Uvedené sumy sú orientačné rámce jednotlivých krokov alebo materiálov, nie rozpočet celej opravy. Tam, kde rozsah zatiaľ nie je známy, cenu neuvádzame."
+      "Uvedené sumy sú orientačné rámce jednotlivých krokov alebo materiálov, nie rozpočet celej opravy. Tam, kde rozsah zatiaľ nie je známy, cenu neuvádzame.",
+      "diag-section-pricing",
+      "Finančný rámec"
     );
     const issueById = new Map(array(report.issues).map(function (item) { return [item.id, item]; }));
     const recommendationById = new Map(array(report.recommendations).map(function (item) { return [item.id, item]; }));
@@ -1092,7 +1137,9 @@
     const wrapper = section(
       documentRef,
       "Hlavné zistenia",
-      "Pozorovaný stav, možné vysvetlenie, riziká a odporúčania sú oddelené, aby bolo zrejmé, čo vieme a čo ešte treba overiť."
+      "Pozorovaný stav, možné vysvetlenie, riziká a odporúčania sú oddelené, aby bolo zrejmé, čo vieme a čo ešte treba overiť.",
+      "diag-section-findings",
+      "Hlavné zistenia"
     );
     const issues = array(report.issues);
     if (!issues.length) {
@@ -1127,7 +1174,9 @@
     const wrapper = section(
       documentRef,
       "Odporúčané poradie krokov",
-      "Poradie je prevzaté z reportu. Číslovanie pomáha pri orientácii, ale nevytvára novú technickú závislosť."
+      "Poradie je prevzaté z reportu. Číslovanie pomáha pri orientácii, ale nevytvára novú technickú závislosť.",
+      "diag-section-actions",
+      "Odporúčané poradie krokov"
     );
     if (!recommendations.length) {
       wrapper.append(element(documentRef, "p", "diag-empty-note", "Správa neobsahuje odporúčané kroky."));
@@ -1175,7 +1224,9 @@
     const wrapper = section(
       documentRef,
       "Čo nebolo overené",
-      "Otvorené otázky, ktoré môžu ovplyvniť ďalší postup alebo rozsah opravy."
+      "Otvorené otázky, ktoré môžu ovplyvniť ďalší postup alebo rozsah opravy.",
+      "diag-section-unverified",
+      "Čo nebolo overené"
     );
     const listNode = element(documentRef, "div", "diag-missing-list");
     unique.forEach(function (item) {
@@ -1202,7 +1253,9 @@
     const wrapper = section(
       documentRef,
       "Odporúčané a vykonané overenia",
-      "Overenia spresňujú otvorené otázky; ich odporúčanie ešte neznamená, že už boli vykonané."
+      "Overenia spresňujú otvorené otázky; ich odporúčanie ešte neznamená, že už boli vykonané.",
+      "diag-section-verifications",
+      "Odporúčané a vykonané overenia"
     );
     const grid = element(documentRef, "div", "diag-verification-grid");
     verifications.forEach(function (verification) {
@@ -1234,7 +1287,9 @@
     const wrapper = section(
       documentRef,
       "Súvislosti medzi zisteniami",
-      "Zobrazené sú iba väzby, ktoré sú priamo uvedené v publikovanej správe."
+      "Zobrazené sú iba väzby, ktoré sú priamo uvedené v publikovanej správe.",
+      "diag-section-relations",
+      "Súvislosti medzi zisteniami"
     );
     const issueById = new Map(issues.map(function (issue) { return [issue.id, issue]; }));
     const listNode = element(documentRef, "div", "diag-relation-list");
@@ -1262,7 +1317,8 @@
     const wrapper = section(
       documentRef,
       "Rozsah správy",
-      "Správa vychádza iba z uvedeného rozsahu kontroly a priznaných obmedzení."
+      "Správa vychádza iba z uvedeného rozsahu kontroly a priznaných obmedzení.",
+      "diag-section-scope"
     );
     const grid = element(documentRef, "div", "diag-scope-grid");
     const scope = element(documentRef, "article", "diag-scope-panel");
@@ -1286,7 +1342,7 @@
   }
 
   function renderVersion(documentRef, report) {
-    const wrapper = section(documentRef, "Informácia o verzii správy", null);
+    const wrapper = section(documentRef, "Informácia o verzii správy", null, "diag-section-version");
     wrapper.append(definitionList(documentRef, [
       ["Verzia", report.report.version],
       ["Vydané", formatDate(report.report.published_at)],
@@ -1456,7 +1512,7 @@
     ].filter(Boolean).forEach(function (node) {
       content.append(node);
     });
-    const end = section(documentRef, "Koniec správy", null);
+    const end = section(documentRef, "Koniec správy", null, "diag-section-end");
     end.classList.add("diag-report-end");
     end.append(element(documentRef, "p", null, "Po skončení práce so správou sa môžete bezpečne odhlásiť."));
     const logout = element(documentRef, "button", "btn", "Odhlásiť");
@@ -1464,6 +1520,7 @@
     logout.dataset.diagLogout = "";
     end.append(logout);
     content.append(end);
+    refreshSectionNavigation(content, documentRef);
     container.replaceChildren(content);
 
     const printProperty = documentRef.getElementById("diag-print-property");
@@ -1483,11 +1540,13 @@
     validateMediaUrl: validateMediaUrl,
     formatCurrency: formatCurrency,
     formatPricingCurrency: formatPricingCurrency,
+    sanitizePhotoCaption: sanitizePhotoCaption,
     pricingPrimaryText: pricingPrimaryText,
     groupReportPricing: groupReportPricing,
     selectPriorityRecommendations: selectPriorityRecommendations,
     assertClientReport: assertClientReport,
     createPhotoViewer: createPhotoViewer,
+    refreshSectionNavigation: refreshSectionNavigation,
     installPrintBehavior: installPrintBehavior,
     renderReport: renderReport
   });

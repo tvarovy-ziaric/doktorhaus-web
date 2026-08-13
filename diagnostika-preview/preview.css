@@ -10,6 +10,10 @@
   font-weight: 800;
   letter-spacing: .12em;
 }
+
+.dh-preview-report-page {
+  --diag-navigation-top: 3.25rem;
+}
 .dh-preview-admin {
   max-width: 780px;
 }
@@ -114,6 +118,8 @@
 }
 
 @media (max-width: 620px) {
+  .dh-preview-report-page { --diag-navigation-top: 3rem; }
+
   .dh-preview-banner {
     padding: .55rem .45rem;
     font-size: .68rem;
