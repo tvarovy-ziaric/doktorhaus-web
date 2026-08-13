@@ -30,6 +30,6 @@ $_SESSION['latest_preview_id'] = $meta['preview_id'];
 dh_preview_json(201, [
     'ok' => true,
     'previewId' => $meta['preview_id'],
-    'previewUrl' => '../' . $meta['preview_id'] . '/',
+    'previewUrl' => '/diagnostika-preview/' . $meta['preview_id'] . '/',
     'counts' => $meta['counts'],
 ]);
