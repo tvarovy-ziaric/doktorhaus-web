@@ -333,5 +333,12 @@ if (in_array($operation, ['--rotate', '--revoke'], true) && isset($argv[2])) {
     echo json_encode($result, JSON_UNESCAPED_SLASHES) . "\n";
     exit(0);
 }
-fwrite(STDERR, "Usage: php test_diagnostics_delivery_fixture.php --prepare <storage-root>|--rotate <access-id>|--revoke <access-id>\n");
+if ($operation === '--create' && isset($argv[2], $argv[3])) {
+    $storage = DiagnosticsStorage::fromEnvironment();
+    $config = DiagnosticsSecurityConfig::fromEnvironment();
+    $service = new DiagnosticsAccessService($storage, $config);
+    echo json_encode($service->createGrant($argv[2], $argv[3]), JSON_UNESCAPED_SLASHES) . "\n";
+    exit(0);
+}
+fwrite(STDERR, "Usage: php test_diagnostics_delivery_fixture.php --prepare <storage-root>|--create <report-id> <version>|--rotate <access-id>|--revoke <access-id>\n");
 exit(2);

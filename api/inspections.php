@@ -1,7 +1,22 @@
 <?php
 declare(strict_types=1);
 
+use DoktorHaus\Diagnostics\DiagnosticsAccessException;
+use DoktorHaus\Diagnostics\DiagnosticsAccessService;
+use DoktorHaus\Diagnostics\DiagnosticsClientSession;
+use DoktorHaus\Diagnostics\DiagnosticsSecurityConfig;
+use DoktorHaus\Diagnostics\DiagnosticsStorage;
+use DoktorHaus\Diagnostics\DiagnosticsStorageException;
+
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessException.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsSecurityConfig.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsStorage.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessService.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsClientSession.php';
+
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
+header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 
 $dataFile = __DIR__ . '/../data/inspections.json';
@@ -141,6 +156,19 @@ function normalize_item(array $input, ?array $existing = null): array
         'updatedAt' => $now,
     ];
 
+    if (array_key_exists('diagnosticsAccessId', $input) && !is_string($input['diagnosticsAccessId'])) {
+        respond(422, ['ok' => false, 'error' => 'Diagnostický access ID nemá platný tvar.']);
+    }
+    $diagnosticsAccessId = array_key_exists('diagnosticsAccessId', $input)
+        ? trim($input['diagnosticsAccessId'])
+        : (is_string($existing['diagnosticsAccessId'] ?? null) ? $existing['diagnosticsAccessId'] : '');
+    if ($diagnosticsAccessId !== '') {
+        if (preg_match('/^acc_[0-9a-f]{32}$/D', $diagnosticsAccessId) !== 1) {
+            respond(422, ['ok' => false, 'error' => 'Diagnostický access ID nemá platný tvar.']);
+        }
+        $item['diagnosticsAccessId'] = $diagnosticsAccessId;
+    }
+
     if ($item['title'] === '') {
         respond(422, ['ok' => false, 'error' => 'Názov inšpekcie je povinný.']);
     }
@@ -231,11 +259,59 @@ if ($action === 'unlock') {
 
     foreach (load_items($dataFile) as $item) {
         if (($item['pin'] ?? '') === $pin && in_array(($item['status'] ?? ''), ['ready', 'sent'], true)) {
+            if (array_key_exists('diagnosticsAccessId', $item)) {
+                $diagnosticsAccessId = $item['diagnosticsAccessId'];
+                if (!is_string($diagnosticsAccessId) ||
+                    preg_match('/^acc_[0-9a-f]{32}$/D', $diagnosticsAccessId) !== 1) {
+                    respond(401, ['ok' => false, 'error' => 'PIN sa nepodarilo overiť.']);
+                }
+
+                try {
+                    $diagnosticsConfig = DiagnosticsSecurityConfig::fromEnvironment();
+                    $diagnosticsStorage = DiagnosticsStorage::fromEnvironment();
+                    $diagnosticsAccess = new DiagnosticsAccessService($diagnosticsStorage, $diagnosticsConfig);
+                    $diagnosticsSession = new DiagnosticsClientSession($diagnosticsAccess, $diagnosticsConfig);
+                    $diagnosticsSession->startHttp($_SERVER);
+                    $grant = $diagnosticsAccess->verifyPin($diagnosticsAccessId, $pin, $_SERVER);
+                    $diagnosticsSession->establish($grant, $_SERVER);
+                    respond(200, [
+                        'ok' => true,
+                        'mode' => 'diagnostics',
+                        'redirectUrl' => '/inspekcia.html?access=' . rawurlencode($diagnosticsAccessId),
+                    ]);
+                } catch (DiagnosticsAccessException $error) {
+                    if ($error->getAccessCode() === 'ACCESS_RATE_LIMITED') {
+                        $retryAfter = max(1, (int)$error->getRetryAfter());
+                        header('Retry-After: ' . $retryAfter);
+                        respond(429, ['ok' => false, 'error' => 'Priveľa pokusov. Skúste to znova neskôr.']);
+                    }
+                    if (in_array($error->getAccessCode(), ['ACCESS_CONFIG', 'ACCESS_HTTPS_REQUIRED'], true)) {
+                        respond(503, ['ok' => false, 'error' => 'Služba je dočasne nedostupná.']);
+                    }
+                    if (in_array($error->getAccessCode(), [
+                        'ACCESS_INVALID_ID',
+                        'ACCESS_NOT_FOUND',
+                        'ACCESS_INACTIVE',
+                        'ACCESS_EXPIRED',
+                        'ACCESS_PIN_INVALID',
+                        'ACCESS_SESSION_INVALID',
+                        'ACCESS_SESSION_EXPIRED',
+                        'ACCESS_PACKAGE_MISMATCH',
+                    ], true)) {
+                        respond(401, ['ok' => false, 'error' => 'PIN sa nepodarilo overiť.']);
+                    }
+                    respond(500, ['ok' => false, 'error' => 'Služba je dočasne nedostupná.']);
+                } catch (DiagnosticsStorageException $error) {
+                    respond(503, ['ok' => false, 'error' => 'Služba je dočasne nedostupná.']);
+                } catch (Throwable $error) {
+                    respond(500, ['ok' => false, 'error' => 'Služba je dočasne nedostupná.']);
+                }
+            }
             respond(200, ['ok' => true, 'inspection' => public_item($item)]);
         }
     }
 
-    respond(404, ['ok' => false, 'error' => 'K tomuto PINu sa nenašla pripravená inšpekcia.']);
+    respond(401, ['ok' => false, 'error' => 'PIN sa nepodarilo overiť.']);
 }
 
 require_admin_pin($payload, $adminPin);

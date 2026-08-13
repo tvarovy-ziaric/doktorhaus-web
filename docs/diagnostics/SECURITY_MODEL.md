@@ -11,12 +11,13 @@ Bezpečnostná zásada: žiadne client-private diagnostické dáta, fotografie a
 ### Klientsky prístup
 
 - `inspekcie.html` posiela šesťmiestny PIN v JSON tele na `api/inspections.php` s akciou `unlock`.
-- `api/inspections.php` porovnáva PIN priamo s hodnotou uloženou v `data/inspections.json`. PIN je uložený v otvorenom tvare.
-- Úspešné overenie nevytvára serverovú session. Endpoint v jednej odpovedi vráti metadáta a priame URL médií záznamu v stave `ready` alebo `sent`.
+- `api/inspections.php` najprv porovnáva PIN priamo s hodnotou uloženou v `data/inspections.json`. PIN je v tomto legacy zázname stále uložený v otvorenom tvare.
+- Záznam bez `diagnosticsAccessId` po úspechu naďalej nevytvára serverovú session a v jednej odpovedi vráti legacy metadáta a priame URL médií.
+- Záznam s platným server-side `diagnosticsAccessId` nevracia legacy obsah. Rovnaký zadaný PIN musí úspešne prejsť `DiagnosticsAccessService::verifyPin()`, potom `DiagnosticsClientSession::establish()` vytvorí štandardnú diagnostics session a klient dostane iba allowlisted redirect na `inspekcia.html?access=acc_…`.
 - PINy sa generujú cez `random_int()` a kontroluje sa jedinečnosť v aktuálnom JSON súbore.
-- Nie je implementovaný limit pokusov, oneskorenie, blokovanie, expirácia, revokácia ani audit klientskych prístupov.
+- Legacy záznam bez bindingu nemá limit pokusov, expiráciu, revokáciu ani access audit. Linked tok preberá rate limiting, expiráciu, revokáciu, generation kontrolu a audit existujúceho diagnostics grantu.
 
-Tieto body naďalej presne opisujú iba legacy tok `api/inspections.php`. Nové jadro ho neprepája ani nemigruje.
+Bridge nemigruje legacy PIN, nevytvára grant a z `ready`/`sent` nerobí diagnostics publish stav. Binding je použiteľný iba na už existujúci publikovaný package a grant s rovnakým PINom; grant zostáva autoritatívny.
 
 ### Izolované diagnostické jadro kroku 4A
 
@@ -53,12 +54,12 @@ Detailný model, HTTP kontrakt a prevádzkové hranice sú v [CLIENT_ACCESS_SECU
 
 ## Identifikované legacy riziká a zostávajúce medzery
 
-1. Legacy šesťmiestny PIN má nízku entropiu a bez rate limitingu sa dá skúšať automatizovane; nové jadro túto konkrétnu hranu limituje, ale legacy tok nie.
+1. Legacy šesťmiestny PIN má nízku entropiu. Neznáme PINy, ktoré nenájdu žiadny legacy záznam, stále neprechádzajú diagnostics limiterom; pri linked zázname však každý pokus, ktorý sa dostane k diagnostics grantu, podlieha jeho access+IP a globálnemu IP limitu.
 2. Únik `data/inspections.json`, admin odpovede alebo zálohy odhalí otvorené klientské PINy.
 3. Priama URL súkromného média zostáva použiteľná bez PINu a môže sa dostať do histórie, logov, referrerov alebo preposlania.
 4. `sessionStorage` chráni iba zobrazenie rozcestníka, nie serverový zdroj.
 5. Zdieľaný globálny Admin PIN neposkytuje identitu, role, odvolanie konkrétneho prístupu ani audit approvera.
-6. Legacy prístup nemá expiráciu/revokáciu; krok 4A ich má pre izolovaný grant, ale zatiaľ nie je prepojený na withdraw/publish workflow.
+6. Legacy prístup nemá expiráciu/revokáciu. Linked diagnostics tok rešpektuje expiráciu, revokáciu, generation a package binding grantu, ale jeho vytvorenie ani zrušenie stále nie je automaticky prepojené na legacy `ready`/`sent` alebo budúci withdraw/publish workflow.
 7. `ready` sprístupňuje dáta, ale nie je viazané na nemennú, auditovanú report version.
 8. Produkčné umiestnenie, backup, restore a retencia nového storage rootu ešte nie sú overené na cieľovom hostingu.
 9. Ochrana `data/` a configs závisí od webservera; pri migrácii mimo Apache môže prestať platiť.

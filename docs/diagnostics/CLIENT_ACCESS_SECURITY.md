@@ -8,7 +8,7 @@ Krok 4A vytvára izolované serverové jadro pre budúci klientsky prístup k pr
 
 Implementácia chráni iba stav autentizácie a väzbu oprávnenia na immutable balík. Nevydáva inspection, diagnosis, reportové JSON, PDF, prílohy, fotografie ani video. Neobsahuje renderer, klientsky frontend, backoffice UI na vydávanie grantov, field-level autorizáciu ani media streaming.
 
-Legacy súbory `inspekcie.html`, `inspekcie-admin.html`, `api/inspections.php`, `backoffice.html` a runtime `data/inspections.json` sa nemenia ani nemigrujú. Ich doterajší PIN tok preto nezískava vlastnosti kroku 4A automaticky.
+Legacy záznamy sa nemigrujú a ich pôvodný klientsky tok zostáva dostupný. Záznam však môže mať voliteľný server-side binding `diagnosticsAccessId`. V takom prípade je `inspekcie.html` iba vstupný formulár: `api/inspections.php` musí rovnaký zadaný PIN overiť cez `DiagnosticsAccessService::verifyPin()`, vytvoriť štandardnú session cez `DiagnosticsClientSession::establish()` a vrátiť bezpečný redirect na `inspekcia.html?access=acc_…`. Binding nevytvára grant, nemení jeho PIN a nie je alternatívnym autorizačným modelom.
 
 ## Komponenty
 
@@ -137,6 +137,14 @@ Krok 4A neimplementuje a netvrdí ochranu týchto budúcich tokov:
 - backoffice identita, role a UI na vydávanie grantov alebo doručenie PINu;
 - SafetyCulture integrácia;
 - migrácia legacy záznamov alebo ich plaintext PINov.
+
+## Bridge z existujúceho inspection PIN formulára
+
+Voliteľné pole `diagnosticsAccessId` má tvar `^acc_[0-9a-f]{32}$` a ukladá sa iba v internom inspection recorde. `public_item()` ho nesmie vydať ako všeobecné klientské metadata. Bez bindingu sa zachová pôvodná legacy odpoveď.
+
+Pri linked zázname server po nájdení `ready|sent` inspection odovzdá ten istý šesťmiestny PIN autoritatívnemu diagnostics grantu. Legacy PIN a grant PIN preto musia byť rovnaké; rozdiel, neznámy alebo neplatný binding, neaktívny či expirovaný grant a package mismatch zlyhajú rovnakou všeobecnou auth odpoveďou. Rate-limit odpoveď grantu sa prenesie ako 429 s `Retry-After`.
+
+Úspech vytvorí tú istú `DH_DIAGSESSID` cookie s existujúcou politikou a vráti iba `mode: diagnostics` a allowlisted redirect URL. PIN nie je v URL ani odpovedi. Po presmerovaní `diagnostics-client.js` rozpozná session cez status request a načíta report bez druhého PIN formulára. Opaque access ID v redirect URL nie je samostatný credential.
 
 Kým tieto vrstvy nevzniknú, nový auth endpoint sa nesmie interpretovať ako hotový klientsky portál a žiadne privátne reportové dáta sa cezň nesmú vracať.
 

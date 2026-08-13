@@ -70,6 +70,12 @@
         <textarea name="summary" rows="4" placeholder="Stručne, čo klient na stránke nájde."></textarea>
       </label>
 
+      <label>
+        Diagnostický access ID
+        <input type="text" name="diagnosticsAccessId" pattern="acc_[0-9a-f]{32}" placeholder="acc_0123456789abcdef0123456789abcdef" autocomplete="off" spellcheck="false">
+        <small>Voliteľné interné prepojenie na publikovanú diagnostickú správu.</small>
+      </label>
+
       <div class="form-row">
         <label>
           PDF správa
@@ -222,6 +228,7 @@
       location: data.get("location"),
       clientEmail: data.get("clientEmail"),
       summary: data.get("summary"),
+      diagnosticsAccessId: data.get("diagnosticsAccessId"),
       media: {
         reportUrl: data.get("reportUrl"),
         docsUrl: data.get("docsUrl"),
@@ -239,6 +246,7 @@
     form.elements.location.value = item.location || "";
     form.elements.clientEmail.value = item.clientEmail || "";
     form.elements.summary.value = item.summary || "";
+    form.elements.diagnosticsAccessId.value = item.diagnosticsAccessId || "";
     form.elements.reportUrl.value = item.media?.reportUrl || "";
     form.elements.docsUrl.value = item.media?.docsUrl || "";
     form.elements.panoravenUrl.value = item.media?.panoravenUrl || "";

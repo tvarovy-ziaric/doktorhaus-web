@@ -10,7 +10,7 @@ Cieľom je rozšíriť existujúci web DoktorHaus o diagnostickú vrstvu bez pre
 
 - Web tvoria samostatné HTML stránky, globálny `styles/style.css` a inline vanilla JavaScript.
 - `JSS/header.html` a `JSS/footer.html` sa do stránok vkladajú klientskym `fetch()`; navigácia už obsahuje verejnú položku `Inšpekcie` a samostatnú obsahovú vetvu `Diagnostika`.
-- `inspekcie.html` obsahuje verejný odkaz na statickú vzorovú stránku a formulár pre šesťmiestny klientsky PIN. Po úspešnom POSTe vykreslí v tej istej stránke názov, opis, odkazy na médiá a fotogalériu.
+- `inspekcie.html` obsahuje verejný odkaz na statickú vzorovú stránku a formulár pre šesťmiestny klientsky PIN. Legacy záznam po úspešnom POSTe vykreslí v tej istej stránke; záznam s `diagnosticsAccessId` po vytvorení autoritatívnej diagnostics session presmeruje na `inspekcia.html?access=acc_…`.
 - `inspekcia-vzor.html` je samostatná, napevno napísaná verejná ukážka. Obsahuje PDF v `uploads/inspekcie/vzor/`, externý Google Docs odkaz, Panoraven, YouTube a ukážkové SVG fotografie. Nie je generovaná z diagnostického dátového modelu.
 - Všetky uvedené stránky používajú existujúci vizuálny jazyk a triedy z globálneho CSS.
 
@@ -18,7 +18,7 @@ Cieľom je rozšíriť existujúci web DoktorHaus o diagnostickú vrstvu bez pre
 
 - `backoffice.html` je rozcestník interných modulov. PIN overuje cez `api/backoffice.php`, ale úspešný stav rozcestníka drží iba ako príznak v `sessionStorage`.
 - `inspekcie-admin.html` je samostatný vanilla JS formulár. Pri každej operácii posiela Admin PIN do `api/inspections.php`.
-- Formulár spravuje základné metadáta, email, priame URL dokumentov a médií a ručne vložené JSON pole fotografií.
+- Formulár spravuje základné metadáta, email, priame URL dokumentov a médií, ručne vložené JSON pole fotografií a voliteľný interný `diagnosticsAccessId` binding.
 - Aktuálne stavy sú `draft`, `ready` a `sent`. Akcia `mark-ready` je dnešná manuálna publikačná brána: nastaví `ready` a prvýkrát vygeneruje PIN. `send-email` používa PHP `mail()` a nastaví `sent`; `set-draft` vráti záznam do konceptu.
 
 ### PHP a runtime dáta
@@ -26,9 +26,9 @@ Cieľom je rozšíriť existujúci web DoktorHaus o diagnostickú vrstvu bez pre
 - `api/inspections.php` je jeden POST endpoint prepínaný poľom `action`: `unlock`, `admin-list`, `save`, `mark-ready`, `send-email`, `set-draft`.
 - Konfigurácia sa číta z environment premenných alebo z lokálneho `api/inspections.config.php`; Admin PIN môže spätne použiť aj `PUBLIC_HELP_PIN`.
 - Dáta sa ukladajú ako jedno JSON pole v runtime súbore `data/inspections.json`. Zápis používa `LOCK_EX`; produkčná databáza neexistuje.
-- Klientsky `unlock` prehľadá záznamy podľa PINu a vráti záznam iba v stave `ready` alebo `sent`.
+- Klientsky `unlock` prehľadá záznamy podľa PINu a ak chýba diagnostics binding, vráti legacy záznam iba v stave `ready` alebo `sent`. Pri bindingu musí ten istý PIN overiť existujúci diagnostics grant a endpoint namiesto legacy dát založí `DH_DIAGSESSID` a vráti bezpečný redirect.
 - `api/.htaccess` blokuje priame načítanie konfiguračných PHP súborov. `data/.htaccess` blokuje celý adresár. `uploads/.htaccess` blokuje vykonanie PHP, ale nebráni priamemu načítaniu obrázkov a dokumentov.
-- Izolovaný modul `api/lib/diagnostics/` od kroku 3 poskytuje filesystem storage pre diagnostické drafty a immutable report packages. Nie je napojený na legacy endpoint ani na HTTP route a produkčný root vyžaduje mimo webrootu.
+- Modul `api/lib/diagnostics/` poskytuje filesystem storage, granty, session a delivery pre immutable report packages. `api/inspections.php` ho pri voliteľnom bindingu používa iba ako klienta existujúceho auth/session kontraktu; produkčný root naďalej vyžaduje umiestnenie mimo webrootu.
 
 ### Nasadenie
 

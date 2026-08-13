@@ -8,7 +8,7 @@ Krok 5A pridáva samostatnú súkromnú stránku `inspekcia.html?access=acc_…`
 - `JSS/diagnostics-client.js` vlastní session/PIN/report/logout lifecycle a sieťové požiadavky;
 - `JSS/diagnostics-report.js` je čistý DOM renderer a sada testovateľných mapovaní/validátorov;
 - `styles/diagnostics-report.css` izoluje reportové, responsive a print štýly cez prefix `diag-`;
-- existujúce `inspekcie.html`, `inspekcia-vzor.html`, legacy PIN tok a backoffice zostávajú nezmenené.
+- `inspekcie.html` môže pre linked inspection po serverovom overení existujúceho PINu presmerovať na túto stránku; grant, session a reportové endpointy zostávajú autoritatívne a legacy záznam bez bindingu sa naďalej vykreslí pôvodným spôsobom;
 
 Stránka nenačítava externé fonty, knižnice, obrázky ani analytiku. Má `robots=noindex,nofollow,noarchive` a `referrer=no-referrer`. Nezapisuje access handle, PIN, CSRF token ani report do `localStorage`, `sessionStorage`, IndexedDB alebo service workera.
 
@@ -86,6 +86,8 @@ bash tools/test_diagnostics_renderer_http.sh
 ```
 
 Node test overuje mapovania, urgentný výber, menu, access/media URL hranicu, pricing grouping a formulácie, umiestnenie sekcie, nezmenený `renderCost(issue)` boundary a zakázané klientské API. HTTP test na syntetickom immutable balíku overí stránku a assets, noindex/referrer, neprístupný report pred unlockom a reálny PIN unlock → client report tok. Existujúce projection, auth, storage a media testy zostávajú autoritatívnym dôkazom serverovej hranice.
+
+`tools/test_inspection_diagnostics_bridge_http.sh` navyše overuje legacy fallback, admin binding validáciu, vynútenie rovnakého PINu, vytvorenie existujúcej diagnostics session, report po jednom PINe, logout, neaktívny/expirovaný grant, rate limit a neprítomnosť bindingu/PINu v nepovolených klientskych výstupoch.
 
 ## Čo krok 5A nerobí
 

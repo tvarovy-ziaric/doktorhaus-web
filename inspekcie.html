@@ -187,6 +187,13 @@
     `;
   }
 
+  function diagnosticsRedirectUrl(value) {
+    if (typeof value !== "string") {
+      return null;
+    }
+    return /^\/inspekcia\.html\?access=acc_[0-9a-f]{32}$/.test(value) ? value : null;
+  }
+
   function renderInspection(inspection) {
     const media = inspection.media || {};
     privateTitle.textContent = inspection.title || "Vaša inšpekcia";
@@ -237,8 +244,24 @@
         body: JSON.stringify({action: "unlock", pin})
       });
       const result = await response.json();
+      if (response.status === 429) {
+        const retryAfter = Number.parseInt(response.headers.get("Retry-After"), 10);
+        throw new Error(Number.isFinite(retryAfter) && retryAfter > 0
+          ? `Priveľa pokusov. Skúste to znova približne o ${retryAfter} sekúnd.`
+          : "Priveľa pokusov. Počkajte chvíľu a skúste to znova.");
+      }
       if (!response.ok || !result.ok) {
         throw new Error(result.error || "Inšpekciu sa nepodarilo odomknúť.");
+      }
+      if (result.mode === "diagnostics") {
+        const redirectUrl = diagnosticsRedirectUrl(result.redirectUrl);
+        if (!redirectUrl) {
+          throw new Error("Diagnostickú správu sa nepodarilo bezpečne otvoriť.");
+        }
+        pinForm.reset();
+        setPinStatus("Otváram diagnostickú správu…");
+        window.location.assign(redirectUrl);
+        return;
       }
       renderInspection(result.inspection);
       setPinStatus("Inšpekcia je odomknutá.");

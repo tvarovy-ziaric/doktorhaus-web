@@ -134,7 +134,7 @@ Klient vidí verziu, change summary, report a autorizované médiá. Prístup mo
 
 Krok 4A implementuje prvú bezpečnostnú časť tohto bodu: interné vytvorenie grantu pre presnú publikovanú verziu, jednorazové vrátenie plaintext PINu, overenie, serverovú session, rate limiting, rotáciu, revokáciu a audit. Krok 4B po validnej session vydá client-safe change/report projection a iba evidence médiá, ktoré prejdú active/privacy/relevance allowlistom. Report ani media request nesmie zvoliť report, verziu alebo storage path.
 
-Stále nie je implementovaný kanál doručenia PINu, backoffice issuance UI ani klientsky renderer/final UX. Legacy `ready`/`sent` tok sa nemení a jeho plaintext PINy sa nemigrujú.
+Legacy `ready`/`sent` záznamy a ich plaintext PINy sa nemigrujú. Voliteľný `diagnosticsAccessId` však môže existujúci PIN formulár prepojiť na už samostatne vydaný diagnostics grant: rovnaký PIN sa vždy znovu overí autoritatívnym diagnostics access service a až potom vznikne štandardná klientská session. Binding nevydáva grant, nepublikuje report a neobchádza `APPROVE` ani immutable package.
 
 ## Pracovné stavy a mapovanie dnešného prototypu
 

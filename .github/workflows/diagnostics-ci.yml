@@ -90,6 +90,7 @@ jobs:
           set -euo pipefail
           mapfile -t php_files < <(find api/lib/diagnostics -maxdepth 1 -type f -name '*.php' -print | sort)
           php_files+=(
+            api/inspections.php
             api/diagnostics-auth.php
             api/diagnostics-report.php
             api/diagnostics-media.php
@@ -155,6 +156,12 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/test_diagnostics_renderer_http.sh
+
+      - name: Test inspection PIN diagnostics bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/test_inspection_diagnostics_bridge_http.sh
 
       - name: Git and workspace sanity
         shell: bash

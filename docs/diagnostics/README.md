@@ -1,6 +1,6 @@
 # Diagnostická vrstva DoktorHaus
 
-Tento adresár je záväzný doménový a architektonický základ pre systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu, krok 4B strict client-safe report projection s autorizovaným media delivery, krok 5A samostatný bezpečný klientsky renderer a report-level pricing runtime doplnil session-bound client-safe finančný rámec. Legacy portál zostáva nezmenený.
+Tento adresár je záväzný doménový a architektonický základ pre systém klientskych diagnostických reportov. Oddeľuje terénne záznamy od odborného uvažovania a klientského výstupu. Krok 3 pridal izolovanú runtime storage foundation, krok 4A serverové bezpečnostné jadro klientského prístupu, krok 4B strict client-safe report projection s autorizovaným media delivery, krok 5A samostatný bezpečný klientsky renderer a report-level pricing runtime doplnil session-bound client-safe finančný rámec. Legacy portál zostáva zachovaný; voliteľný server-side binding môže jeho existujúci PIN formulár použiť ako vstup do autoritatívneho diagnostics auth/session toku.
 
 Základný tok informácií je:
 
