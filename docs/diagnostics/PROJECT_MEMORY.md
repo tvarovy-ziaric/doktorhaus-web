@@ -209,3 +209,9 @@ Runtime klientovi projektuje pricing iba z immutable snapshotu overeného v rovn
 Schválená klientská prezentácia môže bez zmeny `client_report` schémy 1.0.0 uložiť do rovnakého immutable package presne pomenované attachmenty `client_report`, `source_documentation_appendix` a interný `media_attachments` mapovací dokument. Appendix nevytvára issue/evidence väzby, interná mapa sa klientovi nevydáva a každý obrázok musí byť deklarovaný, hashovo overený a autorizovaný tou istou session-bound report version.
 
 Legacy inspection PIN možno po explicitnej admin aktivácii použiť aj pre diagnostics grant. Server ho okamžite prehashuje a uloží iba password hash; aktivačná odpoveď plaintext PIN nevracia. Existujúci binding je idempotentný iba pri rovnakom package a rovnakom PINe, inak zlyhá fail closed.
+
+## 14. Mutable klientské výstupy po publikovaní
+
+PDF odovzdaný klientovi, externý Google Docs/Panoraven/YouTube odkaz a pomenovaná doplnková fotogaléria sú delivery výstupy, nie diagnostické tvrdenia. Môžu sa preto spravovať v samostatnej mutable vrstve vlastnenej legacy inspection recordom aj po publish bez novej report version, PINu alebo grantu.
+
+Táto vrstva nikdy neupravuje immutable report package, diagnosis, pricing ani diagnostické evidence fotografie. Súbory zostávajú pod privátnym `DIAGNOSTICS_STORAGE_ROOT`, klient ich dostáva iba cez aktuálnu session a opaque media ID. Doplnkové galérie sa renderujú oddelene a nesmú dostať fabricated issue/evidence väzby.

@@ -178,6 +178,9 @@
 
   const ACCESS_ID_PATTERN = /^acc_[0-9a-f]{32}$/;
   const EVIDENCE_ID_PATTERN = /^ev_[0-9a-f]{16,32}$/;
+  const OUTPUT_ID_PATTERN = /^out_[0-9a-f]{32}$/;
+  const OUTPUT_PHOTO_ID_PATTERN = /^outp_[0-9a-f]{32}$/;
+  const OUTPUT_MEDIA_ID_PATTERN = /^outm_[0-9a-f]{32}$/;
   const PHOTO_CAPTION_BOILERPLATE = "Originálny mediálny súbor nebol extrahovaný.";
   const IMAGE_TYPES = new Set(["photo", "thermal_image", "drone_photo", "photo_360"]);
   const MAX_INITIAL_IMAGES = 8;
@@ -307,6 +310,26 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function validateOutputMediaUrl(value, pageUrl) {
+    if (typeof value !== "string" || value === "" || typeof pageUrl !== "string") {
+      return null;
+    }
+    try {
+      const page = new URL(pageUrl);
+      const media = new URL(value, page);
+      const expected = new URL("api/diagnostics-output-media.php", page);
+      const mediaValues = media.searchParams.getAll("media");
+      if (media.origin !== page.origin || media.pathname !== expected.pathname || media.hash !== "" ||
+          media.username !== "" || media.password !== "" || mediaValues.length !== 1 ||
+          media.searchParams.size !== 1 || !OUTPUT_MEDIA_ID_PATTERN.test(mediaValues[0])) {
+        return null;
+      }
+      return media.href;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   function scoreLegendEntries(group, currentValue) {
     const legend = SCORE_LEGENDS[group];
     if (!legend || !LABELS[group]) {
@@ -342,7 +365,7 @@
       return null;
     }
     if (type === "pdf") {
-      return validateMediaUrl(value, pageUrl);
+      return validateMediaUrl(value, pageUrl) || validateOutputMediaUrl(value, pageUrl);
     }
     const allowedHosts = type === "google_docs"
       ? ["docs.google.com", "drive.google.com"]
@@ -821,20 +844,71 @@
         outputsDocument.document_type !== "diagnostics_outputs" || !Array.isArray(outputsDocument.outputs)) {
       return [];
     }
-    const byType = new Map();
+    const normalized = [];
+    const seenUrls = new Set();
     outputsDocument.outputs.forEach(function (output) {
-      if (!output || byType.has(output.type)) {
+      if (!output) {
         return;
       }
       const safeUrl = validateOutputUrl(output.type, output.url, pageUrl);
-      if (safeUrl) {
-        byType.set(output.type, safeUrl);
+      if (!safeUrl || seenUrls.has(safeUrl)) {
+        return;
       }
+      seenUrls.add(safeUrl);
+      const definition = OUTPUT_DEFINITIONS[output.type];
+      normalized.push({
+        id: typeof output.id === "string" && OUTPUT_ID_PATTERN.test(output.id) ? output.id : null,
+        type: output.type,
+        url: safeUrl,
+        definition: definition,
+        title: typeof output.title === "string" && output.title.trim() ? output.title.trim() : definition.title,
+        description: typeof output.description === "string" && output.description.trim()
+          ? output.description.trim()
+          : definition.description
+      });
     });
-    return Object.keys(OUTPUT_DEFINITIONS).filter(function (type) {
-      return byType.has(type);
-    }).map(function (type) {
-      return { type: type, url: byType.get(type), definition: OUTPUT_DEFINITIONS[type] };
+    return normalized;
+  }
+
+  function normalizeSupplementalGalleries(outputsDocument, pageUrl) {
+    if (!outputsDocument || outputsDocument.schema_version !== "1.0.0-helper" ||
+        outputsDocument.document_type !== "diagnostics_outputs" || !Array.isArray(outputsDocument.galleries)) {
+      return [];
+    }
+    const galleryIds = new Set();
+    const photoIds = new Set();
+    return outputsDocument.galleries.map(function (gallery) {
+      if (!gallery || typeof gallery.id !== "string" || !OUTPUT_ID_PATTERN.test(gallery.id) ||
+          galleryIds.has(gallery.id) || typeof gallery.title !== "string" || !gallery.title.trim() ||
+          !Array.isArray(gallery.photos)) {
+        return null;
+      }
+      galleryIds.add(gallery.id);
+      const photos = gallery.photos.map(function (photo) {
+        if (!photo || typeof photo.id !== "string" || !OUTPUT_PHOTO_ID_PATTERN.test(photo.id) ||
+            photoIds.has(photo.id)) {
+          return null;
+        }
+        const mediaUrl = validateOutputMediaUrl(photo.media_url, pageUrl);
+        if (!mediaUrl) {
+          return null;
+        }
+        photoIds.add(photo.id);
+        return {
+          id: photo.id,
+          title: typeof photo.title === "string" && photo.title.trim() ? photo.title.trim() : "Fotografia",
+          caption: typeof photo.caption === "string" ? photo.caption.trim() : "",
+          url: mediaUrl
+        };
+      }).filter(Boolean);
+      return {
+        id: gallery.id,
+        title: gallery.title.trim(),
+        description: typeof gallery.description === "string" ? gallery.description.trim() : "",
+        photos: photos
+      };
+    }).filter(function (gallery) {
+      return gallery && gallery.photos.length > 0;
     });
   }
 
@@ -879,8 +953,8 @@
         const icon = element(documentRef, "span", "diag-output-icon", output.definition.icon);
         icon.setAttribute("aria-hidden", "true");
         const copy = element(documentRef, "div", "diag-output-copy");
-        copy.append(element(documentRef, "h3", null, output.definition.title));
-        copy.append(element(documentRef, "p", null, output.definition.description));
+        copy.append(element(documentRef, "h3", null, output.title));
+        copy.append(element(documentRef, "p", null, output.description));
         const link = element(documentRef, "a", "btn diag-output-action", output.definition.action);
         link.setAttribute("href", output.url);
         link.setAttribute("target", "_blank");
@@ -890,6 +964,66 @@
       });
       wrapper.append(grid);
     }
+    return wrapper;
+  }
+
+  function renderSupplementalGalleries(documentRef, galleries, viewer) {
+    if (!galleries.length) {
+      return null;
+    }
+    const wrapper = section(
+      documentRef,
+      "Doplnková fotodokumentácia",
+      "Samostatné pomenované galérie doplnené k odovzdaným výstupom. Nie sú súčasťou diagnostických evidence väzieb.",
+      "doplnkova-fotodokumentacia"
+    );
+    wrapper.classList.add("diag-portal-section", "diag-supplemental-galleries");
+    const heading = wrapper.querySelector(".diag-section-heading");
+    heading.insertBefore(element(documentRef, "p", "eyebrow", "DOPLNKOVÁ FOTODOKUMENTÁCIA"), heading.firstChild);
+    galleries.forEach(function (gallery) {
+      const group = element(documentRef, "section", "diag-supplemental-gallery");
+      group.dataset.galleryId = gallery.id;
+      group.append(element(documentRef, "h3", null, gallery.title));
+      if (gallery.description) {
+        group.append(element(documentRef, "p", "diag-supplemental-gallery-description", gallery.description));
+      }
+      const grid = element(documentRef, "div", "diag-client-photo-grid");
+      const viewerItems = gallery.photos.map(function (photo) {
+        return { url: photo.url, title: photo.title, code: gallery.title, alt: photo.title };
+      });
+      gallery.photos.forEach(function (photo, index) {
+        const card = element(documentRef, "article", "diag-client-photo-card");
+        card.dataset.photoSource = "client-output";
+        const button = element(documentRef, "button", "diag-client-photo-button");
+        button.type = "button";
+        button.setAttribute("aria-label", "Otvoriť fotografiu: " + photo.title);
+        const image = element(documentRef, "img");
+        image.src = photo.url;
+        image.alt = photo.title;
+        image.loading = "lazy";
+        image.decoding = "async";
+        const fallback = createMediaFallback(documentRef);
+        fallback.hidden = true;
+        image.addEventListener("error", function () {
+          image.hidden = true;
+          fallback.hidden = false;
+        }, { once: true });
+        button.append(image, fallback);
+        button.addEventListener("click", function () {
+          viewer.open(viewerItems, index, button);
+        });
+        const copy = element(documentRef, "div", "diag-client-photo-copy");
+        copy.append(element(documentRef, "p", "diag-card-kicker", gallery.title));
+        copy.append(element(documentRef, "h3", null, photo.title));
+        if (photo.caption && photo.caption !== photo.title) {
+          copy.append(element(documentRef, "p", "diag-client-photo-caption", photo.caption));
+        }
+        card.append(button, copy);
+        grid.append(card);
+      });
+      group.append(grid);
+      wrapper.append(group);
+    });
     return wrapper;
   }
 
@@ -2153,10 +2287,15 @@
     const outputs = options && options.outputs ? options.outputs : null;
     const issueAnchors = buildIssueAnchors(report.issues);
     const galleryItems = buildPhotoGallery(report, appendix, pageUrl, issueAnchors);
+    const supplementalGalleries = normalizeSupplementalGalleries(outputs, pageUrl);
     const portal = element(documentRef, "div", "diag-report-content diag-client-portal");
     portal.append(renderHeader(documentRef, report));
     portal.append(renderOutputsHub(documentRef, report, galleryItems.length, outputs, pageUrl));
     portal.append(renderPhotoGallery(documentRef, galleryItems, viewer));
+    const supplemental = renderSupplementalGalleries(documentRef, supplementalGalleries, viewer);
+    if (supplemental) {
+      portal.append(supplemental);
+    }
     portal.append(renderCompleteReportTransition(documentRef));
     const detailedWrapper = element(documentRef, "div", "diag-complete-report");
     detailedWrapper.append(renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, false));
@@ -2171,12 +2310,14 @@
     LABELS: LABELS,
     validateAccessId: validateAccessId,
     validateMediaUrl: validateMediaUrl,
+    validateOutputMediaUrl: validateOutputMediaUrl,
     validateOutputUrl: validateOutputUrl,
     formatCurrency: formatCurrency,
     formatPricingCurrency: formatPricingCurrency,
     sanitizePhotoCaption: sanitizePhotoCaption,
     buildIssueAnchors: buildIssueAnchors,
     buildPhotoGallery: buildPhotoGallery,
+    normalizeSupplementalGalleries: normalizeSupplementalGalleries,
     SCORE_LEGENDS: SCORE_LEGENDS,
     scoreLegendEntries: scoreLegendEntries,
     pricingPrimaryText: pricingPrimaryText,

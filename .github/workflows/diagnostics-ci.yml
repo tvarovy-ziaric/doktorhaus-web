@@ -8,11 +8,13 @@ on:
       - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
       - "api/inspections.php"
+      - "api/inspection-outputs-admin.php"
       - "inspekcie.html"
       - "inspekcie-admin.html"
       - "inspekcia.html"
       - "JSS/diagnostics-*.js"
       - "styles/diagnostics-report.css"
+      - "styles/style.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
       - "diagnostika-preview/**"
@@ -27,11 +29,13 @@ on:
       - "api/diagnostics-*.php"
       - "api/diagnostics.config.example.php"
       - "api/inspections.php"
+      - "api/inspection-outputs-admin.php"
       - "inspekcie.html"
       - "inspekcie-admin.html"
       - "inspekcia.html"
       - "JSS/diagnostics-*.js"
       - "styles/diagnostics-report.css"
+      - "styles/style.css"
       - "tools/diagnostics_*"
       - "tools/test_diagnostics_*"
       - "diagnostika-preview/**"
@@ -97,14 +101,17 @@ jobs:
           mapfile -t php_files < <(find api/lib/diagnostics -maxdepth 1 -type f -name '*.php' -print | sort)
           php_files+=(
             api/inspections.php
+            api/inspection-outputs-admin.php
             api/diagnostics-auth.php
             api/diagnostics-report.php
             api/diagnostics-media.php
             api/diagnostics-appendix.php
             api/diagnostics-outputs.php
+            api/diagnostics-output-media.php
             api/diagnostics.config.example.php
             tools/test_diagnostics_access.php
             tools/test_diagnostics_client_projection.php
+            tools/test_diagnostics_client_output_store.php
             tools/test_diagnostics_delivery_fixture.php
             tools/test_diagnostics_photo_complete_fixture.php
             tools/test_diagnostics_storage.php
@@ -177,6 +184,13 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/test_diagnostics_photo_complete_http.sh
+
+      - name: Test mutable client outputs after publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_client_output_store.php
+          bash tools/test_diagnostics_client_outputs_http.sh
 
       - name: Git and workspace sanity
         shell: bash

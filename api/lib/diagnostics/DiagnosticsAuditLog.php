@@ -25,6 +25,7 @@ final class DiagnosticsAuditLog
         'appendix_viewed',
         'outputs_viewed',
         'media_accessed',
+        'output_media_accessed',
     ];
 
     private const ALLOWED_METADATA = [
@@ -36,6 +37,7 @@ final class DiagnosticsAuditLog
         'photo_count',
         'output_count',
         'request_type',
+        'media_id',
     ];
 
     /** @var string */

@@ -67,9 +67,15 @@ $storage = new DiagnosticsStorage($temporaryRoot, $knownDocumentRoot);
         attachments/
   locks/
   tmp/
+  client-outputs/
+    <inspection-record-id>/
+      outputs.json
+      files/
 ```
 
 Adresáre používajú iba kontraktové interné ID a verziu. Email, adresa, meno klienta, title ani iný významový text sa nikdy nepoužijú v ceste.
+
+`client-outputs/` je zámerne mutable delivery vrstva mimo immutable `reports/`. `DiagnosticsClientOutputStore` používa per-record lock, optimistic revision, atomický JSON replace, serverom generované `outm_…` názvy, MIME allowlist, SHA-256/size overenie a symlink/path guards. Klient ani administrátor neposiela filesystem path. Vymazaný output sa okamžite odstráni z autorizačného dokumentu; prípadný osirelý súbor po zlyhaní cleanupu nie je adresovateľný.
 
 Root a pracovné adresáre sa vytvárajú s reštriktívnymi oprávneniami `0700`; pracovné súbory používajú `0640`. Nainštalovaný snapshot sa best-effort prepne na adresáre `0550` a súbory `0440`. `chmod` je doplnková ochrana, nie autorizačný mechanizmus a na niektorých platformách nemusí mať POSIX význam.
 

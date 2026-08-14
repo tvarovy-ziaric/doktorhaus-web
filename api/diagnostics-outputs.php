@@ -4,6 +4,7 @@ declare(strict_types=1);
 use DoktorHaus\Diagnostics\DiagnosticsAccessException;
 use DoktorHaus\Diagnostics\DiagnosticsAccessService;
 use DoktorHaus\Diagnostics\DiagnosticsClientSession;
+use DoktorHaus\Diagnostics\DiagnosticsClientOutputStore;
 use DoktorHaus\Diagnostics\DiagnosticsDeliveryException;
 use DoktorHaus\Diagnostics\DiagnosticsSecurityConfig;
 use DoktorHaus\Diagnostics\DiagnosticsStorage;
@@ -15,6 +16,7 @@ require_once __DIR__ . '/lib/diagnostics/DiagnosticsStorage.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessService.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsClientSession.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsDeliveryException.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsClientOutputStore.php';
 
 @ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
@@ -113,9 +115,9 @@ function diagnosticsOutputsPdfUrl($value): ?string
 }
 
 /** @param array<int, array<string, mixed>> $records
- *  @return array<int, array{type: string, url: string}>
+ *  @return array<string, mixed>|null
  */
-function diagnosticsOutputsProject(array $records, string $accessId): array
+function diagnosticsOutputsFindRecord(array $records, string $accessId): ?array
 {
     $match = null;
     foreach ($records as $record) {
@@ -128,8 +130,20 @@ function diagnosticsOutputsProject(array $records, string $accessId): array
         $match = $record;
     }
     if ($match === null) {
-        return [];
+        return null;
     }
+    $id = $match['id'] ?? null;
+    if (!is_string($id) || preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/D', $id) !== 1) {
+        throw new RuntimeException('The diagnostics output binding is invalid.');
+    }
+    return $match;
+}
+
+/** @param array<string, mixed> $match
+ *  @return array<int, array{type: string, url: string}>
+ */
+function diagnosticsOutputsProjectLegacy(array $match): array
+{
     $media = is_array($match['media'] ?? null) ? $match['media'] : [];
     $candidates = [
         ['google_docs', diagnosticsOutputsHttpsUrl($media['docsUrl'] ?? null, ['docs.google.com', 'drive.google.com'])],
@@ -163,10 +177,18 @@ try {
     $clientSession = new DiagnosticsClientSession($access, $config);
     $clientSession->startHttp($_SERVER);
     $context = $clientSession->current($_SERVER);
-    $outputs = diagnosticsOutputsProject(
+    $record = diagnosticsOutputsFindRecord(
         diagnosticsOutputsLoadRecords(__DIR__ . '/../data/inspections.json'),
         (string)$context['access_id']
     );
+    $outputs = [];
+    $galleries = [];
+    if ($record !== null) {
+        $outputs = diagnosticsOutputsProjectLegacy($record);
+        $mutable = (new DiagnosticsClientOutputStore($storage))->clientProjection((string)$record['id']);
+        $outputs = array_merge($outputs, $mutable['outputs']);
+        $galleries = $mutable['galleries'];
+    }
 
     $fingerprint = $access->getAudit()->requestFingerprint($_SERVER);
     $access->getAudit()->append('outputs_viewed', 'success', [
@@ -184,6 +206,7 @@ try {
         'schema_version' => '1.0.0-helper',
         'document_type' => 'diagnostics_outputs',
         'outputs' => $outputs,
+        'galleries' => $galleries,
     ]);
 } catch (DiagnosticsDeliveryException $error) {
     if ($error->getDeliveryCode() === 'DELIVERY_INVALID_REQUEST') {

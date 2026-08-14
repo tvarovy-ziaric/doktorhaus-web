@@ -130,6 +130,8 @@ Doménový lint, plná schema validácia, inspector QA a auditovaný `APPROVE` m
 
 Po publish sa vydá alebo aktivuje klientsky prístup. Server uloží hash PINu, aplikuje rate limiting a po úspešnom overení vytvorí scope-limited session pre konkrétny report. PIN sa neposiela spolu s reportovým obsahom v jednom verejnom kanáli bez vedomého rozhodnutia.
 
+Delivery-only výstupy, ktoré nemenia odborný obsah — odovzdaný PDF súbor, externý dokument/prehliadka/video a doplnková pomenovaná galéria — možno po publish meniť v samostatnom client-output workflow. Takáto zmena nevyvoláva nový `APPROVE` ani report version, pretože nemení inspection/diagnosis/pricing snapshot. Musí však zostať session-bound, inspection-record-owned a nesmie meniť ani predstierať diagnostické evidence väzby.
+
 Klient vidí verziu, change summary, report a autorizované médiá. Prístup možno expirovať, odvolať alebo regenerovať bez úpravy reportu.
 
 Krok 4A implementuje prvú bezpečnostnú časť tohto bodu: interné vytvorenie grantu pre presnú publikovanú verziu, jednorazové vrátenie plaintext PINu, overenie, serverovú session, rate limiting, rotáciu, revokáciu a audit. Krok 4B po validnej session vydá client-safe change/report projection a iba evidence médiá, ktoré prejdú active/privacy/relevance allowlistom. Report ani media request nesmie zvoliť report, verziu alebo storage path.

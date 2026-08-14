@@ -11,6 +11,146 @@
   --mark-soft: rgba(54, 94, 87, 0.05);
 }
 
+/* Mutable client outputs in the inspection backoffice. */
+.legacy-output-fields {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border, #d9dfdb);
+  border-radius: 8px;
+  background: #f4f6f4;
+}
+
+.legacy-output-fields summary {
+  cursor: pointer;
+  color: #667077;
+  font-weight: 650;
+}
+
+.legacy-output-fields > p {
+  color: #667077;
+}
+
+.client-output-admin {
+  scroll-margin-top: 2rem;
+}
+
+.client-output-create-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.client-output-create-card,
+.client-output-admin-card,
+.client-output-photo-admin-card {
+  padding: 1rem;
+  border: 1px solid #d9dfdb;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.client-output-create-card h3,
+.client-output-admin-card h3 {
+  margin-top: 0;
+}
+
+.client-output-create-card .btn,
+.client-output-gallery-upload .btn {
+  margin-top: 0.75rem;
+}
+
+.client-output-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.client-output-admin-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  color: #667077;
+  font-size: 0.84rem;
+}
+
+.client-output-admin-heading span:first-child {
+  color: #365e57;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.client-output-edit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 0.8rem;
+}
+
+.client-output-edit-grid label:last-child:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.client-output-photo-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.client-output-photo-admin-card {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.client-output-photo-admin-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #edf1ee;
+}
+
+.client-output-photo-admin-card .admin-post-actions {
+  gap: 0.4rem;
+}
+
+.client-output-photo-admin-card .btn {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.client-output-gallery-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d9dfdb;
+}
+
+.client-output-gallery-upload label {
+  flex: 1 1 18rem;
+}
+
+.client-output-gallery-upload small {
+  flex: 1 1 100%;
+  color: #667077;
+}
+
+@media (max-width: 900px) {
+  .client-output-create-grid,
+  .client-output-photo-admin-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .client-output-edit-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 * {
   box-sizing: border-box;
 }

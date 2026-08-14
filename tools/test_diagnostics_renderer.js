@@ -19,6 +19,7 @@ for (const candidate of [
 }
 
 const evidenceId = "ev_0123456789abcdef";
+const outputMediaId = "outm_0123456789abcdef0123456789abcdef";
 assert.equal(
   renderer.validateMediaUrl("api/diagnostics-media.php?evidence=" + evidenceId, pageUrl),
   "https://doktorhaus.sk/api/diagnostics-media.php?evidence=" + evidenceId
@@ -53,6 +54,21 @@ assert.equal(
   renderer.validateOutputUrl("pdf", "api/diagnostics-media.php?evidence=" + evidenceId, pageUrl),
   "https://doktorhaus.sk/api/diagnostics-media.php?evidence=" + evidenceId
 );
+assert.equal(
+  renderer.validateOutputMediaUrl("api/diagnostics-output-media.php?media=" + outputMediaId, pageUrl),
+  "https://doktorhaus.sk/api/diagnostics-output-media.php?media=" + outputMediaId
+);
+assert.equal(
+  renderer.validateOutputUrl("pdf", "api/diagnostics-output-media.php?media=" + outputMediaId, pageUrl),
+  "https://doktorhaus.sk/api/diagnostics-output-media.php?media=" + outputMediaId
+);
+for (const candidate of [
+  "api/diagnostics-output-media.php?media=" + outputMediaId + "&path=report.pdf",
+  "api/diagnostics-output-media.php?media=outm_bad",
+  "https://example.test/api/diagnostics-output-media.php?media=" + outputMediaId
+]) {
+  assert.equal(renderer.validateOutputMediaUrl(candidate, pageUrl), null, candidate);
+}
 for (const [type, candidate] of [
   ["google_docs", "http://docs.google.com/document/d/example"],
   ["google_docs", "https://example.test/document"],
@@ -495,7 +511,35 @@ const portalOutputs = {
     {type: "google_docs", url: "https://docs.google.com/document/d/example/preview"},
     {type: "pdf", url: "api/diagnostics-media.php?evidence=" + evidenceId},
     {type: "panoraven", url: "https://panoraven.com/en/embed/example"},
+    {
+      id: "out_11111111111111111111111111111111",
+      type: "panoraven",
+      title: "Strecha",
+      description: "Samostatná 360 prehliadka strechy.",
+      url: "https://panoraven.com/en/embed/roof"
+    },
     {type: "video_hd", url: "https://example.test/not-youtube"}
+  ],
+  galleries: [
+    {
+      id: "out_22222222222222222222222222222222",
+      title: "Strecha z dronu",
+      description: "Doplnkové fotografie strechy.",
+      photos: [
+        {
+          id: "outp_33333333333333333333333333333333",
+          title: "Strecha 1",
+          caption: "Pohľad od záhrady.",
+          media_url: "api/diagnostics-output-media.php?media=outm_44444444444444444444444444444444"
+        },
+        {
+          id: "outp_55555555555555555555555555555555",
+          title: "Strecha 2",
+          caption: "Pohľad na hrebeň.",
+          media_url: "api/diagnostics-output-media.php?media=outm_66666666666666666666666666666666"
+        }
+      ]
+    }
   ]
 };
 const portalDocument = new FakeDocument(false);
@@ -510,13 +554,15 @@ const portal = renderer.renderClientPortal(fixture, {
 });
 assert.equal(portal.querySelector("#vystupy") !== null, true);
 assert.equal(portal.querySelector("#fotodokumentacia") !== null, true);
+assert.equal(portal.querySelector("#doplnkova-fotodokumentacia") !== null, true);
 assert.equal(portal.querySelector("#kompletna-sprava") !== null, true);
 assert.equal(portal.querySelectorAll(".diag-output-primary").length, 1);
 assert.match(portal.querySelector(".diag-output-meta").textContent, /19 fotografií/);
-assert.equal(portal.querySelectorAll(".diag-external-output-card").length, 3);
-assert.equal(portal.querySelectorAll(".diag-client-photo-card").length, 19);
+assert.equal(portal.querySelectorAll(".diag-external-output-card").length, 4);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").length, 21);
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "linked").length, 1);
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "appendix").length, 18);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "client-output").length, 2);
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "appendix")[0]
   .querySelectorAll(".diag-client-photo-caption").length, 0);
 assert.equal(portal.querySelector("#zdrojova-fotodokumentacia") !== null, true);

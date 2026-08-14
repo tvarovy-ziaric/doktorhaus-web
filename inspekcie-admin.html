@@ -82,38 +82,38 @@
       </div>
       <p class="form-status" id="diagnostics-binding-status" role="status"></p>
 
-      <div class="form-row">
+      <details class="legacy-output-fields">
+        <summary>Legacy polia výstupov — iba kompatibilita</summary>
+        <p>Nové PDF, odkazy a galérie spravujte v sekcii Klientské výstupy nižšie.</p>
+        <div class="form-row">
+          <label>
+            Legacy PDF cesta
+            <input type="text" name="reportUrl" placeholder="uploads/inspekcie/.../sprava.pdf">
+          </label>
+          <label>
+            Legacy Google Docs
+            <input type="url" name="docsUrl" placeholder="https://docs.google.com/...">
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Legacy Panoraven embed
+            <input type="url" name="panoravenUrl" placeholder="https://panoraven.com/en/embed/...">
+          </label>
+          <label>
+            Legacy YouTube Full HD
+            <input type="url" name="videoHdUrl" placeholder="https://youtu.be/...">
+          </label>
+        </div>
         <label>
-          PDF správa
-          <input type="text" name="reportUrl" placeholder="uploads/inspekcie/.../sprava.pdf">
+          Legacy YouTube 360 video
+          <input type="url" name="video360Url" placeholder="https://youtu.be/...">
         </label>
         <label>
-          Google Docs
-          <input type="url" name="docsUrl" placeholder="https://docs.google.com/...">
+          Legacy fotogaléria JSON
+          <textarea name="photosJson" rows="5"></textarea>
         </label>
-      </div>
-
-      <div class="form-row">
-        <label>
-          Panoraven embed
-          <input type="url" name="panoravenUrl" placeholder="https://panoraven.com/en/embed/...">
-        </label>
-        <label>
-          YouTube Full HD
-          <input type="url" name="videoHdUrl" placeholder="https://youtu.be/...">
-        </label>
-      </div>
-
-      <label>
-        YouTube 360 video
-        <input type="url" name="video360Url" placeholder="https://youtu.be/...">
-      </label>
-
-      <label>
-        Fotogaléria JSON
-        <textarea name="photosJson" rows="7" placeholder='[{"number":"Foto 001","title":"P102 - Krov typický","thumb":"uploads/inspekcie/.../001.jpg","full":"uploads/inspekcie/.../001.jpg"}]'></textarea>
-        <small>Voliteľné. Každá fotka: number, title, thumb, full.</small>
-      </label>
+      </details>
 
       <div class="form-actions">
         <button class="btn primary" type="submit">Uložiť koncept</button>
@@ -140,6 +140,58 @@
         <button class="btn" id="copy-email-btn" type="button">Kopírovať text</button>
       </div>
     </aside>
+  </section>
+
+  <section class="container section-tight client-output-admin" id="client-output-admin" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">Klientské výstupy</p>
+      <h2>Aktuálne klientské výstupy</h2>
+      <p>
+        PDF, externé odkazy a doplnkové galérie môžete meniť aj po publikovaní správy.
+        Diagnostický balík, klientsky PIN a grant sa tým nemenia.
+      </p>
+    </div>
+
+    <div class="client-output-create-grid">
+      <form class="client-output-create-card" id="client-output-pdf-form">
+        <p class="eyebrow">PDF</p>
+        <h3>Nahrať PDF</h3>
+        <label>Názov <input type="text" name="title" value="Správa v PDF" required></label>
+        <label>Opis <textarea name="description" rows="2">Statická verzia správy vhodná na uloženie alebo tlač.</textarea></label>
+        <label>PDF súbor <input type="file" name="file" accept="application/pdf,.pdf" required></label>
+        <button class="btn" type="submit">Nahrať PDF</button>
+      </form>
+
+      <form class="client-output-create-card" id="client-output-link-form">
+        <p class="eyebrow">Externý výstup</p>
+        <h3>Pridať externý výstup</h3>
+        <label>Typ
+          <select name="type" required>
+            <option value="google_docs">Google Docs</option>
+            <option value="panoraven">Panoraven / 360</option>
+            <option value="video_hd">Video HD</option>
+            <option value="video_360">Video 360</option>
+          </select>
+        </label>
+        <label>Názov <input type="text" name="title" placeholder="Napr. Strecha" required></label>
+        <label>URL <input type="url" name="url" placeholder="https://…" required></label>
+        <label>Opis <textarea name="description" rows="2"></textarea></label>
+        <button class="btn" type="submit">Pridať výstup</button>
+      </form>
+
+      <form class="client-output-create-card" id="client-output-gallery-form">
+        <p class="eyebrow">Fotogaléria</p>
+        <h3>Pridať fotogalériu</h3>
+        <label>Názov <input type="text" name="title" placeholder="Napr. Strecha z dronu" required></label>
+        <label>Opis <textarea name="description" rows="2"></textarea></label>
+        <button class="btn" type="submit">Vytvoriť galériu</button>
+      </form>
+    </div>
+
+    <p class="form-status" id="client-output-status" role="status"></p>
+    <div class="client-output-list" id="client-output-list">
+      <article class="admin-post-card is-empty"><p>Vyberte inšpekciu zo zoznamu.</p></article>
+    </div>
   </section>
 
   <section class="container section-tight admin-list-section">
@@ -182,9 +234,18 @@
   const diagnosticsReportSelect = document.getElementById("diagnostics-report-select");
   const diagnosticsReportStatus = document.getElementById("diagnostics-report-status");
   const diagnosticsBindingStatus = document.getElementById("diagnostics-binding-status");
+  const clientOutputAdmin = document.getElementById("client-output-admin");
+  const clientOutputList = document.getElementById("client-output-list");
+  const clientOutputStatus = document.getElementById("client-output-status");
+  const clientOutputPdfForm = document.getElementById("client-output-pdf-form");
+  const clientOutputLinkForm = document.getElementById("client-output-link-form");
+  const clientOutputGalleryForm = document.getElementById("client-output-gallery-form");
   let inspections = [];
   let availableDiagnostics = [];
   let activeDiagnosticsInspectionId = "";
+  let activeClientOutputInspectionId = "";
+  let clientOutputDocument = {revision: 0, outputs: []};
+  let clientOutputObjectUrls = [];
 
   function setStatus(message, isError = false) {
     statusEl.textContent = message;
@@ -223,6 +284,242 @@
       throw error;
     }
     return result;
+  }
+
+  function setClientOutputStatus(message, isError = false) {
+    clientOutputStatus.textContent = message;
+    clientOutputStatus.classList.toggle("is-error", isError);
+  }
+
+  async function clientOutputApi(action, values = {}, files = null) {
+    const inspectionId = activeClientOutputInspectionId;
+    if (!inspectionId) {
+      throw new Error("Najprv vyberte inšpekciu.");
+    }
+    let response;
+    if (files) {
+      const body = new FormData();
+      body.append("action", action);
+      body.append("adminPin", adminPin());
+      body.append("inspectionId", inspectionId);
+      Object.entries(values).forEach(([key, value]) => {
+        body.append(key, typeof value === "string" ? value : JSON.stringify(value));
+      });
+      files.forEach(file => body.append(action === "UPLOAD-PDF" ? "file" : "photos[]", file));
+      response = await fetch("api/inspection-outputs-admin.php", {method: "POST", body});
+    } else {
+      response = await fetch("api/inspection-outputs-admin.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(Object.assign({action, adminPin: adminPin(), inspectionId}, values))
+      });
+    }
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || "Klientské výstupy sa nepodarilo upraviť.");
+    }
+    return result;
+  }
+
+  function releaseClientOutputObjectUrls() {
+    clientOutputObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    clientOutputObjectUrls = [];
+  }
+
+  async function loadClientOutputThumbnail(image, mediaId, inspectionId) {
+    try {
+      const response = await fetch("api/inspection-outputs-admin.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          action: "READ-MEDIA",
+          adminPin: adminPin(),
+          inspectionId,
+          mediaId
+        })
+      });
+      if (!response.ok || activeClientOutputInspectionId !== inspectionId) {
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      clientOutputObjectUrls.push(url);
+      image.src = url;
+    } catch (_error) {
+      image.alt = "Náhľad sa nepodarilo načítať.";
+    }
+  }
+
+  function outputTypeLabel(type) {
+    return {
+      google_docs: "Google Docs",
+      panoraven: "Panoraven / 360",
+      video_hd: "Video HD",
+      video_360: "Video 360",
+      pdf: "PDF",
+      gallery: "Fotogaléria"
+    }[type] || type;
+  }
+
+  function clientOutputButton(label, action, outputId, photoId = "") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = action === "delete" ? "btn danger" : "btn";
+    button.textContent = label;
+    button.dataset.outputAction = action;
+    button.dataset.outputId = outputId;
+    if (photoId) {
+      button.dataset.photoId = photoId;
+    }
+    return button;
+  }
+
+  function renderClientOutputs(documentState) {
+    releaseClientOutputObjectUrls();
+    clientOutputDocument = documentState || {revision: 0, outputs: []};
+    clientOutputList.replaceChildren();
+    const outputs = Array.isArray(clientOutputDocument.outputs) ? clientOutputDocument.outputs : [];
+    if (!outputs.length) {
+      const empty = document.createElement("article");
+      empty.className = "admin-post-card is-empty";
+      const text = document.createElement("p");
+      text.textContent = "Táto inšpekcia zatiaľ nemá nové klientské výstupy.";
+      empty.append(text);
+      clientOutputList.append(empty);
+      return;
+    }
+    outputs.forEach((output, outputIndex) => {
+      const card = document.createElement("article");
+      card.className = "client-output-admin-card";
+      card.dataset.outputId = output.id;
+      const heading = document.createElement("div");
+      heading.className = "client-output-admin-heading";
+      const badge = document.createElement("span");
+      badge.textContent = outputTypeLabel(output.type);
+      const order = document.createElement("span");
+      order.textContent = `${outputIndex + 1}. výstup`;
+      heading.append(badge, order);
+      card.append(heading);
+
+      const fields = document.createElement("div");
+      fields.className = "client-output-edit-grid";
+      const titleLabel = document.createElement("label");
+      titleLabel.textContent = "Názov";
+      const title = document.createElement("input");
+      title.name = "outputTitle";
+      title.value = output.title || "";
+      titleLabel.append(title);
+      const descriptionLabel = document.createElement("label");
+      descriptionLabel.textContent = "Opis";
+      const description = document.createElement("textarea");
+      description.name = "outputDescription";
+      description.rows = 2;
+      description.value = output.description || "";
+      descriptionLabel.append(description);
+      fields.append(titleLabel, descriptionLabel);
+      if (output.kind === "link") {
+        const urlLabel = document.createElement("label");
+        urlLabel.textContent = "URL";
+        const url = document.createElement("input");
+        url.name = "outputUrl";
+        url.type = "url";
+        url.value = output.url || "";
+        urlLabel.append(url);
+        fields.append(urlLabel);
+      }
+      card.append(fields);
+      const actions = document.createElement("div");
+      actions.className = "admin-post-actions";
+      actions.append(
+        clientOutputButton("Uložiť úpravy", "update", output.id),
+        clientOutputButton("Hore", "up", output.id),
+        clientOutputButton("Dole", "down", output.id),
+        clientOutputButton("Odstrániť", "delete", output.id)
+      );
+      card.append(actions);
+
+      if (output.kind === "gallery") {
+        const galleryGrid = document.createElement("div");
+        galleryGrid.className = "client-output-photo-admin-grid";
+        (output.photos || []).forEach(photo => {
+          const photoCard = document.createElement("article");
+          photoCard.className = "client-output-photo-admin-card";
+          photoCard.dataset.photoId = photo.id;
+          const image = document.createElement("img");
+          image.alt = photo.title || "Fotografia";
+          image.loading = "lazy";
+          photoCard.append(image);
+          loadClientOutputThumbnail(image, photo.mediaId, activeClientOutputInspectionId);
+          const photoTitle = document.createElement("input");
+          photoTitle.name = "photoTitle";
+          photoTitle.value = photo.title || "";
+          photoTitle.setAttribute("aria-label", "Názov fotografie");
+          const caption = document.createElement("textarea");
+          caption.name = "photoCaption";
+          caption.rows = 2;
+          caption.value = photo.caption || "";
+          caption.placeholder = "Popis fotografie";
+          const photoActions = document.createElement("div");
+          photoActions.className = "admin-post-actions";
+          photoActions.append(
+            clientOutputButton("Uložiť", "photo-update", output.id, photo.id),
+            clientOutputButton("Hore", "photo-up", output.id, photo.id),
+            clientOutputButton("Dole", "photo-down", output.id, photo.id),
+            clientOutputButton("Odstrániť", "photo-delete", output.id, photo.id)
+          );
+          photoCard.append(photoTitle, caption, photoActions);
+          galleryGrid.append(photoCard);
+        });
+        card.append(galleryGrid);
+        const uploadForm = document.createElement("form");
+        uploadForm.className = "client-output-gallery-upload";
+        uploadForm.dataset.galleryUpload = output.id;
+        const uploadLabel = document.createElement("label");
+        uploadLabel.textContent = "Pridať ďalšie fotografie";
+        const input = document.createElement("input");
+        input.type = "file";
+        input.name = "photos";
+        input.accept = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+        input.multiple = true;
+        input.required = true;
+        uploadLabel.append(input);
+        const note = document.createElement("small");
+        note.textContent = "Názov a popis môžete upraviť pri každej fotografii po nahratí.";
+        const uploadButton = document.createElement("button");
+        uploadButton.className = "btn";
+        uploadButton.type = "submit";
+        uploadButton.textContent = "Nahrať fotografie";
+        uploadForm.append(uploadLabel, note, uploadButton);
+        card.append(uploadForm);
+      }
+      clientOutputList.append(card);
+    });
+  }
+
+  async function loadClientOutputs(inspectionId) {
+    activeClientOutputInspectionId = inspectionId;
+    clientOutputAdmin.hidden = false;
+    setClientOutputStatus("Načítavam klientské výstupy…");
+    try {
+      const result = await clientOutputApi("LIST");
+      if (activeClientOutputInspectionId !== inspectionId) {
+        return;
+      }
+      renderClientOutputs(result.document);
+      setClientOutputStatus("Klientské výstupy sú načítané.");
+    } catch (error) {
+      renderClientOutputs({revision: 0, outputs: []});
+      setClientOutputStatus(error.message, true);
+    }
+  }
+
+  async function mutateClientOutputs(action, values = {}, files = null) {
+    setClientOutputStatus("Ukladám klientské výstupy…");
+    const result = await clientOutputApi(action, Object.assign({
+      expectedRevision: clientOutputDocument.revision
+    }, values), files);
+    renderClientOutputs(result.document);
+    setClientOutputStatus("Klientské výstupy sú uložené.");
+    return result.document;
   }
 
   function readInspection() {
@@ -277,6 +574,9 @@
     generatedPin.value = item.pin || "";
     emailText.value = "";
     setStatus(item.id ? "Inšpekcia je načítaná na úpravu." : "");
+    if (item.id) {
+      loadClientOutputs(item.id);
+    }
     form.scrollIntoView({behavior: "smooth", block: "start"});
   }
 
@@ -290,6 +590,10 @@
     resetDiagnosticsChooser();
     generatedPin.value = "";
     emailText.value = "";
+    activeClientOutputInspectionId = "";
+    clientOutputDocument = {revision: 0, outputs: []};
+    releaseClientOutputObjectUrls();
+    clientOutputAdmin.hidden = true;
     setStatus("Pripravený nový koncept.");
   }
 
@@ -496,6 +800,131 @@
         emailText.value = error.result.emailText;
       }
       setListStatus(error.message, true);
+    }
+  });
+
+  clientOutputPdfForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const data = new FormData(clientOutputPdfForm);
+    const file = data.get("file");
+    if (!(file instanceof File) || !file.size) {
+      setClientOutputStatus("Vyberte PDF súbor.", true);
+      return;
+    }
+    try {
+      await mutateClientOutputs("UPLOAD-PDF", {
+        title: data.get("title") || "",
+        description: data.get("description") || ""
+      }, [file]);
+      clientOutputPdfForm.reset();
+      clientOutputPdfForm.elements.title.value = "Správa v PDF";
+      clientOutputPdfForm.elements.description.value = "Statická verzia správy vhodná na uloženie alebo tlač.";
+    } catch (error) {
+      setClientOutputStatus(error.message, true);
+    }
+  });
+
+  clientOutputLinkForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const data = new FormData(clientOutputLinkForm);
+    try {
+      await mutateClientOutputs("CREATE-LINK", {
+        type: data.get("type") || "",
+        title: data.get("title") || "",
+        description: data.get("description") || "",
+        url: data.get("url") || ""
+      });
+      clientOutputLinkForm.reset();
+    } catch (error) {
+      setClientOutputStatus(error.message, true);
+    }
+  });
+
+  clientOutputGalleryForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const data = new FormData(clientOutputGalleryForm);
+    try {
+      await mutateClientOutputs("CREATE-GALLERY", {
+        title: data.get("title") || "",
+        description: data.get("description") || ""
+      });
+      clientOutputGalleryForm.reset();
+    } catch (error) {
+      setClientOutputStatus(error.message, true);
+    }
+  });
+
+  clientOutputList.addEventListener("submit", async event => {
+    const galleryId = event.target.dataset.galleryUpload;
+    if (!galleryId) {
+      return;
+    }
+    event.preventDefault();
+    const files = Array.from(event.target.elements.photos.files || []);
+    if (!files.length) {
+      setClientOutputStatus("Vyberte aspoň jednu fotografiu.", true);
+      return;
+    }
+    try {
+      await mutateClientOutputs("UPLOAD-GALLERY-PHOTOS", {
+        galleryId,
+        titles: files.map(() => ""),
+        captions: files.map(() => "")
+      }, files);
+    } catch (error) {
+      setClientOutputStatus(error.message, true);
+    }
+  });
+
+  clientOutputList.addEventListener("click", async event => {
+    const button = event.target.closest("[data-output-action]");
+    if (!button) {
+      return;
+    }
+    const card = button.closest("[data-output-id]");
+    const photoCard = button.closest("[data-photo-id]");
+    const action = button.dataset.outputAction;
+    const outputId = button.dataset.outputId;
+    const photoId = button.dataset.photoId || null;
+    try {
+      if (action === "update") {
+        await mutateClientOutputs("UPDATE", {
+          outputId,
+          changes: {
+            title: card.querySelector('[name="outputTitle"]').value,
+            description: card.querySelector('[name="outputDescription"]').value,
+            ...(card.querySelector('[name="outputUrl"]')
+              ? {url: card.querySelector('[name="outputUrl"]').value}
+              : {})
+          }
+        });
+      } else if (action === "photo-update") {
+        await mutateClientOutputs("UPDATE", {
+          outputId,
+          photoId,
+          changes: {
+            title: photoCard.querySelector('[name="photoTitle"]').value,
+            caption: photoCard.querySelector('[name="photoCaption"]').value
+          }
+        });
+      } else if (["up", "down", "photo-up", "photo-down"].includes(action)) {
+        await mutateClientOutputs("REORDER", {
+          outputId,
+          photoId: action.startsWith("photo-") ? photoId : undefined,
+          direction: action.endsWith("up") ? "up" : "down"
+        });
+      } else if (action === "delete" || action === "photo-delete") {
+        const label = action === "delete" ? "tento klientský výstup" : "túto fotografiu";
+        if (!window.confirm(`Naozaj odstrániť ${label}?`)) {
+          return;
+        }
+        await mutateClientOutputs("DELETE", {
+          outputId,
+          photoId: action === "photo-delete" ? photoId : undefined
+        });
+      }
+    } catch (error) {
+      setClientOutputStatus(error.message, true);
     }
   });
 
