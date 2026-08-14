@@ -23,6 +23,7 @@ final class DiagnosticsAuditLog
         'logout',
         'report_viewed',
         'appendix_viewed',
+        'outputs_viewed',
         'media_accessed',
     ];
 
@@ -33,6 +34,7 @@ final class DiagnosticsAuditLog
         'absolute_seconds',
         'evidence_id',
         'photo_count',
+        'output_count',
         'request_type',
     ];
 

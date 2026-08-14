@@ -156,6 +156,8 @@ Krok 5A pridáva prvého konzumenta tohto delivery kontraktu: `inspekcia.html`, 
 
 Po 5A máme secure authentication, client-safe report API, authorized media delivery a súkromný responsive/print klientsky renderer. Neskorší final-delivery krok dopĺňa minimálnu admin aktiváciu existujúcim inspection PINom a immutable companion delivery. Naďalej nemáme SafetyCulture adapter, automatický PDF artifact, databázu, AI diagnostiku ani automatické finančné agregácie.
 
+Session-bound output hub používa samostatný `diagnostics-outputs.php`, pretože externé delivery URL nie sú diagnostickým tvrdením ani súčasťou immutable `client_report`. Endpoint vyžaduje tú istú validnú session, neprijíma access/report/path selector a z legacy inspection recordu projektuje iba validované `type + url`. Priamy legacy upload PDF nie je považovaný za bezpečný diagnostics artifact; PDF karta vyžaduje existujúci autorizovaný media endpoint. Úspešná projekcia sa audituje ako `outputs_viewed` iba s počtom vydaných položiek, bez samotných URL alebo inspection metadata.
+
 ## Immutable client companions
 
 Publikovaný package môže voliteľne deklarovať attachmenty `client_report` (`client_private` JSON), `source_documentation_appendix` (`client_private` JSON) a `media_attachments` (`internal` JSON). Nejde o zmenu client-report schémy ani všeobecný attachment download. Package verifier kontroluje jedinečnosť, identity, privacy, content types, paths, hashe a úplnosť autorizačných množín.

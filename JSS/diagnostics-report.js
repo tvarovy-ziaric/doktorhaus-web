@@ -181,6 +181,13 @@
   const PHOTO_CAPTION_BOILERPLATE = "Originálny mediálny súbor nebol extrahovaný.";
   const IMAGE_TYPES = new Set(["photo", "thermal_image", "drone_photo", "photo_360"]);
   const MAX_INITIAL_IMAGES = 8;
+  const OUTPUT_DEFINITIONS = Object.freeze({
+    google_docs: Object.freeze({ icon: "DOC", title: "Google Docs správa", description: "Online dokument správy.", action: "Otvoriť dokument" }),
+    pdf: Object.freeze({ icon: "PDF", title: "Správa v PDF", description: "Statická verzia správy vhodná na uloženie alebo tlač.", action: "Otvoriť PDF" }),
+    panoraven: Object.freeze({ icon: "360", title: "Virtuálna prehliadka exteriéru", description: "Priestorová prehliadka dostupných častí exteriéru.", action: "Otvoriť prehliadku" }),
+    video_hd: Object.freeze({ icon: "HD", title: "Dron video Full HD", description: "Videozáznam nehnuteľnosti z dronu.", action: "Otvoriť video" }),
+    video_360: Object.freeze({ icon: "VR", title: "Dron video 360", description: "Priestorový videozáznam nehnuteľnosti z dronu.", action: "Otvoriť video" })
+  });
   const SCORE_LEGENDS = Object.freeze({
     priority: Object.freeze({ title: "Priorita", values: Object.freeze(["P1", "P2", "P3", "P4", "P5"]), showCodes: true }),
     severity: Object.freeze({ title: "Závažnosť", values: Object.freeze(["S1", "S2", "S3", "S4", "S5"]), showCodes: true }),
@@ -320,6 +327,157 @@
       return "";
     }
     return value.replace(PHOTO_CAPTION_BOILERPLATE, "").trim();
+  }
+
+  function hostAllowed(hostname, allowedHosts) {
+    const host = String(hostname || "").toLowerCase().replace(/\.$/, "");
+    return allowedHosts.some(function (allowedHost) {
+      return host === allowedHost || host.endsWith("." + allowedHost);
+    });
+  }
+
+  function validateOutputUrl(type, value, pageUrl) {
+    if (!Object.prototype.hasOwnProperty.call(OUTPUT_DEFINITIONS, type) ||
+        typeof value !== "string" || value === "" || typeof pageUrl !== "string") {
+      return null;
+    }
+    if (type === "pdf") {
+      return validateMediaUrl(value, pageUrl);
+    }
+    const allowedHosts = type === "google_docs"
+      ? ["docs.google.com", "drive.google.com"]
+      : type === "panoraven"
+        ? ["panoraven.com"]
+        : ["youtube.com", "youtu.be", "youtube-nocookie.com"];
+    try {
+      const output = new URL(value);
+      if (output.protocol !== "https:" || output.username !== "" || output.password !== "" ||
+          !hostAllowed(output.hostname, allowedHosts)) {
+        return null;
+      }
+      return output.href;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function slug(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function buildIssueAnchors(issues) {
+    const used = new Set();
+    const anchors = new Map();
+    array(issues).forEach(function (issue, index) {
+      const displayCode = typeof issue.display_code === "string" ? issue.display_code.trim() : "";
+      const displaySlug = slug(displayCode);
+      const preferred = displaySlug ? "zistenie-" + displaySlug : "";
+      let anchor = preferred && !used.has(preferred) ? preferred : "zistenie-" + String(index + 1).padStart(2, "0");
+      while (used.has(anchor)) {
+        anchor += "-" + String(index + 1);
+      }
+      used.add(anchor);
+      anchors.set(issue.id, {
+        id: anchor,
+        label: (displayCode ? displayCode + " — " : "") + issue.title
+      });
+    });
+    return anchors;
+  }
+
+  function splitPhotoIdentity(label, title, fallback) {
+    const titleText = typeof title === "string" ? title.trim() : "";
+    const titleMatch = titleText.match(/^((?:Photo|Foto)\s*\d+)\s*[–—-]\s*(.+)$/i);
+    if (titleMatch) {
+      return {
+        label: titleMatch[1].replace(/\s+/, " "),
+        title: titleMatch[2].trim()
+      };
+    }
+    const labelText = typeof label === "string" ? label.trim() : "";
+    const labelMatch = labelText.match(/\b((?:Photo|Foto)\s*\d+)/i);
+    const fallbackMatch = typeof fallback === "string" ? fallback.match(/^EV-(\d+)$/i) : null;
+    return {
+      label: labelMatch
+        ? labelMatch[1].replace(/\s+/, " ")
+        : labelText || (fallbackMatch ? "Photo " + Number.parseInt(fallbackMatch[1], 10) : fallback) || "Fotografia",
+      title: titleText || fallback || "Fotografia"
+    };
+  }
+
+  function photoCaptionWithoutRepeatedIdentity(caption, identity) {
+    const cleaned = sanitizePhotoCaption(caption);
+    const withoutPrefix = cleaned.replace(/^\s*(?:Photo|Foto)\s*\d+\s*[–—-]\s*/i, "").trim();
+    return withoutPrefix === identity.title ? "" : cleaned;
+  }
+
+  function buildPhotoGallery(report, appendix, pageUrl, issueAnchors) {
+    const anchors = issueAnchors || buildIssueAnchors(report.issues);
+    const items = [];
+    const byEvidenceId = new Map();
+    array(report.issues).forEach(function (issue) {
+      const issueLink = anchors.get(issue.id);
+      array(issue.evidence).forEach(function (evidence) {
+        if (!evidence || !evidence.has_media || !IMAGE_TYPES.has(evidence.type) ||
+            !String(evidence.content_type || "").startsWith("image/")) {
+          return;
+        }
+        const mediaUrl = validateMediaUrl(evidence.media_url, pageUrl);
+        if (!mediaUrl) {
+          return;
+        }
+        let item = byEvidenceId.get(evidence.id);
+        if (!item) {
+          const identity = splitPhotoIdentity(null, evidence.title, evidence.display_code);
+          item = {
+            evidenceId: evidence.id,
+            source: "linked",
+            url: mediaUrl,
+            label: identity.label,
+            title: identity.title,
+            caption: sanitizePhotoCaption(evidence.description),
+            related: []
+          };
+          byEvidenceId.set(evidence.id, item);
+          items.push(item);
+        }
+        if (issueLink && !item.related.some(function (link) { return link.href === "#" + issueLink.id; })) {
+          item.related.push({ href: "#" + issueLink.id, label: issueLink.label });
+        }
+      });
+    });
+    if (appendix && appendix.schema_version === "1.0.0-helper" &&
+        appendix.document_type === "source_documentation_appendix" &&
+        Array.isArray(appendix.items) && appendix.photo_count === appendix.items.length) {
+      appendix.items.forEach(function (entry) {
+        if (!entry || byEvidenceId.has(entry.evidence_id)) {
+          return;
+        }
+        const mediaUrl = validateMediaUrl(entry.media_url, pageUrl);
+        if (!mediaUrl) {
+          throw new Error("Unsupported source documentation appendix media.");
+        }
+        const cleanedSourceCaption = sanitizePhotoCaption(entry.source_caption);
+        const identity = splitPhotoIdentity(entry.source_identity, cleanedSourceCaption, entry.display_code);
+        const item = {
+          evidenceId: entry.evidence_id,
+          source: "appendix",
+          url: mediaUrl,
+          label: identity.label,
+          title: identity.title,
+          caption: photoCaptionWithoutRepeatedIdentity(cleanedSourceCaption, identity),
+          related: [{ href: "#zdrojova-fotodokumentacia", label: "Zdrojová fotodokumentácia" }]
+        };
+        byEvidenceId.set(entry.evidence_id, item);
+        items.push(item);
+      });
+    }
+    return items;
   }
 
   function element(documentRef, tag, className, text) {
@@ -649,6 +807,174 @@
       header.append(note);
     }
     return header;
+  }
+
+  function slovakCount(value, singular, few, many) {
+    const count = Number(value);
+    const absolute = Math.abs(count);
+    const form = absolute === 1 ? singular : absolute >= 2 && absolute <= 4 ? few : many;
+    return formatNumber(count) + " " + form;
+  }
+
+  function normalizeOutputs(outputsDocument, pageUrl) {
+    if (!outputsDocument || outputsDocument.schema_version !== "1.0.0-helper" ||
+        outputsDocument.document_type !== "diagnostics_outputs" || !Array.isArray(outputsDocument.outputs)) {
+      return [];
+    }
+    const byType = new Map();
+    outputsDocument.outputs.forEach(function (output) {
+      if (!output || byType.has(output.type)) {
+        return;
+      }
+      const safeUrl = validateOutputUrl(output.type, output.url, pageUrl);
+      if (safeUrl) {
+        byType.set(output.type, safeUrl);
+      }
+    });
+    return Object.keys(OUTPUT_DEFINITIONS).filter(function (type) {
+      return byType.has(type);
+    }).map(function (type) {
+      return { type: type, url: byType.get(type), definition: OUTPUT_DEFINITIONS[type] };
+    });
+  }
+
+  function renderOutputsHub(documentRef, report, photoCount, outputsDocument, pageUrl) {
+    const wrapper = section(documentRef, "Všetky výstupy z inšpekcie", null, "vystupy");
+    wrapper.classList.add("diag-portal-section", "diag-output-hub");
+    const heading = wrapper.querySelector(".diag-section-heading");
+    heading.insertBefore(element(documentRef, "p", "eyebrow", "VÝSTUPY"), heading.firstChild);
+
+    const primary = element(documentRef, "article", "diag-output-card diag-output-primary");
+    const primaryIcon = element(documentRef, "span", "diag-output-icon", "WWW");
+    primaryIcon.setAttribute("aria-hidden", "true");
+    const primaryCopy = element(documentRef, "div", "diag-output-copy");
+    primaryCopy.append(element(documentRef, "h3", null, "Kompletná inšpekčná správa"));
+    primaryCopy.append(element(
+      documentRef,
+      "p",
+      null,
+      "Interaktívna technická správa so zisteniami, prioritami, odporúčaniami, finančným rámcom a fotodokumentáciou."
+    ));
+    const counts = [];
+    if (report.overview && Number.isInteger(report.overview.issue_count)) {
+      counts.push(slovakCount(report.overview.issue_count, "zistenie", "zistenia", "zistení"));
+    }
+    if (Number.isInteger(photoCount)) {
+      counts.push(slovakCount(photoCount, "fotografia", "fotografie", "fotografií"));
+    }
+    if (counts.length) {
+      primaryCopy.append(element(documentRef, "p", "diag-output-meta", counts.join(" · ")));
+    }
+    const primaryLink = element(documentRef, "a", "btn primary diag-output-action", "Otvoriť správu");
+    primaryLink.setAttribute("href", "#kompletna-sprava");
+    primary.append(primaryIcon, primaryCopy, primaryLink);
+    wrapper.append(primary);
+
+    const outputs = normalizeOutputs(outputsDocument, pageUrl);
+    if (outputs.length) {
+      const grid = element(documentRef, "div", "diag-output-grid");
+      outputs.forEach(function (output) {
+        const card = element(documentRef, "article", "diag-output-card diag-external-output-card");
+        card.dataset.outputType = output.type;
+        const icon = element(documentRef, "span", "diag-output-icon", output.definition.icon);
+        icon.setAttribute("aria-hidden", "true");
+        const copy = element(documentRef, "div", "diag-output-copy");
+        copy.append(element(documentRef, "h3", null, output.definition.title));
+        copy.append(element(documentRef, "p", null, output.definition.description));
+        const link = element(documentRef, "a", "btn diag-output-action", output.definition.action);
+        link.setAttribute("href", output.url);
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
+        card.append(icon, copy, link);
+        grid.append(card);
+      });
+      wrapper.append(grid);
+    }
+    return wrapper;
+  }
+
+  function renderPhotoGallery(documentRef, galleryItems, viewer) {
+    const wrapper = section(documentRef, "Fotogaléria z inšpekcie", null, "fotodokumentacia");
+    wrapper.classList.add("diag-portal-section", "diag-client-gallery");
+    const heading = wrapper.querySelector(".diag-section-heading");
+    heading.insertBefore(element(documentRef, "p", "eyebrow", "FOTODOKUMENTÁCIA"), heading.firstChild);
+    heading.append(element(
+      documentRef,
+      "p",
+      "diag-gallery-count",
+      slovakCount(galleryItems.length, "fotografia", "fotografie", "fotografií")
+    ));
+    const grid = element(documentRef, "div", "diag-client-photo-grid");
+    const viewerItems = galleryItems.map(function (item) {
+      return {
+        url: item.url,
+        title: item.title,
+        code: item.label,
+        alt: item.label + " — " + item.title
+      };
+    });
+    let appendixMarkerAdded = false;
+    galleryItems.forEach(function (item, index) {
+      if (item.source === "appendix" && !appendixMarkerAdded) {
+        appendixMarkerAdded = true;
+        const marker = element(documentRef, "div", "diag-gallery-source-marker");
+        marker.id = "zdrojova-fotodokumentacia";
+        marker.append(element(documentRef, "strong", null, "Zdrojová fotodokumentácia"));
+        marker.append(element(documentRef, "span", null, "Fotografie bez vytvorenej analytickej väzby na konkrétne zistenie."));
+        grid.append(marker);
+      }
+      const card = element(documentRef, "article", "diag-client-photo-card");
+      card.dataset.photoSource = item.source;
+      const button = element(documentRef, "button", "diag-client-photo-button");
+      button.type = "button";
+      button.setAttribute("aria-label", "Otvoriť fotografiu: " + item.title);
+      const image = element(documentRef, "img");
+      image.src = item.url;
+      image.alt = item.label + " — " + item.title;
+      image.loading = "lazy";
+      image.decoding = "async";
+      const fallback = createMediaFallback(documentRef);
+      fallback.hidden = true;
+      image.addEventListener("error", function () {
+        image.hidden = true;
+        fallback.hidden = false;
+      }, { once: true });
+      button.append(image, fallback);
+      button.addEventListener("click", function () {
+        viewer.open(viewerItems, index, button);
+      });
+      const copy = element(documentRef, "div", "diag-client-photo-copy");
+      copy.append(element(documentRef, "p", "diag-card-kicker", item.label));
+      copy.append(element(documentRef, "h3", null, item.title));
+      if (item.caption && item.caption !== item.title) {
+        copy.append(element(documentRef, "p", "diag-client-photo-caption", item.caption));
+      }
+      const context = element(documentRef, "div", "diag-photo-context");
+      context.append(element(documentRef, "strong", null, "Súvisí s:"));
+      const list = element(documentRef, "ul");
+      item.related.forEach(function (related) {
+        const listItem = element(documentRef, "li");
+        const link = element(documentRef, "a", null, related.label);
+        link.setAttribute("href", related.href);
+        listItem.append(link);
+        list.append(listItem);
+      });
+      context.append(list);
+      copy.append(context);
+      card.append(button, copy);
+      grid.append(card);
+    });
+    wrapper.append(grid);
+    return wrapper;
+  }
+
+  function renderCompleteReportTransition(documentRef) {
+    const wrapper = element(documentRef, "section", "diag-complete-report-transition");
+    wrapper.id = "kompletna-sprava";
+    wrapper.append(element(documentRef, "p", "eyebrow", "KOMPLETNÁ SPRÁVA"));
+    wrapper.append(element(documentRef, "h2", null, "Technická diagnostika nehnuteľnosti"));
+    wrapper.append(element(documentRef, "p", null, "Podrobný technický výstup so zisteniami, odporúčaniami, overeniami a obmedzeniami kontroly."));
+    return wrapper;
   }
 
   function renderOverview(documentRef, report) {
@@ -1278,8 +1604,11 @@
     return wrapper;
   }
 
-  function renderIssue(documentRef, issue, recommendationById, pageUrl, viewer) {
+  function renderIssue(documentRef, issue, recommendationById, pageUrl, viewer, issueAnchor) {
     const article = element(documentRef, "article", "diag-issue");
+    if (issueAnchor) {
+      article.id = issueAnchor.id;
+    }
     article.dataset.priority = issue.priority;
     const main = element(documentRef, "div", "diag-issue-main");
     const kicker = element(documentRef, "div", "diag-card-kicker");
@@ -1328,7 +1657,7 @@
     return article;
   }
 
-  function renderIssues(documentRef, report, pageUrl, viewer) {
+  function renderIssues(documentRef, report, pageUrl, viewer, issueAnchors) {
     const wrapper = section(
       documentRef,
       "Hlavné zistenia",
@@ -1346,7 +1675,7 @@
     }));
     const listNode = element(documentRef, "div", "diag-issues");
     issues.forEach(function (issue) {
-      listNode.append(renderIssue(documentRef, issue, recommendationById, pageUrl, viewer));
+      listNode.append(renderIssue(documentRef, issue, recommendationById, pageUrl, viewer, issueAnchors.get(issue.id)));
     });
     wrapper.append(listNode);
     return wrapper;
@@ -1741,28 +2070,18 @@
     return wrapper;
   }
 
-  function renderReport(report, options) {
-    assertClientReport(report);
-    scorePopoverSequence = 0;
-    const documentRef = options && options.document ? options.document : document;
-    const pageUrl = options && options.pageUrl
-      ? options.pageUrl
-      : documentRef.defaultView.location.href;
-    const container = options && options.container
-      ? options.container
-      : documentRef.getElementById("diag-report-content");
-    const viewer = options && options.photoViewer
-      ? options.photoViewer
-      : createPhotoViewer(documentRef);
+  function renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, includeHeader) {
     const content = element(documentRef, "div", "diag-report-content");
-    content.append(renderHeader(documentRef, report));
+    if (includeHeader) {
+      content.append(renderHeader(documentRef, report));
+    }
     content.append(renderOverview(documentRef, report));
     content.append(renderPriorityRecommendations(documentRef, report));
     const pricing = renderReportPricing(documentRef, report);
     if (pricing) {
       content.append(pricing);
     }
-    content.append(renderIssues(documentRef, report, pageUrl, viewer));
+    content.append(renderIssues(documentRef, report, pageUrl, viewer, issueAnchors));
     content.append(renderRemediationOrder(documentRef, array(report.recommendations)));
     [
       renderUnverified(documentRef, array(report.unverified_items)),
@@ -1782,9 +2101,10 @@
     end.append(logout);
     content.append(end);
     refreshSectionNavigation(content, documentRef);
-    container.replaceChildren(content);
-    installScorePopoverBehavior(documentRef, container);
+    return content;
+  }
 
+  function updatePrintMeta(documentRef, report) {
     const printProperty = documentRef.getElementById("diag-print-property");
     const printMeta = documentRef.getElementById("diag-print-meta");
     if (printProperty) {
@@ -1793,16 +2113,70 @@
     if (printMeta) {
       printMeta.textContent = formatDate(report.inspection.performed_at) + " · verzia " + report.report.version;
     }
+  }
+
+  function renderReport(report, options) {
+    assertClientReport(report);
+    scorePopoverSequence = 0;
+    const documentRef = options && options.document ? options.document : document;
+    const pageUrl = options && options.pageUrl
+      ? options.pageUrl
+      : documentRef.defaultView.location.href;
+    const container = options && options.container
+      ? options.container
+      : documentRef.getElementById("diag-report-content");
+    const viewer = options && options.photoViewer
+      ? options.photoViewer
+      : createPhotoViewer(documentRef);
+    const issueAnchors = buildIssueAnchors(report.issues);
+    const content = renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, true);
+    container.replaceChildren(content);
+    installScorePopoverBehavior(documentRef, container);
+    updatePrintMeta(documentRef, report);
     return content;
+  }
+
+  function renderClientPortal(report, options) {
+    assertClientReport(report);
+    scorePopoverSequence = 0;
+    const documentRef = options && options.document ? options.document : document;
+    const pageUrl = options && options.pageUrl
+      ? options.pageUrl
+      : documentRef.defaultView.location.href;
+    const container = options && options.container
+      ? options.container
+      : documentRef.getElementById("diag-report-content");
+    const viewer = options && options.photoViewer
+      ? options.photoViewer
+      : createPhotoViewer(documentRef);
+    const appendix = options && options.appendix ? options.appendix : null;
+    const outputs = options && options.outputs ? options.outputs : null;
+    const issueAnchors = buildIssueAnchors(report.issues);
+    const galleryItems = buildPhotoGallery(report, appendix, pageUrl, issueAnchors);
+    const portal = element(documentRef, "div", "diag-report-content diag-client-portal");
+    portal.append(renderHeader(documentRef, report));
+    portal.append(renderOutputsHub(documentRef, report, galleryItems.length, outputs, pageUrl));
+    portal.append(renderPhotoGallery(documentRef, galleryItems, viewer));
+    portal.append(renderCompleteReportTransition(documentRef));
+    const detailedWrapper = element(documentRef, "div", "diag-complete-report");
+    detailedWrapper.append(renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, false));
+    portal.append(detailedWrapper);
+    container.replaceChildren(portal);
+    installScorePopoverBehavior(documentRef, container);
+    updatePrintMeta(documentRef, report);
+    return portal;
   }
 
   return Object.freeze({
     LABELS: LABELS,
     validateAccessId: validateAccessId,
     validateMediaUrl: validateMediaUrl,
+    validateOutputUrl: validateOutputUrl,
     formatCurrency: formatCurrency,
     formatPricingCurrency: formatPricingCurrency,
     sanitizePhotoCaption: sanitizePhotoCaption,
+    buildIssueAnchors: buildIssueAnchors,
+    buildPhotoGallery: buildPhotoGallery,
     SCORE_LEGENDS: SCORE_LEGENDS,
     scoreLegendEntries: scoreLegendEntries,
     pricingPrimaryText: pricingPrimaryText,
@@ -1814,6 +2188,7 @@
     renderSourceDocumentationAppendix: renderSourceDocumentationAppendix,
     installScorePopoverBehavior: installScorePopoverBehavior,
     installPrintBehavior: installPrintBehavior,
-    renderReport: renderReport
+    renderReport: renderReport,
+    renderClientPortal: renderClientPortal
   });
 });

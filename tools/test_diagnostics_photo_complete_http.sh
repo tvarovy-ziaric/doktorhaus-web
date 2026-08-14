@@ -40,6 +40,9 @@ php -d "session.save_path=$session_root" -S "127.0.0.1:$port" -t "$web_root" >"$
 server_pid=$!
 for _ in {1..20}; do curl -sS "$base_url/inspekcie.html" >/dev/null && break; sleep 0.2; done
 
+outputs_without_session="$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/api/diagnostics-outputs.php")"
+[[ "$outputs_without_session" == "401" ]] || fail "diagnostics outputs were available without a session"
+
 available_without_pin="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"action":"available-diagnostics","id":"photo-complete-inspection"}' "$base_url/api/inspections.php")"
 [[ "$available_without_pin" == "403" ]] || fail "available-diagnostics is not admin-only"
 available="$(curl -sS -H 'Content-Type: application/json' -d '{"action":"available-diagnostics","adminPin":"photo-complete-admin","id":"photo-complete-inspection"}' "$base_url/api/inspections.php")"
@@ -85,8 +88,25 @@ auth="$(curl -sS -c "$cookie_jar" -b "$cookie_jar" "$base_url/api/diagnostics-au
 csrf="$(json_field "$auth" csrfToken)"
 report_file="$test_root/report.json"
 appendix_file="$test_root/appendix.json"
+outputs_file="$test_root/outputs.json"
 curl -sS -b "$cookie_jar" -o "$report_file" "$base_url/api/diagnostics-report.php"
 curl -sS -b "$cookie_jar" -o "$appendix_file" "$base_url/api/diagnostics-appendix.php"
+curl -sS -b "$cookie_jar" -o "$outputs_file" "$base_url/api/diagnostics-outputs.php"
+outputs_query="$(curl -sS -b "$cookie_jar" -o /dev/null -w '%{http_code}' "$base_url/api/diagnostics-outputs.php?access=$access_id")"
+[[ "$outputs_query" == "400" ]] || fail "diagnostics outputs accepted a client selector"
+python - "$outputs_file" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    body = json.load(handle)
+assert body["schema_version"] == "1.0.0-helper"
+assert body["document_type"] == "diagnostics_outputs"
+assert [item["type"] for item in body["outputs"]] == ["google_docs", "panoraven", "video_hd"]
+assert all(set(item) == {"type", "url"} for item in body["outputs"])
+serialized = json.dumps(body).lower()
+assert "998148" not in serialized
+assert not any(field.lower() in serialized for field in ("diagnosticsAccessId", "clientEmail", "adminPin", "filesystem_path", "pin"))
+assert "unsafe-public-report.pdf" not in serialized and "javascript:" not in serialized
+PY
 python - "$report_file" "$appendix_file" "$base_url" "$cookie_jar" <<'PY'
 import json, subprocess, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
@@ -118,6 +138,22 @@ const captions = report.issues.flatMap((issue) => issue.evidence)
 if (captions.length !== 71 || captions.some((caption) => caption.includes("Originálny mediálny súbor nebol extrahovaný."))) {
   throw new Error("Rendered photo captions were not sanitized for all 71 photos.");
 }
+const anchors = renderer.buildIssueAnchors(report.issues);
+const gallery = renderer.buildPhotoGallery(report, appendix, "http://127.0.0.1/inspekcia.html", anchors);
+if (gallery.length !== 71 || gallery.filter((item) => item.source === "linked").length !== 53 ||
+    gallery.filter((item) => item.source === "appendix").length !== 18) {
+  throw new Error("Client portal gallery did not preserve the 53 + 18 photo split.");
+}
+if (gallery.filter((item) => item.source === "linked").some((item) => item.related.length < 1 || !item.related.every((link) => link.href.startsWith("#zistenie-")))) {
+  throw new Error("Linked photos do not point to client issue anchors.");
+}
+if (gallery.filter((item) => item.source === "appendix").some((item) => item.related.length !== 1 || item.related[0].href !== "#zdrojova-fotodokumentacia")) {
+  throw new Error("Appendix photos received a fabricated issue link.");
+}
+const anchorValues = [...anchors.values()].map((item) => item.id);
+if (new Set(anchorValues).size !== report.issues.length || anchorValues.some((anchor) => /issue_[0-9a-f]/.test(anchor))) {
+  throw new Error("Client issue anchors are missing, duplicated, or expose a raw issue hash.");
+}
 JS
 
 wrong_status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"action":"unlock","pin":"000000"}' "$base_url/api/inspections.php")"
@@ -126,7 +162,10 @@ logout_status="$(curl -sS -o /dev/null -w '%{http_code}' -c "$cookie_jar" -b "$c
 [[ "$logout_status" == "200" ]] || fail "logout failed"
 post_logout="$(curl -sS -o /dev/null -w '%{http_code}' -b "$cookie_jar" "$base_url/api/diagnostics-report.php")"
 [[ "$post_logout" == "401" ]] || fail "logout did not invalidate the session"
+outputs_post_logout="$(curl -sS -o /dev/null -w '%{http_code}' -b "$cookie_jar" "$base_url/api/diagnostics-outputs.php")"
+[[ "$outputs_post_logout" == "401" ]] || fail "logout did not protect the diagnostics outputs"
 ! grep -R -F -q "$pin" "$storage_root/audit" || fail "audit log leaked the PIN"
+! grep -R -E -q 'docs\.google\.com|panoraven\.com|youtube\.com' "$storage_root/audit" || fail "audit log leaked an output URL"
 ! grep -q "$pin" "$server_log" || fail "server log leaked the PIN"
 ! grep -Eqi 'warning|fatal|uncaught|notice' "$server_log" || fail "PHP emitted a runtime warning"
 

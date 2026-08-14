@@ -98,3 +98,11 @@ Krok 5A nevytvára Babiná ani iné produkčné dáta, nevydáva grant/PIN, neme
 Produkčný klient načíta voliteľný appendix zo samostatného session-bound endpointu. `404` znamená, že konkrétna verzia appendix nemá; iné chyby zlyhajú bezpečne. Produkčný klient a owner preview používajú rovnakú renderer funkciu. Sekcia a navigačná položka vzniknú iba pri reálnom appendixe; interaktívne menu ostáva v tlači skryté a fotografie appendixu sú zahrnuté.
 
 Renderer pri fotografiách kompatibilne odstraňuje historickú technickú vetu o neextrahovanom originálnom súbore z linked evidence aj `source_caption`. Ostatný informatívny popis zostáva nezmenený; ak po odstránení nezostane text, nevzniká prázdny odsek. Non-photo evidence sa týmto pravidlom nemení.
+
+## Klientsky rozcestník jednej inšpekcie
+
+Po úspešnom overení PINu je `inspekcia.html` portálom jednej session-bound inšpekcie. Nad nezmeneným detailným reportom zobrazuje identitu nehnuteľnosti, primárnu WWW kartu, iba reálne dostupné voliteľné výstupy a jednu fotogalériu. WWW karta smeruje na `#kompletna-sprava`; existujúca navigácia detailného reportu zostáva vo vnútri tejto časti.
+
+Voliteľné výstupy načítava samostatný `GET api/diagnostics-outputs.php`. Endpoint neprijíma query selector a spája aktuálne `access_id` iba so serverovým `diagnosticsAccessId` v legacy inspection recorde. Do client projection ani report schema sa output URL nepridáva. Endpoint vracia iba zoradené dvojice `type + url`, pričom Google Docs, Panoraven a YouTube musia byť HTTPS na príslušnom allowlistovanom hoste. PDF sa zobrazí iba ako existujúci session-bound `diagnostics-media.php?evidence=…` odkaz; priama legacy cesta pod `uploads/` sa odmietne. Neexistujúci record, prázdne alebo neplatné výstupy neblokujú WWW report.
+
+Portál skladá jednu deduplikovanú galériu z client-visible linked evidence a source-documentation appendixu. Linked fotografia môže niesť viac existujúcich issue väzieb; appendix fotografia dostane iba kontext `Zdrojová fotodokumentácia` a nikdy syntetický issue link. Každé viditeľné issue má stabilný anchor odvodený z `display_code`, napríklad `zistenie-di-009`; fallback používa poradie bez raw `issue_…` hashu. Všetky karty používajú lazy images a spoločný viewer má prev/next cez celú zostavenú galériu.

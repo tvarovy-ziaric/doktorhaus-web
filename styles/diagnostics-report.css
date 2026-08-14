@@ -1502,3 +1502,279 @@
   .dh-source-card { break-inside: avoid; }
   .dh-source-photo-button img { aspect-ratio: 4 / 3; }
 }
+
+/* Session-bound client inspection portal. */
+.diag-portal-section,
+.diag-complete-report-transition {
+  scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
+}
+
+.diag-output-hub,
+.diag-client-gallery {
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.diag-output-card {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  padding: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.diag-output-primary {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  margin-top: 1.2rem;
+  border-left: 4px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.diag-output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+}
+
+.diag-output-grid .diag-output-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+}
+
+.diag-output-icon {
+  display: inline-grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+}
+
+.diag-output-copy {
+  min-width: 0;
+}
+
+.diag-output-copy h3,
+.diag-client-photo-copy h3,
+.diag-complete-report-transition h2 {
+  margin: 0;
+}
+
+.diag-output-copy p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+}
+
+.diag-output-copy .diag-output-meta {
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.diag-output-action {
+  align-self: end;
+  justify-self: start;
+  text-decoration: none;
+}
+
+.diag-output-primary .diag-output-action {
+  align-self: center;
+  white-space: nowrap;
+}
+
+.diag-client-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.35rem;
+}
+
+.diag-gallery-count {
+  color: var(--accent) !important;
+  font-weight: 750;
+}
+
+.diag-gallery-source-marker {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
+}
+
+.diag-gallery-source-marker span {
+  color: var(--muted);
+}
+
+.diag-client-photo-card {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.diag-client-photo-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: var(--section);
+  cursor: zoom-in;
+}
+
+.diag-client-photo-button img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.diag-client-photo-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0.9rem;
+}
+
+.diag-client-photo-copy .diag-card-kicker {
+  margin: 0 0 0.35rem;
+}
+
+.diag-client-photo-copy h3 {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.diag-client-photo-caption {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.diag-photo-context {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.diag-photo-context > strong {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diag-photo-context ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diag-photo-context a {
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+.diag-complete-report-transition {
+  padding: clamp(1.5rem, 5vw, 2.6rem);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.diag-complete-report-transition > p:last-child {
+  max-width: 66ch;
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+}
+
+.diag-issue[id] {
+  scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
+}
+
+@media (max-width: 819px) {
+  .diag-output-grid,
+  .diag-client-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .diag-output-primary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .diag-output-primary .diag-output-action {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 619px) {
+  .diag-output-grid,
+  .diag-client-photo-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diag-output-primary,
+  .diag-output-grid .diag-output-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diag-output-action,
+  .diag-output-primary .diag-output-action {
+    width: 100%;
+    justify-self: stretch;
+    text-align: center;
+  }
+}
+
+@media print {
+  .diag-external-output-card,
+  .diag-output-action,
+  .diag-client-photo-button .diag-media-fallback {
+    display: none !important;
+  }
+
+  .diag-output-primary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .diag-client-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6mm;
+  }
+
+  .diag-client-photo-card,
+  .diag-gallery-source-marker,
+  .diag-complete-report-transition {
+    break-inside: avoid;
+    border-color: #888888;
+    background: #ffffff;
+  }
+
+  .diag-client-photo-button {
+    cursor: default;
+  }
+}

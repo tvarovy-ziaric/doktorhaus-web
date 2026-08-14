@@ -37,6 +37,32 @@ for (const candidate of [
 ]) {
   assert.equal(renderer.validateMediaUrl(candidate, pageUrl), null, candidate);
 }
+assert.equal(
+  renderer.validateOutputUrl("google_docs", "https://docs.google.com/document/d/example/preview", pageUrl),
+  "https://docs.google.com/document/d/example/preview"
+);
+assert.equal(
+  renderer.validateOutputUrl("panoraven", "https://panoraven.com/en/embed/example", pageUrl),
+  "https://panoraven.com/en/embed/example"
+);
+assert.equal(
+  renderer.validateOutputUrl("video_hd", "https://youtu.be/example", pageUrl),
+  "https://youtu.be/example"
+);
+assert.equal(
+  renderer.validateOutputUrl("pdf", "api/diagnostics-media.php?evidence=" + evidenceId, pageUrl),
+  "https://doktorhaus.sk/api/diagnostics-media.php?evidence=" + evidenceId
+);
+for (const [type, candidate] of [
+  ["google_docs", "http://docs.google.com/document/d/example"],
+  ["google_docs", "https://example.test/document"],
+  ["panoraven", "javascript:alert(1)"],
+  ["video_hd", "https://vimeo.com/example"],
+  ["pdf", "uploads/inspekcie/client-report.pdf"],
+  ["unknown", "https://docs.google.com/document/d/example"]
+]) {
+  assert.equal(renderer.validateOutputUrl(type, candidate, pageUrl), null, type + ": " + candidate);
+}
 
 assert.equal(renderer.LABELS.severity.S1, "zanedbateľná");
 assert.equal(renderer.LABELS.severity.S5, "kritická");
@@ -462,6 +488,66 @@ for (const caption of appendixSection.querySelectorAll(".dh-source-caption")) {
   assert.doesNotMatch(caption.textContent, /Origin\u00e1lny medi\u00e1lny s\u00fabor nebol extrahovan\u00fd\./);
 }
 
+const portalOutputs = {
+  schema_version: "1.0.0-helper",
+  document_type: "diagnostics_outputs",
+  outputs: [
+    {type: "google_docs", url: "https://docs.google.com/document/d/example/preview"},
+    {type: "pdf", url: "api/diagnostics-media.php?evidence=" + evidenceId},
+    {type: "panoraven", url: "https://panoraven.com/en/embed/example"},
+    {type: "video_hd", url: "https://example.test/not-youtube"}
+  ]
+};
+const portalDocument = new FakeDocument(false);
+let openedGallery = null;
+const portal = renderer.renderClientPortal(fixture, {
+  document: portalDocument,
+  container: new FakeNode(),
+  pageUrl,
+  photoViewer: {open(items, index) { openedGallery = {items, index}; }},
+  appendix,
+  outputs: portalOutputs
+});
+assert.equal(portal.querySelector("#vystupy") !== null, true);
+assert.equal(portal.querySelector("#fotodokumentacia") !== null, true);
+assert.equal(portal.querySelector("#kompletna-sprava") !== null, true);
+assert.equal(portal.querySelectorAll(".diag-output-primary").length, 1);
+assert.match(portal.querySelector(".diag-output-meta").textContent, /19 fotografií/);
+assert.equal(portal.querySelectorAll(".diag-external-output-card").length, 3);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").length, 19);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "linked").length, 1);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "appendix").length, 18);
+assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "appendix")[0]
+  .querySelectorAll(".diag-client-photo-caption").length, 0);
+assert.equal(portal.querySelector("#zdrojova-fotodokumentacia") !== null, true);
+assert.equal(portal.querySelector("#zistenie-iss-001") !== null, true);
+function contextLinks(card) {
+  const context = card.querySelector(".diag-photo-context");
+  const list = context ? context.children.find((child) => child.tagName === "UL") : null;
+  return list ? list.children.map((item) => item.children[0]) : [];
+}
+const issueLink = portal.querySelectorAll(".diag-client-photo-card")
+  .flatMap(contextLinks)
+  .find((link) => link.getAttribute("href") === "#zistenie-iss-001");
+assert.ok(issueLink);
+const appendixLinks = portal.querySelectorAll(".diag-client-photo-card")
+  .filter((node) => node.dataset.photoSource === "appendix")
+  .map((node) => contextLinks(node)[0]);
+assert.equal(appendixLinks.every((link) => link && link.getAttribute("href") === "#zdrojova-fotodokumentacia"), true);
+portal.querySelector(".diag-client-photo-button").emit("click");
+assert.equal(openedGallery.items.length, 19);
+assert.equal(openedGallery.index, 0);
+const noOutputPortal = renderer.renderClientPortal(fixture, {
+  document: new FakeDocument(false),
+  container: new FakeNode(),
+  pageUrl,
+  photoViewer: {open() {}},
+  appendix: null,
+  outputs: null
+});
+assert.equal(noOutputPortal.querySelectorAll(".diag-output-primary").length, 1);
+assert.equal(noOutputPortal.querySelectorAll(".diag-external-output-card").length, 0);
+
 assert.equal(Object.prototype.hasOwnProperty.call(fixture, "pricing"), false);
 const pricingComponents = [
   {
@@ -620,6 +706,9 @@ assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
 assert.match(html, /<meta name="referrer" content="no-referrer">/);
 assert.doesNotMatch(html, /(?:src|href)=["']https?:\/\//i);
 assert.doesNotMatch(html, /analytics|gtag|googletagmanager|facebook\.net/i);
+const clientSource = fs.readFileSync(path.join(repoRoot, "JSS", "diagnostics-client.js"), "utf8");
+assert.match(clientSource, /outputs:\s*"api\/diagnostics-outputs\.php"/);
+assert.match(clientSource, /renderClientPortal\(report/);
 
 const rendererCss = fs.readFileSync(path.join(repoRoot, "styles", "diagnostics-report.css"), "utf8");
 assert.match(rendererCss, /\.diag-report-navigation-scroll\s*\{[^}]*overflow-x:\s*auto/s);
@@ -629,8 +718,13 @@ assert.match(rendererCss, /\.diag-score-popover\s*\{[^}]*width:\s*min\(18rem, ca
 assert.match(rendererCss, /@media \(max-width: 619px\)[\s\S]*\.diag-score-popover,[\s\S]*width:\s*auto/s);
 assert.match(rendererCss, /\.diag-score-legend-row\[data-current="true"\]\s*\{[^}]*background:\s*var\(--accent-soft\)/s);
 assert.match(rendererCss, /@media print[\s\S]*\.diag-score-popover,[\s\S]*display:\s*none\s*!important/);
+assert.match(rendererCss, /\.diag-issue\[id\]\s*\{[^}]*scroll-margin-top:/s);
+assert.match(rendererCss, /\.diag-client-photo-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,/s);
+assert.match(rendererCss, /@media \(max-width: 619px\)[\s\S]*\.diag-client-photo-grid[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
 const printCss = rendererCss.slice(rendererCss.indexOf("@media print"));
 assert.match(printCss, /\.diag-score-help-mark,/);
 assert.doesNotMatch(printCss, /\.diag-score-trigger/);
+assert.match(printCss, /\.diag-external-output-card,[\s\S]*\.diag-output-action,[\s\S]*display:\s*none\s*!important/);
+assert.match(printCss, /\.diag-client-photo-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
 
 console.log("Diagnostics renderer tests passed: labels, priority, currency, URL boundary and client safety.");

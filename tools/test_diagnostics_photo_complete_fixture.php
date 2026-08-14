@@ -207,7 +207,15 @@ function photoCompletePrepare(string $storageRoot, string $webRoot, string $pin)
     photoCompleteWriteJson($webRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'inspections.json', [[
         'id' => 'photo-complete-inspection', 'title' => 'Synthetic photo-complete inspection',
         'location' => 'Test region', 'clientEmail' => '', 'summary' => 'Synthetic one-PIN delivery test.',
-        'status' => 'ready', 'pin' => $pin, 'media' => [], 'photos' => [],
+        'status' => 'ready', 'pin' => $pin,
+        'media' => [
+            'reportUrl' => 'uploads/inspekcie/unsafe-public-report.pdf',
+            'docsUrl' => 'https://docs.google.com/document/d/synthetic/preview',
+            'panoravenUrl' => 'https://panoraven.com/en/embed/synthetic',
+            'videoHdUrl' => 'https://www.youtube.com/watch?v=synthetic',
+            'video360Url' => 'javascript:alert(1)',
+        ],
+        'photos' => [],
         'createdAt' => '2026-08-13T12:00:00+02:00', 'updatedAt' => '2026-08-13T12:00:00+02:00',
     ]]);
     return ['report_id' => $reportId, 'version' => $version, 'inspection_record_id' => 'photo-complete-inspection', 'pin' => $pin];

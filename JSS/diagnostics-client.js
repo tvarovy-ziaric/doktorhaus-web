@@ -9,7 +9,8 @@
   const API = Object.freeze({
     auth: "api/diagnostics-auth.php",
     report: "api/diagnostics-report.php",
-    appendix: "api/diagnostics-appendix.php"
+    appendix: "api/diagnostics-appendix.php",
+    outputs: "api/diagnostics-outputs.php"
   });
   const views = [
     document.getElementById("diag-loading"),
@@ -141,10 +142,11 @@
   async function loadReport() {
     showLoading("Načítavam diagnostickú správu…");
     try {
-      const responses = await Promise.all([request(API.report), request(API.appendix)]);
+      const responses = await Promise.all([request(API.report), request(API.appendix), request(API.outputs)]);
       const response = responses[0];
       const appendixResponse = responses[1];
-      if (response.status === 401 || appendixResponse.status === 401) {
+      const outputsResponse = responses[2];
+      if (response.status === 401 || appendixResponse.status === 401 || outputsResponse.status === 401) {
         csrfToken = null;
         showPin("Platnosť prístupu v tomto okne vypršala. Zadajte PIN znova.");
         return;
@@ -168,25 +170,23 @@
         showError();
         return;
       }
-      const content = reportToolkit.renderReport(report, {
-        document: document,
-        pageUrl: window.location.href,
-        container: reportContent,
-        photoViewer: photoViewer
-      });
+      let appendix = null;
       if (appendixResponse.ok) {
-        const appendix = await readJson(appendixResponse);
+        appendix = await readJson(appendixResponse);
         if (!appendix) {
           showError();
           return;
         }
-        content.append(reportToolkit.renderSourceDocumentationAppendix(appendix, {
-          document: document,
-          pageUrl: window.location.href,
-          photoViewer: photoViewer
-        }));
-        reportToolkit.refreshSectionNavigation(content, document);
       }
+      const outputs = outputsResponse.ok ? await readJson(outputsResponse) : null;
+      reportToolkit.renderClientPortal(report, {
+        document: document,
+        pageUrl: window.location.href,
+        container: reportContent,
+        photoViewer: photoViewer,
+        appendix: appendix,
+        outputs: outputs
+      });
       showView(reportShell);
       const reportHeading = document.getElementById("diag-report-title");
       if (reportHeading) {

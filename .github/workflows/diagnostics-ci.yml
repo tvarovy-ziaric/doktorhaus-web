@@ -101,6 +101,7 @@ jobs:
             api/diagnostics-report.php
             api/diagnostics-media.php
             api/diagnostics-appendix.php
+            api/diagnostics-outputs.php
             api/diagnostics.config.example.php
             tools/test_diagnostics_access.php
             tools/test_diagnostics_client_projection.php

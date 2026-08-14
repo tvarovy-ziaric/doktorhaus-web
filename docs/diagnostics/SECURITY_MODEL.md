@@ -185,3 +185,5 @@ Renderer používa výhradne textové DOM API, takže payload z client-safe kont
 Admin aktivácia môže vytvoriť diagnostics grant s už vydaným inspection PINom bez vrátenia alebo uloženia plaintextu v diagnostics store. Existujúce naviazanie je idempotentné iba po overení rovnakého PINu a rovnakého immutable package.
 
 Source-documentation appendix je samostatný session-bound allowlist, nie všeobecný download. Interná media mapa ani raw appendix paths/provenance sa klientovi nevydávajú. Fotografia je dostupná iba ak ju verifier nájde v rovnakom package, source evidence je client-safe photo a presná položka client reportu alebo appendixu ju autorizuje.
+
+Voliteľné externé výstupy zostávajú mimo `client_report` a načítava ich samostatný session-only endpoint bez query selectorov. Inspection record sa vyberá výhradne zhodou serverového `diagnosticsAccessId` s aktuálnym `access_id`; odpoveď nevydáva record ID, binding, PIN, email ani admin polia. Server aj renderer používajú typovo špecifický HTTPS/host allowlist. PDF sa nevydáva z legacy verejnej `uploads/` cesty, iba cez existujúci session-bound diagnostics media endpoint.

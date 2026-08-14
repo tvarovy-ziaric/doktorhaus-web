@@ -101,7 +101,7 @@ Denný súbor `audit/YYYY-MM-DD.jsonl` používa bezpečný append a `flock`. Ev
 
 Audit neobsahuje raw IP, PIN, `pin_hash`, session ID/cookie, celý user agent ani diagnostický obsah. IP a user agent sa pseudonymizujú oddelenými domain-tagged HMAC vstupmi; metadata majú úzky whitelist.
 
-Delivery vrstva kroku 4B používa ten istý audit a pridáva iba `report_viewed` a `media_accessed`. Zápis musí uspieť pred vydaním client-private contentu; event metadata nepridávajú path, filename ani `media_reference`. Podrobnosti sú v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
+Delivery vrstva používa ten istý audit a pridáva `report_viewed`, `appendix_viewed`, `outputs_viewed` a `media_accessed`. Zápis musí uspieť pred vydaním client-private contentu; event metadata nepridávajú output URL, path, filename ani `media_reference`. Podrobnosti sú v [CLIENT_DELIVERY.md](CLIENT_DELIVERY.md).
 
 Vytvorenie, rotácia a revokácia sú auditne konzistentné v bezpečnom smere. Store pod per-grant lockom najprv pripraví a overí dočasný JSON, potom zapíše audit a až následne vykoná atomický commit. Ak audit zlyhá alebo proces skončí pred commitom, pôvodný grant zostane nezmenený a pripravený súbor nie je autoritatívny. Pri zlyhaní filesystem commitu po úspešnom audite môže audit obsahovať udalosť bez zodpovedajúcej mutácie; nikdy však nevznikne platná mutácia bez predchádzajúcej auditnej udalosti. Prevádzkový monitoring má takýto prípad vyhodnotiť ako neúspešný commit.
 
