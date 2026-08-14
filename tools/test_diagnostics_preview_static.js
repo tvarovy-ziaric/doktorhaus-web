@@ -48,7 +48,7 @@ const renderer = read("JSS/diagnostics-report.js");
 assert(preview.includes("DoktorHausDiagnosticsReport"), "Production renderer reuse is missing.");
 assert(preview.includes("renderer.renderSourceDocumentationAppendix"), "Shared appendix renderer reuse is missing.");
 assert(renderer.includes("Zdrojová fotodokumentácia"), "Shared appendix composer is missing.");
-assert(renderer.includes('"diag-section-source-photos"'), "Appendix stable anchor is missing.");
+assert(renderer.includes('"zdrojova-fotodokumentacia"'), "Appendix stable anchor is missing.");
 assert(renderer.includes("appendix.photo_count !== appendix.items.length"), "Appendix count guard is missing.");
 assert(preview.includes("renderer.refreshSectionNavigation(content, document)"), "Appendix navigation refresh is missing.");
 assert(renderer.includes("sanitizePhotoCaption(item.source_caption)"), "Photo boilerplate is not removed from the client caption.");
