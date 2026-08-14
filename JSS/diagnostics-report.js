@@ -413,6 +413,26 @@
     return anchors;
   }
 
+  function resolveClientRoute(hash, hasReportTarget) {
+    const raw = typeof hash === "string" ? hash.replace(/^#/, "") : "";
+    if (!raw) {
+      return {view: "portal", targetId: null};
+    }
+    let targetId;
+    try {
+      targetId = decodeURIComponent(raw);
+    } catch (_error) {
+      return {view: "portal", targetId: null};
+    }
+    if (targetId === "sprava") {
+      return {view: "report", targetId: targetId};
+    }
+    if (typeof hasReportTarget === "function" && hasReportTarget(targetId)) {
+      return {view: "report", targetId: targetId};
+    }
+    return {view: "portal", targetId: null};
+  }
+
   function splitPhotoIdentity(label, title, fallback) {
     const titleText = typeof title === "string" ? title.trim() : "";
     const titleMatch = titleText.match(/^((?:Photo|Foto)\s*\d+)\s*[–—-]\s*(.+)$/i);
@@ -832,6 +852,45 @@
     return header;
   }
 
+  function renderPortalHeader(documentRef, report) {
+    const header = element(documentRef, "header", "diag-portal-header inspection-hero");
+    const copy = element(documentRef, "div");
+    copy.append(element(documentRef, "p", "eyebrow", "Klientský portál inšpekcie"));
+    const title = element(documentRef, "h1", null, report.property.display_name);
+    title.id = "diag-portal-title";
+    title.tabIndex = -1;
+    copy.append(title);
+    copy.append(element(
+      documentRef,
+      "p",
+      "diag-portal-intro",
+      "Dokumenty, technická správa a fotodokumentácia z inšpekcie na jednom mieste."
+    ));
+
+    const location = report.property.location || {};
+    const locationText = [location.municipality, location.district, location.region]
+      .filter(Boolean)
+      .filter(function (value, index, values) { return values.indexOf(value) === index; })
+      .join(" · ");
+    const summary = element(documentRef, "aside", "inspection-summary");
+    summary.setAttribute("aria-label", "Základné údaje inšpekcie");
+    const meta = element(documentRef, "dl");
+    [
+      ["Nehnuteľnosť", report.property.display_name],
+      ["Lokalita", locationText || location.country_code],
+      ["Kontrola", formatDate(report.inspection.performed_at)],
+      ["Verzia správy", report.report.version]
+    ].forEach(function (entry) {
+      const row = element(documentRef, "div");
+      row.append(element(documentRef, "dt", null, entry[0]));
+      row.append(element(documentRef, "dd", null, entry[1]));
+      meta.append(row);
+    });
+    summary.append(meta);
+    header.append(copy, summary);
+    return header;
+  }
+
   function slovakCount(value, singular, few, many) {
     const count = Number(value);
     const absolute = Math.abs(count);
@@ -918,14 +977,16 @@
     const heading = wrapper.querySelector(".diag-section-heading");
     heading.insertBefore(element(documentRef, "p", "eyebrow", "VÝSTUPY"), heading.firstChild);
 
-    const primary = element(documentRef, "article", "diag-output-card diag-output-primary");
-    const primaryIcon = element(documentRef, "span", "diag-output-icon", "WWW");
+    const grid = element(documentRef, "div", "media-grid diag-portal-media-grid");
+    const primary = element(documentRef, "a", "media-card primary-media diag-portal-report-card");
+    primary.setAttribute("href", "#sprava");
+    const primaryIcon = element(documentRef, "span", "media-icon", "WWW");
     primaryIcon.setAttribute("aria-hidden", "true");
-    const primaryCopy = element(documentRef, "div", "diag-output-copy");
-    primaryCopy.append(element(documentRef, "h3", null, "Kompletná inšpekčná správa"));
+    const primaryCopy = element(documentRef, "span", "media-copy");
+    primaryCopy.append(element(documentRef, "strong", null, "Kompletná inšpekčná správa"));
     primaryCopy.append(element(
       documentRef,
-      "p",
+      "small",
       null,
       "Interaktívna technická správa so zisteniami, prioritami, odporúčaniami, finančným rámcom a fotodokumentáciou."
     ));
@@ -937,33 +998,31 @@
       counts.push(slovakCount(photoCount, "fotografia", "fotografie", "fotografií"));
     }
     if (counts.length) {
-      primaryCopy.append(element(documentRef, "p", "diag-output-meta", counts.join(" · ")));
+      primaryCopy.append(element(documentRef, "small", "diag-output-meta", counts.join(" · ")));
     }
-    const primaryLink = element(documentRef, "a", "btn primary diag-output-action", "Otvoriť správu");
-    primaryLink.setAttribute("href", "#kompletna-sprava");
-    primary.append(primaryIcon, primaryCopy, primaryLink);
-    wrapper.append(primary);
+    const primaryAction = element(documentRef, "span", "media-action", "Otvoriť správu");
+    primary.append(primaryIcon, primaryCopy, primaryAction);
+    grid.append(primary);
 
     const outputs = normalizeOutputs(outputsDocument, pageUrl);
     if (outputs.length) {
-      const grid = element(documentRef, "div", "diag-output-grid");
       outputs.forEach(function (output) {
-        const card = element(documentRef, "article", "diag-output-card diag-external-output-card");
+        const card = element(documentRef, "a", "media-card diag-external-output-card");
         card.dataset.outputType = output.type;
-        const icon = element(documentRef, "span", "diag-output-icon", output.definition.icon);
+        card.setAttribute("href", output.url);
+        card.setAttribute("target", "_blank");
+        card.setAttribute("rel", "noopener noreferrer");
+        const icon = element(documentRef, "span", "media-icon", output.definition.icon);
         icon.setAttribute("aria-hidden", "true");
-        const copy = element(documentRef, "div", "diag-output-copy");
-        copy.append(element(documentRef, "h3", null, output.title));
-        copy.append(element(documentRef, "p", null, output.description));
-        const link = element(documentRef, "a", "btn diag-output-action", output.definition.action);
-        link.setAttribute("href", output.url);
-        link.setAttribute("target", "_blank");
-        link.setAttribute("rel", "noopener noreferrer");
-        card.append(icon, copy, link);
+        const copy = element(documentRef, "span", "media-copy");
+        copy.append(element(documentRef, "strong", null, output.title));
+        copy.append(element(documentRef, "small", null, output.description));
+        const action = element(documentRef, "span", "media-action", output.definition.action);
+        card.append(icon, copy, action);
         grid.append(card);
       });
-      wrapper.append(grid);
     }
+    wrapper.append(grid);
     return wrapper;
   }
 
@@ -1052,7 +1111,7 @@
       if (item.source === "appendix" && !appendixMarkerAdded) {
         appendixMarkerAdded = true;
         const marker = element(documentRef, "div", "diag-gallery-source-marker");
-        marker.id = "zdrojova-fotodokumentacia";
+        marker.id = "portal-zdrojova-fotodokumentacia";
         marker.append(element(documentRef, "strong", null, "Zdrojová fotodokumentácia"));
         marker.append(element(documentRef, "span", null, "Fotografie bez vytvorenej analytickej väzby na konkrétne zistenie."));
         grid.append(marker);
@@ -1104,7 +1163,7 @@
 
   function renderCompleteReportTransition(documentRef) {
     const wrapper = element(documentRef, "section", "diag-complete-report-transition");
-    wrapper.id = "kompletna-sprava";
+    wrapper.id = "sprava";
     wrapper.append(element(documentRef, "p", "eyebrow", "KOMPLETNÁ SPRÁVA"));
     wrapper.append(element(documentRef, "h2", null, "Technická diagnostika nehnuteľnosti"));
     wrapper.append(element(documentRef, "p", null, "Podrobný technický výstup so zisteniami, odporúčaniami, overeniami a obmedzeniami kontroly."));
@@ -2157,7 +2216,7 @@
       documentRef,
       typeof appendix.title === "string" ? appendix.title : "Zdrojová fotodokumentácia",
       typeof appendix.intro === "string" ? appendix.intro : null,
-      "diag-section-source-photos",
+      "zdrojova-fotodokumentacia",
       "Zdrojová fotodokumentácia"
     );
     wrapper.classList.add("dh-source-appendix");
@@ -2204,7 +2263,7 @@
     return wrapper;
   }
 
-  function renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, includeHeader) {
+  function renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, includeHeader, appendix) {
     const content = element(documentRef, "div", "diag-report-content");
     if (includeHeader) {
       content.append(renderHeader(documentRef, report));
@@ -2226,6 +2285,13 @@
     ].filter(Boolean).forEach(function (node) {
       content.append(node);
     });
+    if (appendix) {
+      content.append(renderSourceDocumentationAppendix(appendix, {
+        document: documentRef,
+        pageUrl: pageUrl,
+        photoViewer: viewer
+      }));
+    }
     const end = section(documentRef, "Koniec správy", null, "diag-section-end");
     end.classList.add("diag-report-end");
     end.append(element(documentRef, "p", null, "Po skončení práce so správou sa môžete bezpečne odhlásiť."));
@@ -2263,7 +2329,8 @@
       ? options.photoViewer
       : createPhotoViewer(documentRef);
     const issueAnchors = buildIssueAnchors(report.issues);
-    const content = renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, true);
+    const appendix = options && options.appendix ? options.appendix : null;
+    const content = renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, true, appendix);
     container.replaceChildren(content);
     installScorePopoverBehavior(documentRef, container);
     updatePrintMeta(documentRef, report);
@@ -2288,20 +2355,15 @@
     const issueAnchors = buildIssueAnchors(report.issues);
     const galleryItems = buildPhotoGallery(report, appendix, pageUrl, issueAnchors);
     const supplementalGalleries = normalizeSupplementalGalleries(outputs, pageUrl);
-    const portal = element(documentRef, "div", "diag-report-content diag-client-portal");
-    portal.append(renderHeader(documentRef, report));
+    const portal = element(documentRef, "div", "diag-client-portal");
+    portal.append(renderPortalHeader(documentRef, report));
     portal.append(renderOutputsHub(documentRef, report, galleryItems.length, outputs, pageUrl));
     portal.append(renderPhotoGallery(documentRef, galleryItems, viewer));
     const supplemental = renderSupplementalGalleries(documentRef, supplementalGalleries, viewer);
     if (supplemental) {
       portal.append(supplemental);
     }
-    portal.append(renderCompleteReportTransition(documentRef));
-    const detailedWrapper = element(documentRef, "div", "diag-complete-report");
-    detailedWrapper.append(renderDetailedReport(documentRef, report, pageUrl, viewer, issueAnchors, false));
-    portal.append(detailedWrapper);
     container.replaceChildren(portal);
-    installScorePopoverBehavior(documentRef, container);
     updatePrintMeta(documentRef, report);
     return portal;
   }
@@ -2316,6 +2378,7 @@
     formatPricingCurrency: formatPricingCurrency,
     sanitizePhotoCaption: sanitizePhotoCaption,
     buildIssueAnchors: buildIssueAnchors,
+    resolveClientRoute: resolveClientRoute,
     buildPhotoGallery: buildPhotoGallery,
     normalizeSupplementalGalleries: normalizeSupplementalGalleries,
     SCORE_LEGENDS: SCORE_LEGENDS,

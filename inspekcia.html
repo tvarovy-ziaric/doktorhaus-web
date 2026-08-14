@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="referrer" content="no-referrer">
-  <title>Technická diagnostika nehnuteľnosti | DoktorHaus</title>
-  <meta name="description" content="Súkromná technická diagnostická správa DoktorHaus dostupná iba cez autorizovaný klientsky prístup.">
+  <title>Klientský portál inšpekcie | DoktorHaus</title>
+  <meta name="description" content="Súkromný klientsky portál DoktorHaus s výstupmi z technickej inšpekcie.">
   <link rel="stylesheet" href="styles/style.css?v=14">
-  <link rel="stylesheet" href="styles/diagnostics-report.css?v=6">
+  <link rel="stylesheet" href="styles/diagnostics-report.css?v=7">
 </head>
 
 <body class="diag-page">
-  <a class="diag-skip-link" href="#diag-main">Preskočiť na obsah správy</a>
+  <a class="diag-skip-link" href="#diag-main">Preskočiť na obsah</a>
 
   <header class="diag-site-header">
     <div class="container diag-site-header-inner">
@@ -20,20 +20,20 @@
         <img src="icons/doktorhaus-symbol.svg" alt="" class="brand-symbol" aria-hidden="true">
         <span class="brand-word">doktorhaus</span>
       </a>
-      <span class="diag-private-label">Súkromná diagnostická správa</span>
+      <span class="diag-private-label">Súkromný klientsky portál</span>
     </div>
   </header>
 
   <main id="diag-main" class="diag-shell">
     <section class="diag-state-card" id="diag-loading" aria-labelledby="diag-loading-title">
       <p class="eyebrow">Technická diagnostika</p>
-      <h1 id="diag-loading-title">Načítavam diagnostickú správu…</h1>
-      <p>Overujem bezpečný prístup k publikovanej verzii správy.</p>
+      <h1 id="diag-loading-title">Načítavam výstupy z inšpekcie…</h1>
+      <p>Overujem bezpečný prístup ku klientskemu portálu.</p>
     </section>
 
     <section class="diag-state-card" id="diag-pin-screen" aria-labelledby="diag-pin-title" hidden>
       <p class="eyebrow">Klientsky prístup</p>
-      <h1 id="diag-pin-title" tabindex="-1">Prístup k diagnostickej správe</h1>
+      <h1 id="diag-pin-title" tabindex="-1">Prístup k výstupom z inšpekcie</h1>
       <p id="diag-pin-intro">Zadajte 6-miestny PIN, ktorý ste dostali spolu s odkazom.</p>
 
       <form class="diag-pin-form" id="diag-pin-form" novalidate>
@@ -51,7 +51,7 @@
             aria-describedby="diag-auth-status"
             required
           >
-          <button class="btn primary" id="diag-pin-submit" type="submit">Otvoriť správu</button>
+          <button class="btn primary" id="diag-pin-submit" type="submit">Otvoriť výstupy</button>
         </div>
         <p class="diag-form-status" id="diag-auth-status" role="status" aria-live="polite"></p>
       </form>
@@ -70,9 +70,17 @@
       <button class="btn primary" id="diag-retry" type="button">Skúsiť znova</button>
     </section>
 
+    <article class="diag-client-portal-shell" id="diag-portal" aria-labelledby="diag-portal-title" hidden>
+      <div class="diag-portal-toolbar" aria-label="Ovládanie klientského portálu">
+        <span>Klientský portál inšpekcie</span>
+        <button class="btn" id="diag-portal-logout" type="button">Odhlásiť</button>
+      </div>
+      <div id="diag-portal-content"></div>
+    </article>
+
     <article class="diag-report" id="diag-report" aria-labelledby="diag-report-title" hidden>
       <div class="diag-report-toolbar" aria-label="Ovládanie správy">
-        <span>Technická diagnostická správa</span>
+        <button class="diag-report-back" id="diag-back-to-portal" type="button">← Späť na výstupy</button>
         <div>
           <button class="btn" id="diag-print" type="button">Vytlačiť</button>
           <button class="btn" id="diag-logout" type="button">Odhlásiť</button>
@@ -124,7 +132,7 @@
     <div class="diag-noscript">Na otvorenie diagnostickej správy je potrebný JavaScript.</div>
   </noscript>
 
-  <script src="JSS/diagnostics-report.js?v=7" defer></script>
-  <script src="JSS/diagnostics-client.js?v=3" defer></script>
+  <script src="JSS/diagnostics-report.js?v=8" defer></script>
+  <script src="JSS/diagnostics-client.js?v=4" defer></script>
 </body>
 </html>

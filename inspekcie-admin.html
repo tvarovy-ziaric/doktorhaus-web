@@ -669,7 +669,12 @@
       return;
     }
 
-    inspectionList.innerHTML = items.map(item => `
+    inspectionList.innerHTML = items.map(item => {
+      const preview = item.diagnosticsPreview || {};
+      const previewControl = preview.available === true
+        ? `<button class="btn" type="button" data-client-preview="${escapeHtml(item.id)}">Náhľad klienta</button>`
+        : `<button class="btn" type="button" disabled title="${escapeHtml(preview.reason || "Klientský náhľad nie je dostupný.")}">Náhľad klienta</button>`;
+      return `
       <article class="admin-post-card">
         <div>
           <div class="admin-post-meta">
@@ -682,12 +687,57 @@
         </div>
         <div class="admin-post-actions">
           <button class="btn" type="button" data-edit="${escapeHtml(item.id)}">Upraviť</button>
+          ${previewControl}
+          <button class="btn" type="button" data-client-outputs="${escapeHtml(item.id)}">Klientské výstupy</button>
           <button class="btn" type="button" data-ready="${escapeHtml(item.id)}">Pripravené / PIN</button>
           <button class="btn primary" type="button" data-send="${escapeHtml(item.id)}">Poslať email</button>
           <button class="btn danger" type="button" data-draft="${escapeHtml(item.id)}">Vrátiť do konceptu</button>
         </div>
       </article>
-    `).join("");
+    `;
+    }).join("");
+  }
+
+  async function openClientPreview(inspectionId) {
+    const previewTab = window.open("about:blank", "_blank");
+    if (previewTab) {
+      try {
+        previewTab.opener = null;
+      } catch (_error) {
+        // The browser can isolate the new context before this assignment.
+      }
+    }
+    setListStatus("Pripravujem bezpečný klientsky náhľad…");
+    try {
+      const response = await fetch("api/inspection-preview-admin.php", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: JSON.stringify({adminPin: adminPin(), id: inspectionId})
+      });
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (_error) {
+        result = null;
+      }
+      if (!response.ok || !result || result.ok !== true ||
+          !/^\/inspekcia\.html\?access=acc_[0-9a-f]{32}$/.test(result.redirectUrl || "")) {
+        throw new Error(result?.error || "Klientský náhľad sa nepodarilo pripraviť.");
+      }
+      if (previewTab) {
+        previewTab.location.replace(result.redirectUrl);
+      } else {
+        window.location.assign(result.redirectUrl);
+      }
+      setListStatus("Klientský náhľad je otvorený v novom okne.");
+    } catch (error) {
+      if (previewTab) {
+        previewTab.close();
+      }
+      setListStatus(error.message || "Klientský náhľad sa nepodarilo pripraviť.", true);
+    }
   }
 
   async function loadInspections() {
@@ -766,6 +816,8 @@
 
   inspectionList.addEventListener("click", async (event) => {
     const editId = event.target.closest("[data-edit]")?.dataset.edit;
+    const previewId = event.target.closest("[data-client-preview]")?.dataset.clientPreview;
+    const outputsId = event.target.closest("[data-client-outputs]")?.dataset.clientOutputs;
     const readyId = event.target.closest("[data-ready]")?.dataset.ready;
     const sendId = event.target.closest("[data-send]")?.dataset.send;
     const draftId = event.target.closest("[data-draft]")?.dataset.draft;
@@ -775,6 +827,17 @@
       if (item) {
         writeInspection(item);
       }
+      return;
+    }
+
+    if (previewId) {
+      await openClientPreview(previewId);
+      return;
+    }
+
+    if (outputsId) {
+      await loadClientOutputs(outputsId);
+      clientOutputAdmin.scrollIntoView({behavior: "smooth", block: "start"});
       return;
     }
 

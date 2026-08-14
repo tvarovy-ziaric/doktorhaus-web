@@ -326,6 +326,60 @@ function available_diagnostics_for_record(
     return $available;
 }
 
+/**
+ * Add a human-readable, non-authoritative preview capability hint for admin UI.
+ * The dedicated preview endpoint repeats every authorization and package check.
+ *
+ * @param array<int, array<string, mixed>> $items
+ * @return array<int, array<string, mixed>>
+ */
+function with_diagnostics_preview_state(array $items): array
+{
+    $access = null;
+    try {
+        $access = new DiagnosticsAccessService(
+            DiagnosticsStorage::fromEnvironment(),
+            DiagnosticsSecurityConfig::fromEnvironment()
+        );
+    } catch (Throwable $error) {
+        $access = null;
+    }
+
+    foreach ($items as &$item) {
+        $preview = ['available' => false, 'reason' => 'Diagnostická správa nie je naviazaná.'];
+        if (!in_array(($item['status'] ?? null), ['ready', 'sent'], true)) {
+            $preview['reason'] = 'Náhľad je dostupný pre pripravenú alebo odoslanú inšpekciu.';
+            $item['diagnosticsPreview'] = $preview;
+            continue;
+        }
+        $accessId = $item['diagnosticsAccessId'] ?? null;
+        if (!is_string($accessId) || preg_match('/^acc_[0-9a-f]{32}$/D', $accessId) !== 1) {
+            $item['diagnosticsPreview'] = $preview;
+            continue;
+        }
+        if (!$access instanceof DiagnosticsAccessService) {
+            $preview['reason'] = 'Stav klientského náhľadu sa nepodarilo overiť.';
+            $item['diagnosticsPreview'] = $preview;
+            continue;
+        }
+        try {
+            $status = $access->getGrantStatus($accessId);
+            if (($status['status'] ?? null) !== 'active' || ($status['expired'] ?? true) !== false) {
+                $preview['reason'] = 'Klientsky prístup nie je aktívny.';
+            } else {
+                $grant = $access->getStore()->load($accessId);
+                $access->assertGrantPackageBinding($grant);
+                $preview = ['available' => true, 'reason' => ''];
+            }
+        } catch (Throwable $error) {
+            $preview['reason'] = 'Klientsky prístup alebo publikovaná správa nie sú aktívne.';
+        }
+        $item['diagnosticsPreview'] = $preview;
+    }
+    unset($item);
+    return $items;
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
     respond(405, ['ok' => false, 'error' => 'Nepodporovaná metóda.']);
@@ -402,7 +456,11 @@ $items = load_items($dataFile);
 
 if ($action === 'admin-list') {
     usort($items, fn($a, $b) => strcmp((string)($b['updatedAt'] ?? ''), (string)($a['updatedAt'] ?? '')));
-    respond(200, ['ok' => true, 'items' => $items, 'inspectionLink' => inspection_link($baseUrl)]);
+    respond(200, [
+        'ok' => true,
+        'items' => with_diagnostics_preview_state($items),
+        'inspectionLink' => inspection_link($baseUrl),
+    ]);
 }
 
 if ($action === 'available-diagnostics') {

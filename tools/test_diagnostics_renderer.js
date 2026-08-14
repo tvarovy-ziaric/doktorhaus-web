@@ -496,7 +496,7 @@ const appendixSection = renderer.renderSourceDocumentationAppendix(appendix, {
   pageUrl,
   photoViewer: {open() {}}
 });
-assert.equal(appendixSection.id, "diag-section-source-photos");
+assert.equal(appendixSection.id, "zdrojova-fotodokumentacia");
 assert.equal(appendixSection.dataset.diagNavigationLabel, "Zdrojov\u00e1 fotodokument\u00e1cia");
 assert.equal(appendixSection.querySelectorAll(".dh-source-card").length, 18);
 assert.equal(appendixSection.querySelectorAll(".dh-source-caption").length, 18);
@@ -542,6 +542,11 @@ const portalOutputs = {
     }
   ]
 };
+assert.deepEqual(renderer.resolveClientRoute("", () => false), {view: "portal", targetId: null});
+assert.deepEqual(renderer.resolveClientRoute("#sprava", () => false), {view: "report", targetId: "sprava"});
+assert.deepEqual(renderer.resolveClientRoute("#zistenie-di-009", (id) => id === "zistenie-di-009"),
+  {view: "report", targetId: "zistenie-di-009"});
+assert.deepEqual(renderer.resolveClientRoute("#neznamy-anchor", () => false), {view: "portal", targetId: null});
 const portalDocument = new FakeDocument(false);
 let openedGallery = null;
 const portal = renderer.renderClientPortal(fixture, {
@@ -555,8 +560,9 @@ const portal = renderer.renderClientPortal(fixture, {
 assert.equal(portal.querySelector("#vystupy") !== null, true);
 assert.equal(portal.querySelector("#fotodokumentacia") !== null, true);
 assert.equal(portal.querySelector("#doplnkova-fotodokumentacia") !== null, true);
-assert.equal(portal.querySelector("#kompletna-sprava") !== null, true);
-assert.equal(portal.querySelectorAll(".diag-output-primary").length, 1);
+assert.equal(portal.querySelector("#diag-portal-title") !== null, true);
+assert.equal(portal.querySelectorAll(".diag-portal-report-card").length, 1);
+assert.equal(portal.querySelector(".diag-portal-report-card").getAttribute("href"), "#sprava");
 assert.match(portal.querySelector(".diag-output-meta").textContent, /19 fotografií/);
 assert.equal(portal.querySelectorAll(".diag-external-output-card").length, 4);
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").length, 21);
@@ -565,8 +571,10 @@ assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) =>
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "client-output").length, 2);
 assert.equal(portal.querySelectorAll(".diag-client-photo-card").filter((node) => node.dataset.photoSource === "appendix")[0]
   .querySelectorAll(".diag-client-photo-caption").length, 0);
-assert.equal(portal.querySelector("#zdrojova-fotodokumentacia") !== null, true);
-assert.equal(portal.querySelector("#zistenie-iss-001") !== null, true);
+assert.equal(portal.querySelector("#portal-zdrojova-fotodokumentacia") !== null, true);
+assert.equal(portal.querySelector("#zistenie-iss-001"), null);
+assert.equal(portal.querySelectorAll(".diag-issue").length, 0);
+assert.equal(portal.querySelectorAll(".diag-score-trigger").length, 0);
 function contextLinks(card) {
   const context = card.querySelector(".diag-photo-context");
   const list = context ? context.children.find((child) => child.tagName === "UL") : null;
@@ -583,6 +591,49 @@ assert.equal(appendixLinks.every((link) => link && link.getAttribute("href") ===
 portal.querySelector(".diag-client-photo-button").emit("click");
 assert.equal(openedGallery.items.length, 19);
 assert.equal(openedGallery.index, 0);
+
+const babinaPhotoCountFixture = JSON.parse(JSON.stringify(fixture));
+babinaPhotoCountFixture.issues[0].evidence = Array.from({length: 53}, (_, index) => {
+  const suffix = (index + 101).toString(16).padStart(16, "0");
+  return {
+    id: "ev_" + suffix,
+    display_code: "EV-" + String(index + 1).padStart(3, "0"),
+    type: "photo",
+    title: "Linked photo " + (index + 1),
+    description: "Source photo for the portal regression test.",
+    content_type: "image/jpeg",
+    has_media: true,
+    media_url: "api/diagnostics-media.php?evidence=ev_" + suffix
+  };
+});
+const babinaPhotoPortal = renderer.renderClientPortal(babinaPhotoCountFixture, {
+  document: new FakeDocument(false),
+  container: new FakeNode(),
+  pageUrl,
+  photoViewer: {open() {}},
+  appendix,
+  outputs: null
+});
+const babinaPhotoCards = babinaPhotoPortal.querySelectorAll(".diag-client-photo-card");
+assert.equal(babinaPhotoCards.length, 71);
+assert.equal(babinaPhotoCards.filter((node) => node.dataset.photoSource === "linked").length, 53);
+assert.equal(babinaPhotoCards.filter((node) => node.dataset.photoSource === "appendix").length, 18);
+assert.match(babinaPhotoPortal.querySelector(".diag-output-meta").textContent, /71 fotografi\u00ed/);
+assert.equal(babinaPhotoCards
+  .filter((node) => node.dataset.photoSource === "appendix")
+  .every((node) => contextLinks(node)[0].getAttribute("href") === "#zdrojova-fotodokumentacia"), true);
+const reportOnlyDocument = new FakeDocument(false);
+const reportOnly = renderer.renderReport(fixture, {
+  document: reportOnlyDocument,
+  container: new FakeNode(),
+  pageUrl,
+  photoViewer: {open() {}},
+  appendix
+});
+assert.equal(reportOnly.querySelector("#zistenie-iss-001") !== null, true);
+assert.equal(reportOnly.querySelector("#zdrojova-fotodokumentacia") !== null, true);
+assert.equal(reportOnly.querySelectorAll(".diag-issue").length, fixture.issues.length);
+assert.ok(reportOnly.querySelectorAll(".diag-score-trigger").length > 0);
 const noOutputPortal = renderer.renderClientPortal(fixture, {
   document: new FakeDocument(false),
   container: new FakeNode(),
@@ -591,7 +642,7 @@ const noOutputPortal = renderer.renderClientPortal(fixture, {
   appendix: null,
   outputs: null
 });
-assert.equal(noOutputPortal.querySelectorAll(".diag-output-primary").length, 1);
+assert.equal(noOutputPortal.querySelectorAll(".diag-portal-report-card").length, 1);
 assert.equal(noOutputPortal.querySelectorAll(".diag-external-output-card").length, 0);
 
 assert.equal(Object.prototype.hasOwnProperty.call(fixture, "pricing"), false);
@@ -755,6 +806,14 @@ assert.doesNotMatch(html, /analytics|gtag|googletagmanager|facebook\.net/i);
 const clientSource = fs.readFileSync(path.join(repoRoot, "JSS", "diagnostics-client.js"), "utf8");
 assert.match(clientSource, /outputs:\s*"api\/diagnostics-outputs\.php"/);
 assert.match(clientSource, /renderClientPortal\(report/);
+assert.match(clientSource, /renderReport\(report/);
+assert.match(clientSource, /window\.history\.pushState/);
+assert.match(clientSource, /window\.addEventListener\("popstate"/);
+assert.match(clientSource, /reportTargetFromHash/);
+assert.match(clientSource, /#zistenie-/);
+assert.match(html, /id="diag-portal"[^>]*hidden/);
+assert.match(html, /id="diag-report"[^>]*hidden/);
+assert.match(html, /← Späť na výstupy/);
 
 const rendererCss = fs.readFileSync(path.join(repoRoot, "styles", "diagnostics-report.css"), "utf8");
 assert.match(rendererCss, /\.diag-report-navigation-scroll\s*\{[^}]*overflow-x:\s*auto/s);
@@ -767,10 +826,14 @@ assert.match(rendererCss, /@media print[\s\S]*\.diag-score-popover,[\s\S]*displa
 assert.match(rendererCss, /\.diag-issue\[id\]\s*\{[^}]*scroll-margin-top:/s);
 assert.match(rendererCss, /\.diag-client-photo-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,/s);
 assert.match(rendererCss, /@media \(max-width: 619px\)[\s\S]*\.diag-client-photo-grid[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+assert.match(rendererCss, /\.diag-client-portal\s*\{[^}]*min-width:\s*0/s);
+assert.match(rendererCss, /\.diag-portal-header\s*\{[^}]*position:\s*relative/s);
+assert.match(rendererCss, /@media \(max-width: 619px\)[\s\S]*\.diag-portal-media-grid \.media-card[\s\S]*min-width:\s*0/s);
 const printCss = rendererCss.slice(rendererCss.indexOf("@media print"));
 assert.match(printCss, /\.diag-score-help-mark,/);
 assert.doesNotMatch(printCss, /\.diag-score-trigger/);
 assert.match(printCss, /\.diag-external-output-card,[\s\S]*\.diag-output-action,[\s\S]*display:\s*none\s*!important/);
 assert.match(printCss, /\.diag-client-photo-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+assert.match(printCss, /#diag-portal,[\s\S]*display:\s*none\s*!important/);
 
 console.log("Diagnostics renderer tests passed: labels, priority, currency, URL boundary and client safety.");

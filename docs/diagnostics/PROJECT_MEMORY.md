@@ -215,3 +215,9 @@ Legacy inspection PIN možno po explicitnej admin aktivácii použiť aj pre dia
 PDF odovzdaný klientovi, externý Google Docs/Panoraven/YouTube odkaz a pomenovaná doplnková fotogaléria sú delivery výstupy, nie diagnostické tvrdenia. Môžu sa preto spravovať v samostatnej mutable vrstve vlastnenej legacy inspection recordom aj po publish bez novej report version, PINu alebo grantu.
 
 Táto vrstva nikdy neupravuje immutable report package, diagnosis, pricing ani diagnostické evidence fotografie. Súbory zostávajú pod privátnym `DIAGNOSTICS_STORAGE_ROOT`, klient ich dostáva iba cez aktuálnu session a opaque media ID. Doplnkové galérie sa renderujú oddelene a nesmú dostať fabricated issue/evidence väzby.
+
+## 15. Klientská inšpekcia je portal-first
+
+Po úspešnom klientskom alebo autorizovanom administrátorskom otvorení sa predvolene zobrazuje klientský portál výstupov. Detailná diagnostická správa je dominantná WWW karta, ale nie je automaticky rozbalená pod portálom. Klient ju otvorí vedomou akciou v rovnakom okne; hash odkazy z diagnostickej fotogalérie môžu otvoriť konkrétne existujúce zistenie.
+
+Admin náhľad nepoužíva ani nevydáva klientsky PIN. Po overení Admin PINu smie iba pre už existujúci aktívny a package-bound grant vytvoriť štandardnú `DH_DIAGSESSID` session a bezpečný redirect na rovnaký klientsky portál. Nemení grant, PIN, binding ani immutable package a musí mať samostatnú auditnú udalosť.

@@ -149,6 +149,72 @@ for _attempt in 1 2 3 4 5 6 7 8 9 10; do
 done
 [[ "$ready" == "1" ]] || fail "PHP built-in server did not start."
 
+package_hash_before="$(find "$storage_root/reports" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)"
+grant_hash_before="$(find "$storage_root/access/grants" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)"
+records_hash_before="$(sha256sum "$web_root/data/inspections.json")"
+
+admin_list_code="$(curl -sS -H 'Content-Type: application/json' -d '{"action":"admin-list","adminPin":"bridge-admin-pin"}' -o "$responses/admin-list.json" -w '%{http_code}' "$base_url/api/inspections.php")"
+[[ "$admin_list_code" == "200" ]] || fail "Admin inspection list must load preview availability."
+python - "$responses/admin-list.json" <<'PY'
+import json, sys
+items = {item["id"]: item for item in json.load(open(sys.argv[1], encoding="utf-8"))["items"]}
+assert items["linked"]["diagnosticsPreview"]["available"] is True
+assert items["mismatch"]["diagnosticsPreview"]["available"] is True
+assert items["legacy"]["diagnosticsPreview"]["available"] is False
+assert items["inactive"]["diagnosticsPreview"]["available"] is False
+assert items["expired"]["diagnosticsPreview"]["available"] is False
+PY
+
+preview_missing_code="$(curl -sS -H 'Content-Type: application/json' -d '{"id":"linked"}' -o "$responses/preview-missing-admin.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_missing_code" == "403" ]] || fail "Admin preview without Admin PIN must fail."
+preview_wrong_code="$(curl -sS -H 'Content-Type: application/json' -d '{"adminPin":"wrong","id":"linked"}' -o "$responses/preview-wrong-admin.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_wrong_code" == "403" ]] || fail "Admin preview with wrong Admin PIN must fail."
+preview_unknown_code="$(curl -sS -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"unknown"}' -o "$responses/preview-unknown.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_unknown_code" == "404" ]] || fail "Admin preview for an unknown inspection must fail."
+preview_unbound_code="$(curl -sS -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"legacy"}' -o "$responses/preview-unbound.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_unbound_code" == "409" ]] || fail "Admin preview for an unbound inspection must fail."
+preview_inactive_code="$(curl -sS -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"inactive"}' -o "$responses/preview-inactive.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_inactive_code" == "409" ]] || fail "Admin preview for an inactive grant must fail."
+preview_expired_code="$(curl -sS -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"expired"}' -o "$responses/preview-expired.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_expired_code" == "409" ]] || fail "Admin preview for an expired grant must fail."
+
+preview_linked_code="$(curl -sS -D "$responses/preview-linked.headers" -c "$responses/preview-cookies.txt" -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"linked"}' -o "$responses/preview-linked.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_linked_code" == "200" ]] || fail "Valid Admin PIN must establish a client preview session without the client PIN."
+grep -qi '^Set-Cookie: DH_DIAGSESSID=.*HttpOnly' "$responses/preview-linked.headers" || fail "Admin preview cookie must be HttpOnly."
+grep -qi '^Set-Cookie: DH_DIAGSESSID=.*SameSite=Strict' "$responses/preview-linked.headers" || fail "Admin preview cookie must be SameSite Strict."
+python - "$responses/preview-linked.json" "$access_id" "$pin" <<'PY'
+import json, sys
+body = json.load(open(sys.argv[1], encoding="utf-8"))
+assert body == {"ok": True, "redirectUrl": "/inspekcia.html?access=" + sys.argv[2]}
+assert sys.argv[3] not in json.dumps(body)
+assert "adminPin" not in json.dumps(body)
+PY
+preview_report_code="$(curl -sS -b "$responses/preview-cookies.txt" -o "$responses/preview-report.json" -w '%{http_code}' "$base_url/api/diagnostics-report.php")"
+[[ "$preview_report_code" == "200" ]] || fail "Admin preview session must open the client report without a client PIN."
+
+preview_second_code="$(curl -sS -b "$responses/preview-cookies.txt" -c "$responses/preview-cookies.txt" -H 'Content-Type: application/json' -d '{"adminPin":"bridge-admin-pin","id":"mismatch"}' -o "$responses/preview-second.json" -w '%{http_code}' "$base_url/api/inspection-preview-admin.php")"
+[[ "$preview_second_code" == "200" ]] || fail "Admin preview must switch the session to another valid inspection."
+preview_status_code="$(curl -sS -b "$responses/preview-cookies.txt" -o "$responses/preview-status.json" -w '%{http_code}' "$base_url/api/diagnostics-auth.php")"
+[[ "$preview_status_code" == "200" ]] || fail "The second admin preview session must remain valid."
+python - "$responses/preview-second.json" "$responses/preview-status.json" "$priced_access_id" "$priced_pin" <<'PY'
+import json, sys
+redirect = json.load(open(sys.argv[1], encoding="utf-8"))
+status = json.load(open(sys.argv[2], encoding="utf-8"))
+assert redirect == {"ok": True, "redirectUrl": "/inspekcia.html?access=" + sys.argv[3]}
+assert status["authenticated"] is True and status["accessId"] == sys.argv[3]
+assert sys.argv[4] not in json.dumps(redirect) + json.dumps(status)
+PY
+
+[[ "$(find "$storage_root/reports" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)" == "$package_hash_before" ]] || fail "Admin preview changed an immutable report package."
+[[ "$(find "$storage_root/access/grants" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)" == "$grant_hash_before" ]] || fail "Admin preview changed an access grant."
+[[ "$(sha256sum "$web_root/data/inspections.json")" == "$records_hash_before" ]] || fail "Admin preview changed an inspection PIN or binding."
+grep -Rq '"event":"admin_client_preview_started"' "$storage_root/audit" || fail "Admin preview audit event is missing."
+grep -Fq 'data-client-preview' "$repo_root/inspekcie-admin.html" || fail "Admin list must expose the one-click client preview action."
+grep -Fq 'api/inspection-preview-admin.php' "$repo_root/inspekcie-admin.html" || fail "Admin preview UI must use the dedicated endpoint."
+if grep -R -Fq -- 'bridge-admin-pin' "$storage_root/audit" "$server_log"; then
+  fail "The Admin PIN appeared in an audit or server log."
+fi
+
 invalid_admin_payload="$(python - <<'PY'
 import json
 print(json.dumps({

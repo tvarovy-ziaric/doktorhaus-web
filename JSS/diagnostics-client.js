@@ -17,6 +17,7 @@
     document.getElementById("diag-pin-screen"),
     document.getElementById("diag-access-required"),
     document.getElementById("diag-error-screen"),
+    document.getElementById("diag-portal"),
     document.getElementById("diag-report")
   ];
   const loading = document.getElementById("diag-loading");
@@ -35,8 +36,12 @@
   const errorTitle = document.getElementById("diag-error-title");
   const errorMessage = document.getElementById("diag-error-message");
   const retryButton = document.getElementById("diag-retry");
+  const portalShell = document.getElementById("diag-portal");
+  const portalContent = document.getElementById("diag-portal-content");
+  const portalLogoutButton = document.getElementById("diag-portal-logout");
   const reportShell = document.getElementById("diag-report");
   const reportContent = document.getElementById("diag-report-content");
+  const backToPortalButton = document.getElementById("diag-back-to-portal");
   const printButton = document.getElementById("diag-print");
   const logoutButton = document.getElementById("diag-logout");
 
@@ -46,6 +51,7 @@
   let accessId = null;
   let csrfToken = null;
   let busy = false;
+  let clientContentReady = false;
 
   function focus(element) {
     window.requestAnimationFrame(function () {
@@ -60,13 +66,15 @@
   }
 
   function clearReport() {
+    portalContent.replaceChildren();
     reportContent.replaceChildren();
+    clientContentReady = false;
     document.getElementById("diag-print-property").textContent = "";
     document.getElementById("diag-print-meta").textContent = "";
   }
 
   function showLoading(message) {
-    loadingTitle.textContent = message || "Načítavam diagnostickú správu…";
+    loadingTitle.textContent = message || "Načítavam výstupy z inšpekcie…";
     showView(loading);
   }
 
@@ -74,7 +82,79 @@
     busy = isBusy;
     pinInput.disabled = isBusy;
     pinSubmit.disabled = isBusy;
-    pinSubmit.textContent = isBusy ? "Overujem…" : "Otvoriť správu";
+    pinSubmit.textContent = isBusy ? "Overujem…" : "Otvoriť výstupy";
+  }
+
+  function reportTargetFromHash() {
+    const route = reportToolkit.resolveClientRoute(window.location.hash, function (id) {
+      const candidate = document.getElementById(id);
+      return Boolean(candidate && reportShell.contains(candidate));
+    });
+    if (route.view !== "report") {
+      return null;
+    }
+    const target = route.targetId === "sprava" ? null : document.getElementById(route.targetId);
+    return {id: route.targetId, element: target};
+  }
+
+  function showPortalView(focusHeading, scrollTop) {
+    showView(portalShell);
+    document.body.dataset.diagClientView = "portal";
+    if (scrollTop) {
+      window.scrollTo({top: 0, behavior: "auto"});
+    }
+    if (focusHeading) {
+      const heading = document.getElementById("diag-portal-title");
+      if (heading) {
+        focus(heading);
+      }
+    }
+  }
+
+  function showReportView(target, focusTarget) {
+    showView(reportShell);
+    document.body.dataset.diagClientView = "report";
+    window.requestAnimationFrame(function () {
+      if (!target || target.id === "sprava" || !target.element) {
+        window.scrollTo({top: 0, behavior: "auto"});
+        const heading = document.getElementById("diag-report-title");
+        if (heading && focusTarget) {
+          heading.focus();
+        }
+        return;
+      }
+      target.element.scrollIntoView({block: "start", behavior: "auto"});
+      if (focusTarget) {
+        if (!target.element.hasAttribute("tabindex")) {
+          target.element.setAttribute("tabindex", "-1");
+        }
+        target.element.focus({preventScroll: true});
+      }
+    });
+  }
+
+  function applyClientRoute(focusTarget) {
+    if (!clientContentReady) {
+      return;
+    }
+    const target = reportTargetFromHash();
+    if (target) {
+      showReportView(target, focusTarget);
+    } else {
+      showPortalView(focusTarget, true);
+    }
+  }
+
+  function navigateToHash(hash) {
+    const targetUrl = window.location.pathname + window.location.search + hash;
+    window.history.pushState({dhDiagnosticsView: "report"}, "", targetUrl);
+    applyClientRoute(true);
+  }
+
+  function returnToPortal() {
+    const targetUrl = window.location.pathname + window.location.search;
+    window.history.replaceState({dhDiagnosticsView: "portal"}, "", targetUrl);
+    showPortalView(true, true);
   }
 
   function showPin(message) {
@@ -140,7 +220,7 @@
   }
 
   async function loadReport() {
-    showLoading("Načítavam diagnostickú správu…");
+    showLoading("Načítavam výstupy z inšpekcie…");
     try {
       const responses = await Promise.all([request(API.report), request(API.appendix), request(API.outputs)]);
       const response = responses[0];
@@ -182,17 +262,25 @@
       reportToolkit.renderClientPortal(report, {
         document: document,
         pageUrl: window.location.href,
-        container: reportContent,
+        container: portalContent,
         photoViewer: photoViewer,
         appendix: appendix,
         outputs: outputs
       });
-      showView(reportShell);
-      const reportHeading = document.getElementById("diag-report-title");
-      if (reportHeading) {
-        reportHeading.setAttribute("tabindex", "-1");
-        focus(reportHeading);
-      }
+      reportToolkit.renderReport(report, {
+        document: document,
+        pageUrl: window.location.href,
+        container: reportContent,
+        photoViewer: photoViewer,
+        appendix: appendix
+      });
+      clientContentReady = true;
+      window.history.replaceState(
+        {dhDiagnosticsView: reportTargetFromHash() ? "report" : "portal"},
+        "",
+        window.location.href
+      );
+      applyClientRoute(true);
     } catch (error) {
       showError("Skontrolujte internetové pripojenie a skúste to znova.");
     }
@@ -306,6 +394,7 @@
     }
     busy = true;
     logoutButton.disabled = true;
+    portalLogoutButton.disabled = true;
     try {
       const response = await request(API.auth, {
         method: "POST",
@@ -332,6 +421,7 @@
     } finally {
       busy = false;
       logoutButton.disabled = false;
+      portalLogoutButton.disabled = false;
     }
   }
 
@@ -343,11 +433,30 @@
     window.print();
   });
   logoutButton.addEventListener("click", logout);
+  portalLogoutButton.addEventListener("click", logout);
+  backToPortalButton.addEventListener("click", returnToPortal);
+  portalContent.addEventListener("click", function (event) {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) {
+      return;
+    }
+    const hash = link.getAttribute("href");
+    if (hash === "#sprava" || hash.indexOf("#zistenie-") === 0 || hash === "#zdrojova-fotodokumentacia") {
+      event.preventDefault();
+      navigateToHash(hash);
+    }
+  });
   reportContent.addEventListener("click", function (event) {
     const target = event.target.closest("[data-diag-logout]");
     if (target) {
       logout();
     }
+  });
+  window.addEventListener("popstate", function () {
+    applyClientRoute(false);
+  });
+  window.addEventListener("hashchange", function () {
+    applyClientRoute(false);
   });
 
   const parsedAccess = parseAccessId();

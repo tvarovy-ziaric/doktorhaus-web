@@ -26,6 +26,7 @@ final class DiagnosticsAuditLog
         'outputs_viewed',
         'media_accessed',
         'output_media_accessed',
+        'admin_client_preview_started',
     ];
 
     private const ALLOWED_METADATA = [
@@ -38,6 +39,7 @@ final class DiagnosticsAuditLog
         'output_count',
         'request_type',
         'media_id',
+        'inspection_record_id',
     ];
 
     /** @var string */

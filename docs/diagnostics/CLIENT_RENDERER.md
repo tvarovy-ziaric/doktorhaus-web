@@ -101,7 +101,9 @@ Renderer pri fotografiách kompatibilne odstraňuje historickú technickú vetu 
 
 ## Klientsky rozcestník jednej inšpekcie
 
-Po úspešnom overení PINu je `inspekcia.html` portálom jednej session-bound inšpekcie. Nad nezmeneným detailným reportom zobrazuje identitu nehnuteľnosti, primárnu WWW kartu, iba reálne dostupné voliteľné výstupy a jednu fotogalériu. WWW karta smeruje na `#kompletna-sprava`; existujúca navigácia detailného reportu zostáva vo vnútri tejto časti.
+Po úspešnom overení je `inspekcia.html` portal-first pohľad jednej session-bound inšpekcie. Predvolene zobrazuje iba identitu nehnuteľnosti, dominantnú WWW kartu, reálne dostupné voliteľné výstupy, diagnostickú fotogalériu a oddelené mutable galérie. Detailné issues, scoring, hypotézy, pricing, report navigation a report toolbar zostávajú v samostatnom skrytom report view. WWW karta smeruje na `#sprava` a prepne pohľad v rovnakom okne.
+
+Photo → issue odkazy používajú iba existujúce structured evidence väzby. Hash `#zistenie-...` otvorí report view a presunie klienta na stabilný issue anchor; reload s týmto hashom funguje po obnovení platnej session. Browser history umožní návrat z reportu na portál a report obsahuje explicitné `Späť na výstupy`. Appendix fotografie môžu smerovať iba na existujúcu sekciu zdrojovej fotodokumentácie, nikdy na vymyslený issue.
 
 Voliteľné výstupy načítava samostatný `GET api/diagnostics-outputs.php`. Endpoint neprijíma query selector a spája aktuálne `access_id` iba so serverovým `diagnosticsAccessId` v legacy inspection recorde. Do client projection ani report schema sa output URL nepridáva. Endpoint vracia iba zoradené dvojice `type + url`, pričom Google Docs, Panoraven a YouTube musia byť HTTPS na príslušnom allowlistovanom hoste. PDF sa zobrazí iba ako existujúci session-bound `diagnostics-media.php?evidence=…` odkaz; priama legacy cesta pod `uploads/` sa odmietne. Neexistujúci record, prázdne alebo neplatné výstupy neblokujú WWW report.
 

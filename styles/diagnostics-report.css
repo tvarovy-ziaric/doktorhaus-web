@@ -126,6 +126,25 @@
   gap: 1.25rem;
 }
 
+.diag-client-portal-shell {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.diag-portal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.65rem 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.diag-portal-toolbar .btn {
+  padding: 0.45rem 0.75rem;
+}
+
 .diag-report-toolbar {
   display: flex;
   align-items: center;
@@ -156,6 +175,16 @@
 .diag-report-content {
   display: grid;
   gap: 1.25rem;
+}
+
+.diag-report-back {
+  padding: 0.45rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
 }
 
 .diag-report-navigation {
@@ -1504,6 +1533,63 @@
 }
 
 /* Session-bound client inspection portal. */
+.diag-client-portal {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.diag-portal-header {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  display: grid;
+  min-width: 0;
+  gap: 1.3rem;
+  padding: clamp(1.35rem, 4vw, 2.4rem);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.diag-portal-header h1 {
+  max-width: 18ch;
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.diag-portal-intro {
+  max-width: 62ch;
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+}
+
+.diag-portal-header .inspection-summary {
+  min-width: 0;
+}
+
+.diag-portal-media-grid {
+  margin-top: 1.2rem;
+}
+
+.diag-portal-media-grid .media-card {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.diag-portal-media-grid .diag-portal-report-card {
+  width: 100%;
+  border-left: 4px solid var(--accent);
+}
+
+.diag-portal-media-grid .diag-output-meta {
+  color: var(--accent);
+  font-weight: 750;
+}
+
 .diag-portal-section,
 .diag-complete-report-transition {
   scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
@@ -1737,6 +1823,18 @@
   scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
 }
 
+#zdrojova-fotodokumentacia {
+  scroll-margin-top: calc(var(--diag-navigation-top, 0.75rem) + 6rem);
+}
+
+@media (min-width: 820px) {
+  .diag-portal-header {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr);
+    align-items: center;
+    gap: 2rem;
+  }
+}
+
 @media (max-width: 819px) {
   .diag-output-grid,
   .diag-client-photo-grid {
@@ -1769,9 +1867,27 @@
     justify-self: stretch;
     text-align: center;
   }
+
+  .diag-shell {
+    padding-inline: 0.75rem;
+  }
+
+  .diag-portal-toolbar,
+  .diag-report-toolbar {
+    align-items: flex-start;
+  }
+
+  .diag-client-photo-card,
+  .diag-portal-media-grid .media-card {
+    min-width: 0;
+  }
 }
 
 @media print {
+  #diag-portal,
+  .diag-report-back {
+    display: none !important;
+  }
   .diag-external-output-card,
   .diag-output-action,
   .diag-client-photo-button .diag-media-fallback {

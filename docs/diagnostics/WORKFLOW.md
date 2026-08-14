@@ -211,7 +211,7 @@ Po odbornom schválení, immutable publish a samostatnom vydaní grantu môže k
 2. Auth status overí existujúcu serverovú session.
 3. Ak session chýba alebo patrí inému odkazu, klient zadá šesťmiestny PIN.
 4. Úspešný unlock vytvorí/obnoví serverovú session; PIN sa z inputu odstráni.
-5. Report sa načíta bez selectorov iba zo session-bound report endpointu.
+5. Session-bound report, appendix a výstupy sa načítajú bez selectorov; predvolený pohľad je klientský portál a detailná správa sa otvorí až vedomou akciou klienta.
 6. Médiá sa načítajú len z allowlisted URL projekcie a server ich znovu autorizuje.
 7. Pri 401, logout alebo zmene session sa vykreslený report odstráni z DOM.
 8. Nové odborné zistenie alebo zmena záveru vyžaduje nový doménový/publikačný cyklus a verziu, nie edit v rendereri.
@@ -223,3 +223,5 @@ Klientská tlač je zobrazenie publikovanej verzie v prehliadači. Nie je novou 
 Po ľudskom schválení sa zostaví a overí immutable published package. Voliteľné client companion artefakty sú súčasťou rovnakého manifestu a nesmú meniť source observations, diagnosis ani pricing. Produkčný kód a private package sa nasadzujú oddelene; runtime `data/inspections.json` sa nepripravuje naslepo mimo servera.
 
 Po nahratí package administrátor na existujúcej `ready|sent` inspection zadá report ID a verziu a vykoná `activate-diagnostics`. Grant použije už vydaný klientsky PIN a klient pokračuje tokom `inspekcie.html → PIN → diagnostics session → inspekcia.html` bez druhého PINu.
+
+Administrátor môže pri naviazanej `ready|sent` inšpekcii spustiť auditovaný náhľad klienta. Endpoint overí Admin PIN, aktívny grant a immutable package binding, potom vytvorí rovnakú klientsku session bez volania client PIN flow. Ide iba o náhľad existujúceho publikovaného stavu, nie o publish alebo alternatívne prihlásenie klienta.

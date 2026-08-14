@@ -9,6 +9,7 @@ on:
       - "api/diagnostics.config.example.php"
       - "api/inspections.php"
       - "api/inspection-outputs-admin.php"
+      - "api/inspection-preview-admin.php"
       - "inspekcie.html"
       - "inspekcie-admin.html"
       - "inspekcia.html"
@@ -30,6 +31,7 @@ on:
       - "api/diagnostics.config.example.php"
       - "api/inspections.php"
       - "api/inspection-outputs-admin.php"
+      - "api/inspection-preview-admin.php"
       - "inspekcie.html"
       - "inspekcie-admin.html"
       - "inspekcia.html"
@@ -102,6 +104,7 @@ jobs:
           php_files+=(
             api/inspections.php
             api/inspection-outputs-admin.php
+            api/inspection-preview-admin.php
             api/diagnostics-auth.php
             api/diagnostics-report.php
             api/diagnostics-media.php
