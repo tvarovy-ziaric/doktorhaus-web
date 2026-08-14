@@ -155,3 +155,5 @@ Krok 5A je prvý browser klient tohto kontraktu. `JSS/diagnostics-client.js` pou
 ## Aktivácia existujúcim inspection PINom
 
 Interná metóda `createGrantWithPin()` prijíma iba validný šesťmiestny PIN, používa rovnaký HMAC prehash, `password_hash`, package binding a audit ako náhodné vydanie a plaintext nevracia ani neukladá. Admin akcia `activate-diagnostics` vyžaduje Admin PIN, stav `ready|sent`, existujúci šesťmiestny inspection PIN a existujúci published package. Existujúci binding sa overí proti tomu istému PINu a package; konflikt vyžaduje vedomú opravu.
+
+Bežné admin UX neprijíma ručne prepísané `acc_`, `rpt_` ani verziu. Admin-only akcia `available-diagnostics` skladá human-readable zoznam iba z verifierom potvrdených publikovaných balíkov. Po vedomom výbere server uloží voliteľné `diagnosticsInspectionId`; toto stabilné ID je jediný signál pre neskoršie automatické nájdenie verzie. Názov, lokalita ani adresa sa na párovanie nepoužívajú. Existujúci grant sa pri idempotentnej aktivácii nemení ani znovu nevytvára.

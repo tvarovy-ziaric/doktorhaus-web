@@ -93,7 +93,7 @@ function photoCompletePrepare(string $storageRoot, string $webRoot, string $pin)
         $evidence['display_code'] = 'EV-' . str_pad((string)$number, 3, '0', STR_PAD_LEFT);
         $evidence['type'] = 'photo';
         $evidence['title'] = 'Synthetic photo ' . $number;
-        $evidence['description'] = 'Synthetic photo-complete delivery evidence.';
+        $evidence['description'] = 'Synthetic photo-complete delivery evidence. Originálny mediálny súbor nebol extrahovaný.';
         $evidence['privacy'] = 'client_private';
         $evidence['status'] = 'active';
         $evidence['media_reference'] = 'source-photo:' . $number;
@@ -115,7 +115,7 @@ function photoCompletePrepare(string $storageRoot, string $webRoot, string $pin)
             $appendixItems[] = [
                 'evidence_id' => $evidenceId,
                 'display_code' => $evidence['display_code'],
-                'source_caption' => $evidence['title'],
+                'source_caption' => $evidence['title'] . '. Originálny mediálny súbor nebol extrahovaný.',
                 'media_reference' => $relative,
                 'media_url' => 'api/diagnostics-media.php?evidence=' . $evidenceId,
                 'content_type' => 'image/jpeg',

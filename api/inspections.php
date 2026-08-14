@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use DoktorHaus\Diagnostics\DiagnosticsAccessException;
 use DoktorHaus\Diagnostics\DiagnosticsAccessService;
+use DoktorHaus\Diagnostics\DiagnosticsAccessStore;
 use DoktorHaus\Diagnostics\DiagnosticsClientSession;
 use DoktorHaus\Diagnostics\DiagnosticsSecurityConfig;
 use DoktorHaus\Diagnostics\DiagnosticsStorage;
@@ -11,6 +12,7 @@ use DoktorHaus\Diagnostics\DiagnosticsStorageException;
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessException.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsSecurityConfig.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsStorage.php';
+require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessStore.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsAccessService.php';
 require_once __DIR__ . '/lib/diagnostics/DiagnosticsClientSession.php';
 
@@ -156,17 +158,24 @@ function normalize_item(array $input, ?array $existing = null): array
         'updatedAt' => $now,
     ];
 
-    if (array_key_exists('diagnosticsAccessId', $input) && !is_string($input['diagnosticsAccessId'])) {
-        respond(422, ['ok' => false, 'error' => 'Diagnostický access ID nemá platný tvar.']);
+    foreach (['diagnosticsAccessId', 'diagnosticsInspectionId'] as $serverManagedField) {
+        if (array_key_exists($serverManagedField, $input)) {
+            respond(422, ['ok' => false, 'error' => 'Technické naviazanie diagnostickej správy spravuje server.']);
+        }
     }
-    $diagnosticsAccessId = array_key_exists('diagnosticsAccessId', $input)
-        ? trim($input['diagnosticsAccessId'])
-        : (is_string($existing['diagnosticsAccessId'] ?? null) ? $existing['diagnosticsAccessId'] : '');
-    if ($diagnosticsAccessId !== '') {
-        if (preg_match('/^acc_[0-9a-f]{32}$/D', $diagnosticsAccessId) !== 1) {
-            respond(422, ['ok' => false, 'error' => 'Diagnostický access ID nemá platný tvar.']);
+    $diagnosticsAccessId = $existing['diagnosticsAccessId'] ?? null;
+    if ($diagnosticsAccessId !== null) {
+        if (!is_string($diagnosticsAccessId) || preg_match('/^acc_[0-9a-f]{32}$/D', $diagnosticsAccessId) !== 1) {
+            respond(422, ['ok' => false, 'error' => 'Existujúce diagnostické naviazanie nie je platné.']);
         }
         $item['diagnosticsAccessId'] = $diagnosticsAccessId;
+    }
+    $diagnosticsInspectionId = $existing['diagnosticsInspectionId'] ?? null;
+    if ($diagnosticsInspectionId !== null) {
+        if (!is_string($diagnosticsInspectionId) || preg_match('/^insp_[0-9a-f]{16,32}$/D', $diagnosticsInspectionId) !== 1) {
+            respond(422, ['ok' => false, 'error' => 'Existujúca identita diagnostickej inšpekcie nie je platná.']);
+        }
+        $item['diagnosticsInspectionId'] = $diagnosticsInspectionId;
     }
 
     if ($item['title'] === '') {
@@ -241,6 +250,80 @@ function email_body(array $item, string $link): string
         . "PIN pre prístup: " . $pin . "\n\n"
         . "Po zadaní PINu sa zobrazia dokumenty a médiá pripravené k inšpekcii: " . $title . ".\n\n"
         . "S pozdravom\nDoktorHaus";
+}
+
+/**
+ * Return verified packages that can be selected for one admin inspection record.
+ * Stable inspection IDs and existing grant bindings are the only pairing signals.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function available_diagnostics_for_record(
+    array $items,
+    string $recordId,
+    DiagnosticsStorage $storage,
+    DiagnosticsAccessStore $accessStore
+): array {
+    $targetIndex = find_item_index($items, $recordId);
+    if ($targetIndex < 0) {
+        respond(404, ['ok' => false, 'error' => 'Inšpekcia sa nenašla.']);
+    }
+    $publishedReports = $storage->listPublishedReports();
+    $inspectionIdByPackage = [];
+    foreach ($publishedReports as $publishedReport) {
+        $inspectionIdByPackage[$publishedReport['reportId'] . '|' . $publishedReport['version']] =
+            $publishedReport['inspectionId'];
+    }
+    $boundInspectionIds = [];
+    $boundPackages = [];
+    foreach ($items as $item) {
+        $ownerId = is_string($item['id'] ?? null) ? $item['id'] : '';
+        $inspectionId = $item['diagnosticsInspectionId'] ?? null;
+        if ($ownerId !== '' && is_string($inspectionId) &&
+            preg_match('/^insp_[0-9a-f]{16,32}$/D', $inspectionId) === 1) {
+            $boundInspectionIds[$inspectionId][$ownerId] = true;
+        }
+        $accessId = $item['diagnosticsAccessId'] ?? null;
+        if ($ownerId === '' || !is_string($accessId) ||
+            preg_match('/^acc_[0-9a-f]{32}$/D', $accessId) !== 1) {
+            continue;
+        }
+        try {
+            $grant = $accessStore->load($accessId);
+            $grantReportId = $grant['report_id'] ?? null;
+            $grantVersion = $grant['report_version'] ?? null;
+            if (is_string($grantReportId) && is_string($grantVersion)) {
+                $packageKey = $grantReportId . '|' . $grantVersion;
+                $boundPackages[$packageKey][$ownerId] = true;
+                if (isset($inspectionIdByPackage[$packageKey])) {
+                    $boundInspectionIds[$inspectionIdByPackage[$packageKey]][$ownerId] = true;
+                }
+            }
+        } catch (DiagnosticsAccessException $error) {
+            continue;
+        }
+    }
+
+    $target = $items[$targetIndex];
+    $targetInspectionId = is_string($target['diagnosticsInspectionId'] ?? null)
+        ? $target['diagnosticsInspectionId']
+        : null;
+    $available = [];
+    foreach ($publishedReports as $report) {
+        $inspectionId = (string)$report['inspectionId'];
+        $packageKey = (string)$report['reportId'] . '|' . (string)$report['version'];
+        if ($targetInspectionId !== null && $inspectionId !== $targetInspectionId) {
+            continue;
+        }
+        $otherIdentityOwners = array_diff(array_keys($boundInspectionIds[$inspectionId] ?? []), [$recordId]);
+        $otherPackageOwners = array_diff(array_keys($boundPackages[$packageKey] ?? []), [$recordId]);
+        if ($otherIdentityOwners !== [] || $otherPackageOwners !== []) {
+            continue;
+        }
+        $report['label'] = $report['displayName'] . ' — verzia ' . $report['version'];
+        $available[] = $report;
+    }
+    return $available;
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -322,6 +405,28 @@ if ($action === 'admin-list') {
     respond(200, ['ok' => true, 'items' => $items, 'inspectionLink' => inspection_link($baseUrl)]);
 }
 
+if ($action === 'available-diagnostics') {
+    $id = clean_text((string)($payload['id'] ?? ''), 40);
+    if ($id === '') {
+        respond(422, ['ok' => false, 'error' => 'Najprv vyberte inšpekciu.']);
+    }
+    try {
+        $diagnosticsStorage = DiagnosticsStorage::fromEnvironment();
+        $diagnosticsAccessStore = new DiagnosticsAccessStore($diagnosticsStorage);
+        $available = available_diagnostics_for_record($items, $id, $diagnosticsStorage, $diagnosticsAccessStore);
+        $index = find_item_index($items, $id);
+        respond(200, [
+            'ok' => true,
+            'items' => $available,
+            'identityLinked' => $index >= 0 && is_string($items[$index]['diagnosticsInspectionId'] ?? null),
+        ]);
+    } catch (DiagnosticsStorageException $error) {
+        respond(503, ['ok' => false, 'error' => 'Diagnostická služba nie je dostupná.']);
+    } catch (Throwable $error) {
+        respond(500, ['ok' => false, 'error' => 'Publikované diagnostické správy sa nepodarilo načítať.']);
+    }
+}
+
 if ($action === 'activate-diagnostics') {
     $id = clean_text((string)($payload['id'] ?? ''), 40);
     $reportId = clean_text((string)($payload['reportId'] ?? ''), 36);
@@ -335,8 +440,9 @@ if ($action === 'activate-diagnostics') {
     }
     $pin = $items[$index]['pin'] ?? null;
     if (!is_string($pin) || preg_match('/^[0-9]{6}$/D', $pin) !== 1 ||
-        preg_match('/^rpt_[0-9a-f]{16,32}$/D', $reportId) !== 1 ||
-        preg_match('/^[1-9][0-9]*\.[0-9]+$/D', $version) !== 1) {
+        (($reportId === '') !== ($version === '')) ||
+        ($reportId !== '' && preg_match('/^rpt_[0-9a-f]{16,32}$/D', $reportId) !== 1) ||
+        ($version !== '' && preg_match('/^[1-9][0-9]*\.[0-9]+$/D', $version) !== 1)) {
         respond(422, ['ok' => false, 'error' => 'Aktivačné údaje nie sú platné.']);
     }
 
@@ -344,6 +450,35 @@ if ($action === 'activate-diagnostics') {
         $diagnosticsConfig = DiagnosticsSecurityConfig::fromEnvironment();
         $diagnosticsStorage = DiagnosticsStorage::fromEnvironment();
         $diagnosticsAccess = new DiagnosticsAccessService($diagnosticsStorage, $diagnosticsConfig);
+        $available = available_diagnostics_for_record(
+            $items,
+            $id,
+            $diagnosticsStorage,
+            $diagnosticsAccess->getStore()
+        );
+        if ($reportId === '' && $version === '') {
+            $explicitIdentity = $items[$index]['diagnosticsInspectionId'] ?? null;
+            if (!is_string($explicitIdentity) || count($available) !== 1) {
+                respond(422, ['ok' => false, 'error' => 'Vyberte publikovanú diagnostickú správu.']);
+            }
+            $reportId = (string)$available[0]['reportId'];
+            $version = (string)$available[0]['version'];
+        }
+        $selected = null;
+        foreach ($available as $candidate) {
+            if (($candidate['reportId'] ?? null) === $reportId && ($candidate['version'] ?? null) === $version) {
+                $selected = $candidate;
+                break;
+            }
+        }
+        if (!is_array($selected)) {
+            respond(409, ['ok' => false, 'error' => 'Vybraná diagnostická správa nie je pre túto inšpekciu dostupná.']);
+        }
+        $selectedInspectionId = (string)$selected['inspectionId'];
+        $existingInspectionId = $items[$index]['diagnosticsInspectionId'] ?? null;
+        if (is_string($existingInspectionId) && $existingInspectionId !== $selectedInspectionId) {
+            respond(409, ['ok' => false, 'error' => 'Inšpekcia je naviazaná na inú diagnostickú identitu. Vyžaduje vedomú opravu.']);
+        }
         $existingAccessId = $items[$index]['diagnosticsAccessId'] ?? null;
         if (is_string($existingAccessId) && $existingAccessId !== '') {
             if (preg_match('/^acc_[0-9a-f]{32}$/D', $existingAccessId) !== 1) {
@@ -365,6 +500,7 @@ if ($action === 'activate-diagnostics') {
         $created = $diagnosticsAccess->createGrantWithPin($reportId, $version, $pin);
         $accessId = (string)$created['access_id'];
         $items[$index]['diagnosticsAccessId'] = $accessId;
+        $items[$index]['diagnosticsInspectionId'] = $selectedInspectionId;
         $items[$index]['updatedAt'] = date('c');
         try {
             save_items($dataFile, $items);

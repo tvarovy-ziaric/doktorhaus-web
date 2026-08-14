@@ -193,6 +193,8 @@ Vrstva poskytuje:
 - `resolvePublishedFile($reportId, $version, $relativePath)`;
 - `listPublishedVersions($reportId)`.
 
+Autorizovaný admin endpoint môže použiť aj `listPublishedReports()`. Metóda prechádza iba adresár `reports/`, preskakuje neplatné ID, symlinky a poškodené alebo nepublikované balíky a každý výsledok znovu overí existujúcim package verifierom. Vracia iba internú identitu reportu/inšpekcie, verziu, klientsky bezpečný názov nehnuteľnosti, voliteľnú obec/okres a čas publikovania; nikdy nevracia filesystem path, hash, PIN ani secret.
+
 Čítanie znovu overuje balík a jeho hashe. `resolvePublishedFile()` prijme iba path deklarovaný manifestom, znovu skontroluje symlinky a canonical path pod balíkom a vráti internú filesystem cestu spolu s role, checksumom, content type, privacy a prípadnou veľkosťou. Nevracia verejnú URL a nevykonáva HTTP doručenie.
 
 Zoznam verzií zahŕňa iba syntakticky platné, nesymlinkové adresáre s manifestom a používa numerické `major.minor` poradie: `1.0`, `1.1`, `1.10`, `2.0`.

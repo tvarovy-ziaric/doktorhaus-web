@@ -23,7 +23,7 @@ json_field() { python -c 'import json,sys; print(json.loads(sys.argv[1])[sys.arg
 
 mkdir -p "$web_root" "$session_root"
 cp -a "$repo_root/api" "$web_root/api"
-cp "$repo_root/inspekcie.html" "$repo_root/inspekcia.html" "$web_root/"
+cp "$repo_root/inspekcie.html" "$repo_root/inspekcia.html" "$repo_root/inspekcie-admin.html" "$web_root/"
 cp -a "$repo_root/JSS" "$repo_root/styles" "$web_root/"
 
 export DIAGNOSTICS_STORAGE_ROOT="$storage_root"
@@ -40,10 +40,41 @@ php -d "session.save_path=$session_root" -S "127.0.0.1:$port" -t "$web_root" >"$
 server_pid=$!
 for _ in {1..20}; do curl -sS "$base_url/inspekcie.html" >/dev/null && break; sleep 0.2; done
 
+available_without_pin="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"action":"available-diagnostics","id":"photo-complete-inspection"}' "$base_url/api/inspections.php")"
+[[ "$available_without_pin" == "403" ]] || fail "available-diagnostics is not admin-only"
+available="$(curl -sS -H 'Content-Type: application/json' -d '{"action":"available-diagnostics","adminPin":"photo-complete-admin","id":"photo-complete-inspection"}' "$base_url/api/inspections.php")"
+python - "$available" "$report_id" <<'PY'
+import json, sys
+body = json.loads(sys.argv[1])
+assert body["ok"] is True and len(body["items"]) == 1
+item = body["items"][0]
+assert item["reportId"] == sys.argv[2] and item["version"] == "1.0"
+assert item["label"].endswith("— verzia 1.0")
+assert set(item) == {"reportId", "version", "inspectionId", "displayName", "municipality", "district", "publishedAt", "label"}
+assert not any(key in item for key in ("path", "sha256", "pin", "secret"))
+PY
+! grep -Eqi '<input[^>]+name="diagnostics(AccessId|ReportId|Version)"' "$web_root/inspekcie-admin.html" || fail "admin still contains a manual diagnostics technical ID input"
+grep -Fq 'id="diagnostics-report-select"' "$web_root/inspekcie-admin.html" || fail "published report dropdown is missing"
+
 activate="$(curl -sS -H 'Content-Type: application/json' -d "{\"action\":\"activate-diagnostics\",\"adminPin\":\"photo-complete-admin\",\"id\":\"photo-complete-inspection\",\"reportId\":\"$report_id\",\"version\":\"1.0\"}" "$base_url/api/inspections.php")"
 [[ "$(json_field "$activate" ok)" == "True" ]] || fail "activate-diagnostics failed"
 access_id="$(json_field "$activate" accessId)"
 [[ "$activate" != *'"pin"'* && "$activate" != *"$pin"* ]] || fail "activation response leaked the PIN"
+python - "$web_root/data/inspections.json" <<'PY'
+import json, sys
+item = json.load(open(sys.argv[1], encoding="utf-8"))[0]
+assert item["diagnosticsInspectionId"].startswith("insp_")
+assert item["diagnosticsAccessId"].startswith("acc_")
+PY
+grant_hash_before="$(sha256sum "$storage_root/access/grants/$access_id.json" | cut -d' ' -f1)"
+grant_count_before="$(find "$storage_root/access/grants" -maxdepth 1 -type f -name 'acc_*.json' | wc -l)"
+auto_activate="$(curl -sS -H 'Content-Type: application/json' -d '{"action":"activate-diagnostics","adminPin":"photo-complete-admin","id":"photo-complete-inspection"}' "$base_url/api/inspections.php")"
+[[ "$(json_field "$auto_activate" ok)" == "True" ]] || fail "explicit identity auto-binding failed"
+[[ "$(json_field "$auto_activate" idempotent)" == "True" ]] || fail "explicit identity auto-binding was not idempotent"
+[[ "$(json_field "$auto_activate" accessId)" == "$access_id" ]] || fail "explicit identity auto-binding changed the grant"
+grant_hash_after="$(sha256sum "$storage_root/access/grants/$access_id.json" | cut -d' ' -f1)"
+grant_count_after="$(find "$storage_root/access/grants" -maxdepth 1 -type f -name 'acc_*.json' | wc -l)"
+[[ "$grant_hash_before" == "$grant_hash_after" && "$grant_count_before" == "$grant_count_after" ]] || fail "idempotent auto-binding changed or created a grant"
 
 unlock="$(curl -sS -c "$cookie_jar" -b "$cookie_jar" -H 'Content-Type: application/json' -d "{\"action\":\"unlock\",\"pin\":\"$pin\"}" "$base_url/api/inspections.php")"
 [[ "$(json_field "$unlock" mode)" == "diagnostics" ]] || fail "one-PIN bridge did not return diagnostics mode"
@@ -74,6 +105,20 @@ for item in items:
     result = subprocess.run(["curl", "-sS", "-I", "-b", cookie, f"{base_url}/api/diagnostics-media.php?evidence={evidence_id}"], capture_output=True, text=True)
     assert result.returncode == 0 and (" 200 " in result.stdout or " 206 " in result.stdout), evidence_id
 PY
+node - "$repo_root" "$report_file" "$appendix_file" <<'JS'
+const fs = require("node:fs");
+const path = require("node:path");
+const renderer = require(path.join(process.argv[2], "JSS", "diagnostics-report.js"));
+const report = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+const appendix = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
+const captions = report.issues.flatMap((issue) => issue.evidence)
+  .filter((evidence) => evidence.type === "photo" && evidence.has_media)
+  .map((evidence) => renderer.sanitizePhotoCaption(evidence.description))
+  .concat(appendix.items.map((item) => renderer.sanitizePhotoCaption(item.source_caption)));
+if (captions.length !== 71 || captions.some((caption) => caption.includes("Originálny mediálny súbor nebol extrahovaný."))) {
+  throw new Error("Rendered photo captions were not sanitized for all 71 photos.");
+}
+JS
 
 wrong_status="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"action":"unlock","pin":"000000"}' "$base_url/api/inspections.php")"
 [[ "$wrong_status" == "401" ]] || fail "wrong PIN did not fail closed"

@@ -96,3 +96,5 @@ Krok 5A nevytvára Babiná ani iné produkčné dáta, nevydáva grant/PIN, neme
 ## Source documentation appendix
 
 Produkčný klient načíta voliteľný appendix zo samostatného session-bound endpointu. `404` znamená, že konkrétna verzia appendix nemá; iné chyby zlyhajú bezpečne. Produkčný klient a owner preview používajú rovnakú renderer funkciu. Sekcia a navigačná položka vzniknú iba pri reálnom appendixe; interaktívne menu ostáva v tlači skryté a fotografie appendixu sú zahrnuté.
+
+Renderer pri fotografiách kompatibilne odstraňuje historickú technickú vetu o neextrahovanom originálnom súbore z linked evidence aj `source_caption`. Ostatný informatívny popis zostáva nezmenený; ak po odstránení nezostane text, nevzniká prázdny odsek. Non-photo evidence sa týmto pravidlom nemení.

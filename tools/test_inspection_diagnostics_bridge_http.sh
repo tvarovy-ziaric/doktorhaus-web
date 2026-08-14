@@ -171,12 +171,7 @@ print(json.dumps({
 PY
 )"
 valid_admin_code="$(curl -sS -H 'Content-Type: application/json' -d "$valid_admin_payload" -o "$responses/admin-valid.json" -w '%{http_code}' "$base_url/api/inspections.php")"
-[[ "$valid_admin_code" == "200" ]] || fail "Valid admin diagnosticsAccessId must be saved."
-python - "$responses/admin-valid.json" "$access_id" <<'PY'
-import json, sys
-body = json.load(open(sys.argv[1], encoding="utf-8"))
-assert body["item"]["diagnosticsAccessId"] == sys.argv[2]
-PY
+[[ "$valid_admin_code" == "422" ]] || fail "Server-managed diagnosticsAccessId must not be writable through save."
 python - "$web_root/api/inspections.php" <<'PY'
 import re, sys
 source = open(sys.argv[1], encoding="utf-8").read()

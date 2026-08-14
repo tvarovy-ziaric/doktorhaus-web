@@ -435,6 +435,119 @@ final class DiagnosticsStorage
     }
 
     /**
+     * List verified immutable report versions for an authorized admin caller.
+     * Invalid, incomplete and symlinked package entries are never returned.
+     *
+     * @return array<int, array{reportId: string, version: string, inspectionId: string, displayName: string, municipality: string|null, district: string|null, publishedAt: string}>
+     */
+    public function listPublishedReports(): array
+    {
+        $reportsRoot = $this->root . DIRECTORY_SEPARATOR . 'reports';
+        if (is_link($reportsRoot)) {
+            throw new DiagnosticsStorageException('STORAGE_SYMLINK', 'The reports directory cannot be a symbolic link.');
+        }
+        $canonicalReportsRoot = realpath($reportsRoot);
+        if ($canonicalReportsRoot === false || !$this->isPathWithin($this->root, $canonicalReportsRoot)) {
+            throw new DiagnosticsStorageException('STORAGE_PATH', 'The reports directory cannot be resolved safely.');
+        }
+        $reportNames = scandir($canonicalReportsRoot);
+        if ($reportNames === false) {
+            throw new DiagnosticsStorageException('STORAGE_IO', 'The reports directory cannot be read.');
+        }
+
+        $reports = [];
+        foreach ($reportNames as $reportId) {
+            if ($reportId === '.' || $reportId === '..') {
+                continue;
+            }
+            try {
+                DiagnosticsPackageVerifier::assertReportId($reportId);
+            } catch (DiagnosticsStorageException $error) {
+                continue;
+            }
+            $reportDirectory = $canonicalReportsRoot . DIRECTORY_SEPARATOR . $reportId;
+            if (is_link($reportDirectory) || !is_dir($reportDirectory)) {
+                continue;
+            }
+            $canonicalReportDirectory = realpath($reportDirectory);
+            if ($canonicalReportDirectory === false || !$this->isPathWithin($canonicalReportsRoot, $canonicalReportDirectory)) {
+                continue;
+            }
+            $versionNames = scandir($canonicalReportDirectory);
+            if ($versionNames === false) {
+                continue;
+            }
+            foreach ($versionNames as $version) {
+                if ($version === '.' || $version === '..') {
+                    continue;
+                }
+                try {
+                    DiagnosticsPackageVerifier::assertVersion($version);
+                } catch (DiagnosticsStorageException $error) {
+                    continue;
+                }
+                $versionDirectory = $canonicalReportDirectory . DIRECTORY_SEPARATOR . $version;
+                if (is_link($versionDirectory) || !is_dir($versionDirectory)) {
+                    continue;
+                }
+                $canonicalVersionDirectory = realpath($versionDirectory);
+                if ($canonicalVersionDirectory === false ||
+                    !$this->isPathWithin($canonicalReportDirectory, $canonicalVersionDirectory)) {
+                    continue;
+                }
+                try {
+                    $verified = $this->verifier->verifyPackage($canonicalVersionDirectory);
+                    $manifest = $verified['manifest'];
+                    $inspection = $verified['inspection'];
+                    if (($manifest['report']['id'] ?? null) !== $reportId ||
+                        ($manifest['report_version']['version'] ?? null) !== $version ||
+                        ($manifest['report_version']['status'] ?? null) !== 'published' ||
+                        !isset($inspection['property']) || !is_array($inspection['property'])) {
+                        continue;
+                    }
+                    $inspectionId = $manifest['report']['inspection_id'] ?? null;
+                    $displayName = $inspection['property']['display_name'] ?? null;
+                    $publishedAt = $manifest['report_version']['published_at'] ?? null;
+                    if (!is_string($inspectionId) || !is_string($displayName) || trim($displayName) === '' ||
+                        !is_string($publishedAt) || trim($publishedAt) === '') {
+                        continue;
+                    }
+                    DiagnosticsPackageVerifier::assertInspectionId($inspectionId);
+                    $location = isset($inspection['property']['location']) && is_array($inspection['property']['location'])
+                        ? $inspection['property']['location']
+                        : [];
+                    $municipality = isset($location['municipality']) && is_string($location['municipality']) && trim($location['municipality']) !== ''
+                        ? trim($location['municipality'])
+                        : null;
+                    $district = isset($location['district']) && is_string($location['district']) && trim($location['district']) !== ''
+                        ? trim($location['district'])
+                        : null;
+                    $reports[] = [
+                        'reportId' => $reportId,
+                        'version' => $version,
+                        'inspectionId' => $inspectionId,
+                        'displayName' => trim($displayName),
+                        'municipality' => $municipality,
+                        'district' => $district,
+                        'publishedAt' => trim($publishedAt),
+                    ];
+                } catch (DiagnosticsStorageException $error) {
+                    continue;
+                }
+            }
+        }
+        usort($reports, function (array $left, array $right): int {
+            $nameOrder = strcmp($left['displayName'], $right['displayName']);
+            if ($nameOrder !== 0) {
+                return $nameOrder;
+            }
+            $reportOrder = strcmp($left['reportId'], $right['reportId']);
+            return $reportOrder !== 0 ? $reportOrder : version_compare($left['version'], $right['version']);
+        });
+        return $reports;
+    }
+
+    /**
      * @param array<string, mixed> $document
      * @return array<string, mixed>
      */

@@ -91,7 +91,7 @@ dh_preview_page_headers();
     </section>
   </div>
 
-  <script src="/JSS/diagnostics-report.js?v=5" defer></script>
+  <script src="/JSS/diagnostics-report.js?v=6" defer></script>
   <script src="../preview.js?v=3" defer></script>
 </body>
 </html>

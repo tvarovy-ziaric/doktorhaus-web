@@ -70,25 +70,17 @@
         <textarea name="summary" rows="4" placeholder="Stručne, čo klient na stránke nájde."></textarea>
       </label>
 
-      <label>
-        Diagnostický access ID
-        <input type="text" name="diagnosticsAccessId" pattern="acc_[0-9a-f]{32}" placeholder="acc_0123456789abcdef0123456789abcdef" autocomplete="off" spellcheck="false">
-        <small>Voliteľné interné prepojenie na publikovanú diagnostickú správu.</small>
-      </label>
-
-      <div class="form-row">
-        <label>
-          Report ID
-          <input type="text" name="diagnosticsReportId" pattern="rpt_[0-9a-f]{16,32}" placeholder="rpt_0123456789abcdef01234567" autocomplete="off" spellcheck="false">
-        </label>
-        <label>
-          Verzia
-          <input type="text" name="diagnosticsVersion" pattern="[1-9][0-9]*\.[0-9]+" value="1.0" autocomplete="off" spellcheck="false">
-        </label>
-      </div>
       <div class="form-actions" id="diagnostics-activation-actions" hidden>
+        <label>
+          Diagnostická správa
+          <select id="diagnostics-report-select" name="diagnosticsReport">
+            <option value="">Najprv načítajte publikované správy.</option>
+          </select>
+          <small id="diagnostics-report-status" role="status"></small>
+        </label>
         <button class="btn" id="activate-diagnostics-btn" type="button">Aktivovať diagnostickú správu</button>
       </div>
+      <p class="form-status" id="diagnostics-binding-status" role="status"></p>
 
       <div class="form-row">
         <label>
@@ -187,7 +179,12 @@
   const copyEmailBtn = document.getElementById("copy-email-btn");
   const diagnosticsActivationActions = document.getElementById("diagnostics-activation-actions");
   const activateDiagnosticsBtn = document.getElementById("activate-diagnostics-btn");
+  const diagnosticsReportSelect = document.getElementById("diagnostics-report-select");
+  const diagnosticsReportStatus = document.getElementById("diagnostics-report-status");
+  const diagnosticsBindingStatus = document.getElementById("diagnostics-binding-status");
   let inspections = [];
+  let availableDiagnostics = [];
+  let activeDiagnosticsInspectionId = "";
 
   function setStatus(message, isError = false) {
     statusEl.textContent = message;
@@ -244,7 +241,6 @@
       location: data.get("location"),
       clientEmail: data.get("clientEmail"),
       summary: data.get("summary"),
-      diagnosticsAccessId: data.get("diagnosticsAccessId"),
       media: {
         reportUrl: data.get("reportUrl"),
         docsUrl: data.get("docsUrl"),
@@ -262,8 +258,16 @@
     form.elements.location.value = item.location || "";
     form.elements.clientEmail.value = item.clientEmail || "";
     form.elements.summary.value = item.summary || "";
-    form.elements.diagnosticsAccessId.value = item.diagnosticsAccessId || "";
-    diagnosticsActivationActions.hidden = !["ready", "sent"].includes(item.status);
+    const canActivateDiagnostics = ["ready", "sent"].includes(item.status) && !item.diagnosticsAccessId;
+    diagnosticsActivationActions.hidden = !canActivateDiagnostics;
+    diagnosticsBindingStatus.textContent = item.diagnosticsAccessId
+      ? "Diagnostická správa je naviazaná na klientsky PIN."
+      : "";
+    if (canActivateDiagnostics) {
+      loadAvailableDiagnostics(item.id);
+    } else {
+      resetDiagnosticsChooser();
+    }
     form.elements.reportUrl.value = item.media?.reportUrl || "";
     form.elements.docsUrl.value = item.media?.docsUrl || "";
     form.elements.panoravenUrl.value = item.media?.panoravenUrl || "";
@@ -282,9 +286,69 @@
     form.elements.adminPin.value = pin;
     form.elements.id.value = "";
     diagnosticsActivationActions.hidden = true;
+    diagnosticsBindingStatus.textContent = "";
+    resetDiagnosticsChooser();
     generatedPin.value = "";
     emailText.value = "";
     setStatus("Pripravený nový koncept.");
+  }
+
+  function resetDiagnosticsChooser(message = "Najprv načítajte publikované správy.") {
+    activeDiagnosticsInspectionId = "";
+    availableDiagnostics = [];
+    diagnosticsReportSelect.replaceChildren(new Option(message, ""));
+    diagnosticsReportSelect.disabled = true;
+    diagnosticsReportStatus.textContent = "";
+    activateDiagnosticsBtn.disabled = true;
+  }
+
+  async function loadAvailableDiagnostics(inspectionId) {
+    activeDiagnosticsInspectionId = inspectionId;
+    availableDiagnostics = [];
+    diagnosticsReportSelect.replaceChildren(new Option("Načítavam publikované správy…", ""));
+    diagnosticsReportSelect.disabled = true;
+    diagnosticsReportStatus.textContent = "";
+    activateDiagnosticsBtn.disabled = true;
+    try {
+      const result = await api({
+        action: "available-diagnostics",
+        adminPin: adminPin(),
+        id: inspectionId
+      });
+      if (activeDiagnosticsInspectionId !== inspectionId) {
+        return;
+      }
+      availableDiagnostics = Array.isArray(result.items) ? result.items : [];
+      if (!availableDiagnostics.length) {
+        diagnosticsReportSelect.replaceChildren(new Option("Nie je dostupná žiadna publikovaná diagnostická správa.", ""));
+        diagnosticsReportStatus.textContent = "Nie je dostupná žiadna publikovaná diagnostická správa.";
+        return;
+      }
+      const options = [];
+      if (availableDiagnostics.length > 1) {
+        options.push(new Option("Vyberte diagnostickú správu", ""));
+      }
+      availableDiagnostics.forEach((report, index) => {
+        options.push(new Option(report.label, String(index)));
+      });
+      diagnosticsReportSelect.replaceChildren(...options);
+      diagnosticsReportSelect.disabled = false;
+      if (availableDiagnostics.length === 1) {
+        diagnosticsReportSelect.value = "0";
+        diagnosticsReportStatus.textContent = result.identityLinked
+          ? "Správa bola nájdená podľa uloženej identity inšpekcie."
+          : "Jediná dostupná správa je predvolená.";
+      } else {
+        diagnosticsReportStatus.textContent = "Vyberte správu podľa názvu nehnuteľnosti a verzie.";
+      }
+      activateDiagnosticsBtn.disabled = diagnosticsReportSelect.value === "";
+    } catch (error) {
+      if (activeDiagnosticsInspectionId !== inspectionId) {
+        return;
+      }
+      diagnosticsReportSelect.replaceChildren(new Option("Správy sa nepodarilo načítať.", ""));
+      diagnosticsReportStatus.textContent = error.message;
+    }
   }
 
   function statusLabel(status) {
@@ -364,24 +428,36 @@
       setStatus("Najprv načítajte pripravenú alebo odoslanú inšpekciu.", true);
       return;
     }
+    const selectedIndex = Number.parseInt(diagnosticsReportSelect.value, 10);
+    const selectedReport = Number.isInteger(selectedIndex) ? availableDiagnostics[selectedIndex] : null;
+    if (!selectedReport) {
+      setStatus("Vyberte publikovanú diagnostickú správu.", true);
+      return;
+    }
     setStatus("Aktivujem diagnostickú správu...");
     activateDiagnosticsBtn.disabled = true;
     try {
-      const result = await api({
+      await api({
         action: "activate-diagnostics",
         adminPin: adminPin(),
         id,
-        reportId: form.elements.diagnosticsReportId.value.trim(),
-        version: form.elements.diagnosticsVersion.value.trim()
+        reportId: selectedReport.reportId,
+        version: selectedReport.version
       });
-      form.elements.diagnosticsAccessId.value = result.accessId || "";
       await loadInspections();
+      diagnosticsActivationActions.hidden = true;
+      diagnosticsBindingStatus.textContent = "Diagnostická správa je naviazaná na klientsky PIN.";
+      resetDiagnosticsChooser();
       setStatus("Diagnostická správa je naviazaná na klientsky PIN.");
     } catch (error) {
       setStatus(error.message, true);
     } finally {
       activateDiagnosticsBtn.disabled = false;
     }
+  });
+
+  diagnosticsReportSelect.addEventListener("change", () => {
+    activateDiagnosticsBtn.disabled = diagnosticsReportSelect.value === "";
   });
 
   inspectionList.addEventListener("click", async (event) => {

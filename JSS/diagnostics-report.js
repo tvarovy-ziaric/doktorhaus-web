@@ -1166,7 +1166,12 @@
     kicker.append(element(documentRef, "span", null, evidence.type === "document" ? "Dokument" : "Dôkaz"));
     copy.append(kicker);
     copy.append(element(documentRef, "h5", null, evidence.title));
-    copy.append(element(documentRef, "p", null, evidence.description));
+    const description = IMAGE_TYPES.has(evidence.type)
+      ? sanitizePhotoCaption(evidence.description)
+      : evidence.description;
+    if (description) {
+      copy.append(element(documentRef, "p", null, description));
+    }
     card.append(copy);
 
     if (safeUrl && (evidence.type === "document" || evidence.content_type === "application/pdf")) {

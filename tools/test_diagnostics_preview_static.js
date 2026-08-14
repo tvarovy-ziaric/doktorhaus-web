@@ -52,6 +52,7 @@ assert(renderer.includes('"diag-section-source-photos"'), "Appendix stable ancho
 assert(renderer.includes("appendix.photo_count !== appendix.items.length"), "Appendix count guard is missing.");
 assert(preview.includes("renderer.refreshSectionNavigation(content, document)"), "Appendix navigation refresh is missing.");
 assert(renderer.includes("sanitizePhotoCaption(item.source_caption)"), "Photo boilerplate is not removed from the client caption.");
+assert(renderer.includes("sanitizePhotoCaption(evidence.description)"), "Linked photo boilerplate is not removed from the client caption.");
 assert(renderer.includes("button.append(image, meta, caption)"), "Recovered photos must remain visible in the appendix.");
 
 console.log("Protected diagnostics preview static tests: PASS");

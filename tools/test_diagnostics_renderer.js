@@ -368,6 +368,8 @@ assert.doesNotMatch(recoveredPhotoCaption, /Originálny mediálny súbor nebol e
 
 const fixturePath = path.join(repoRoot, "docs", "diagnostics", "fixtures", "valid", "client-report-example.json");
 const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+const stalePhotoBoilerplate = "Originálny mediálny súbor nebol extrahovaný.";
+fixture.issues[0].evidence[0].description += " " + stalePhotoBoilerplate;
 assert.doesNotThrow(() => renderer.assertClientReport(fixture));
 assert.ok(renderer.selectPriorityRecommendations(fixture.recommendations, fixture.issues).length > 0);
 const renderDocument = new FakeDocument(true);
@@ -378,6 +380,36 @@ const renderedReport = renderer.renderReport(fixture, {
   pageUrl,
   photoViewer: { open() {} }
 });
+const renderedEvidenceText = renderedReport.querySelectorAll(".diag-evidence-copy")
+  .flatMap((node) => node.children.map((child) => child.textContent))
+  .join(" ");
+assert.doesNotMatch(renderedEvidenceText, /Originálny mediálny súbor nebol extrahovaný./);
+
+const emptyPhotoFixture = JSON.parse(JSON.stringify(fixture));
+emptyPhotoFixture.issues[0].evidence[0].description = stalePhotoBoilerplate;
+const emptyPhotoContainer = new FakeNode();
+const emptyPhotoReport = renderer.renderReport(emptyPhotoFixture, {
+  document: new FakeDocument(false),
+  container: emptyPhotoContainer,
+  pageUrl,
+  photoViewer: { open() {} }
+});
+const emptyPhotoCopy = emptyPhotoReport.querySelector(".diag-evidence-copy");
+assert.equal(emptyPhotoCopy.children.some((child) => child.tagName === "P"), false);
+
+const documentFixture = JSON.parse(JSON.stringify(fixture));
+documentFixture.issues[0].evidence[0].type = "document";
+documentFixture.issues[0].evidence[0].description = stalePhotoBoilerplate;
+const documentReport = renderer.renderReport(documentFixture, {
+  document: new FakeDocument(false),
+  container: new FakeNode(),
+  pageUrl,
+  photoViewer: { open() {} }
+});
+const documentEvidenceText = documentReport.querySelectorAll(".diag-evidence-copy")
+  .flatMap((node) => node.children.map((child) => child.textContent))
+  .join(" ");
+assert.match(documentEvidenceText, /Originálny mediálny súbor nebol extrahovaný./);
 const renderedScoreTriggers = renderContainer.querySelectorAll(".diag-score-trigger");
 assert.equal(renderedScoreTriggers.length, fixture.issues.length * 4);
 for (const trigger of renderedScoreTriggers) {
@@ -533,6 +565,17 @@ for (const relative of inspectedFiles) {
 }
 
 const rendererSource = fs.readFileSync(path.join(repoRoot, "JSS/diagnostics-report.js"), "utf8");
+const adminSource = fs.readFileSync(path.join(repoRoot, "inspekcie-admin.html"), "utf8");
+assert.doesNotMatch(adminSource, /<input[^>]+name=["']diagnosticsAccessId["']/i);
+assert.doesNotMatch(adminSource, /<input[^>]+name=["']diagnosticsReportId["']/i);
+assert.doesNotMatch(adminSource, /<input[^>]+name=["']diagnosticsVersion["']/i);
+assert.match(adminSource, /<select[^>]+id="diagnostics-report-select"/i);
+assert.match(adminSource, /action:\s*"available-diagnostics"/);
+assert.match(adminSource, /availableDiagnostics\.length === 1/);
+assert.match(adminSource, /availableDiagnostics\.length > 1/);
+assert.match(adminSource, /reportId:\s*selectedReport\.reportId/);
+assert.match(adminSource, /version:\s*selectedReport\.version/);
+assert.doesNotMatch(adminSource, /includes\([^\n]*(?:title|location)|localeCompare\([^\n]*(?:title|location)/i);
 for (const section of [
   ["diag-section-overview", "Prehľad"],
   ["diag-section-priority", "Čo riešiť ako prvé"],

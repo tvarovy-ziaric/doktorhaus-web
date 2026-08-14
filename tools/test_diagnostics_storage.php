@@ -490,6 +490,49 @@ try {
         $storage->listPublishedVersions($reportId) === ['1.0', '1.1', '1.10', '2.0'],
         'Published versions must be listed in numeric major.minor order.'
     );
+    $unpublishedReportId = 'rpt_eeeeeeeeeeeeeeee';
+    $unpublishedSource = createPackage($testRoot, $unpublishedReportId, '1.0');
+    mutateManifest($unpublishedSource, function (array &$manifest): void {
+        $manifest['report_version']['status'] = 'draft';
+    });
+    $unpublishedDestination = $storage->getRoot() . DIRECTORY_SEPARATOR . 'reports' . DIRECTORY_SEPARATOR .
+        $unpublishedReportId . DIRECTORY_SEPARATOR . '1.0';
+    mkdir($unpublishedDestination, 0700, true);
+    foreach (['inspection.json', 'diagnosis.json', 'report-pricing.json', 'manifest.json'] as $fileName) {
+        copy($unpublishedSource . DIRECTORY_SEPARATOR . $fileName, $unpublishedDestination . DIRECTORY_SEPARATOR . $fileName);
+    }
+    $outsideReport = $testRoot . DIRECTORY_SEPARATOR . 'outside-report';
+    mkdir($outsideReport, 0700);
+    $listingSymlink = $storage->getRoot() . DIRECTORY_SEPARATOR . 'reports' . DIRECTORY_SEPARATOR . 'rpt_dddddddddddddddd';
+    if (function_exists('symlink') && @symlink($outsideReport, $listingSymlink)) {
+        echo "published listing symlink exclusion test: PASS\n";
+    } else {
+        if ($requireSymlinkTests) {
+            throw new RuntimeException('The CI environment must permit the published listing symlink test.');
+        }
+        $skips++;
+        echo "SKIP: filesystem does not permit the published listing symlink test.\n";
+    }
+    $publishedReports = $storage->listPublishedReports();
+    testAssert(count($publishedReports) === 4, 'Published report listing must ignore corrupt and unpublished packages.');
+    testAssert(
+        array_column($publishedReports, 'version') === ['1.0', '1.1', '1.10', '2.0'],
+        'Published report descriptors must use numeric major.minor ordering.'
+    );
+    $descriptor = $publishedReports[0];
+    testAssert(
+        $descriptor['reportId'] === $reportId &&
+        $descriptor['inspectionId'] === 'insp_1111111111111111' &&
+        $descriptor['displayName'] === fixtureDocument('inspection-minimal.json')['property']['display_name'] &&
+        $descriptor['publishedAt'] === '2026-08-08T08:20:00+02:00',
+        'Published report descriptors must expose only verified admin-safe identity and display fields.'
+    );
+    testAssert(
+        array_diff(array_keys($descriptor), [
+            'reportId', 'version', 'inspectionId', 'displayName', 'municipality', 'district', 'publishedAt',
+        ]) === [],
+        'Published report descriptors must not expose paths, hashes, secrets or PINs.'
+    );
     echo "immutable package tests: PASS\n";
 
     testAssert($storage->deleteDraft($inspectionId), 'An existing draft must be deletable.');
