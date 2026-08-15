@@ -45,7 +45,7 @@ final class MittiImportStore
         $templateJson = $this->json($template);
         $answerLines = [];
         foreach ($answers as $answer) {
-            $answerLines[] = trim($this->json($answer));
+            $answerLines[] = $this->jsonLine($answer);
         }
         $answersNdjson = $answerLines === [] ? '' : implode("\n", $answerLines) . "\n";
         $rawHash = hash('sha256', $inspectionJson . "\n" . $templateJson . "\n" . $answersNdjson);
@@ -406,6 +406,14 @@ final class MittiImportStore
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         if ($json === false) { throw new DiagnosticsIngestException('IMPORT_JSON', 'Ingest JSON sa nepodarilo serializovať.'); }
         return $json . "\n";
+    }
+
+    private function jsonLine(array $data): string
+    {
+        $this->sortRecursive($data);
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) { throw new DiagnosticsIngestException('IMPORT_JSON', 'Ingest JSON sa nepodarilo serializovať.'); }
+        return $json;
     }
 
     private function sortRecursive(array &$value): void
