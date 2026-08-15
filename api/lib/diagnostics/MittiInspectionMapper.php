@@ -109,7 +109,7 @@ final class MittiInspectionMapper
                 'description' => $description !== '' ? $description : 'Médium priložené k Mitti checklistu.',
                 'captured_at' => $performedAt,
                 'captured_by' => $actorId,
-                'provenance' => $this->provenance($sourceId, $sourceItemId !== '' ? $sourceItemId : $mediaId, $importedAt, $modifiedAt, (string)($media['sha256'] ?? $sourceHash), 'Mitti media'),
+                'provenance' => $this->provenance($sourceId, $mediaId, $importedAt, $modifiedAt, (string)($media['sha256'] ?? $sourceHash), 'Mitti media'),
                 'media_reference' => 'imports/mitti/' . (string)$manifest['source_key'] . '/' . (string)$manifest['source_revision'] . '/media/' . (string)$media['storage_filename'],
                 'privacy' => 'client_private',
                 'status' => 'active',
