@@ -64,6 +64,7 @@ final class MittiImportStore
             $templateJson,
             $answersNdjson,
             $rawHash,
+            $inspection,
             $media
         ): array {
             if (is_dir($target)) {
