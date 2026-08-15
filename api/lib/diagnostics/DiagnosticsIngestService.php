@@ -42,6 +42,7 @@ final class DiagnosticsIngestService
         $this->config->assertEnabled();
         $warnings=[];
         try{
+            $this->imports->appendAudit('mitti_import_started','success');
             $raw=$this->mitti->getInspection($sourceInspectionId);
             try{$template=$this->mitti->getTemplate($sourceInspectionId);}catch(\Throwable $e){$template=[];$warnings[]=['code'=>'W_MITTI_TEMPLATE_UNAVAILABLE','message'=>'Template labels sa nepodarilo načítať.'];}
             try{$answers=$this->mitti->getAnswers($sourceInspectionId);}catch(\Throwable $e){$answers=[];$warnings[]=['code'=>'W_MITTI_ANSWERS_UNAVAILABLE','message'=>'Answers stream sa nepodarilo načítať.'];}

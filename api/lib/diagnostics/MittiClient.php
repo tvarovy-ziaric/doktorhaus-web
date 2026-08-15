@@ -185,7 +185,7 @@ final class MittiClient
             'http' => [
                 'method' => 'GET',
                 'header' => implode("\r\n", $headers),
-                'timeout' => $this->config->getReadTimeout(),
+                'timeout' => $this->config->getConnectTimeout(),
                 'ignore_errors' => true,
                 'follow_location' => 0,
             ],
@@ -229,13 +229,14 @@ final class MittiClient
             return $this->inspectDownloadedMedia($destination, (array)($response['headers'] ?? []));
         }
         $context = stream_context_create([
-            'http' => ['method' => 'GET', 'timeout' => $this->config->getReadTimeout(), 'ignore_errors' => true, 'follow_location' => 0, 'header' => "User-Agent: DoktorHaus-diagnostics/1.0\r\nAccept: application/octet-stream"],
+            'http' => ['method' => 'GET', 'timeout' => $this->config->getConnectTimeout(), 'ignore_errors' => true, 'follow_location' => 0, 'header' => "User-Agent: DoktorHaus-diagnostics/1.0\r\nAccept: application/octet-stream"],
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
         $source = @fopen($url, 'rb', false, $context);
         if (!is_resource($source)) {
             throw new DiagnosticsIngestException('MITTI_MEDIA_NETWORK', 'Mitti médium nie je dostupné.');
         }
+        stream_set_timeout($source, $this->config->getReadTimeout());
         $metadata = stream_get_meta_data($source);
         $headers = (array)($metadata['wrapper_data'] ?? []);
         $status = $this->httpStatus($headers);
