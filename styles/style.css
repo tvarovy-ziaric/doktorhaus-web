@@ -11,6 +11,135 @@
   --mark-soft: rgba(54, 94, 87, 0.05);
 }
 
+/* Mitti shadow ingest: human-first admin workflow, never part of client/print UI. */
+.mitti-ingest-admin {
+  margin-top: clamp(2rem, 5vw, 4.5rem);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid rgba(23, 83, 69, 0.18);
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, rgba(240, 247, 243, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.mitti-inspection-list {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.mitti-inspection-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(23, 83, 69, 0.14);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.mitti-inspection-card h3,
+.mitti-inspection-card p {
+  margin: 0.45rem 0 0;
+}
+
+.mitti-progress-panel,
+.mitti-review-panel {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.mitti-progress-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style-position: inside;
+}
+
+.mitti-progress-list li {
+  padding: 0.7rem;
+  border-radius: 0.7rem;
+  background: #f2f2ee;
+  color: #5f625e;
+}
+
+.mitti-progress-list li.is-active {
+  background: #f4e6c4;
+  color: #3f3828;
+}
+
+.mitti-progress-list li.is-complete {
+  background: #dfeee7;
+  color: #175345;
+}
+
+.mitti-review-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.mitti-review-summary > * {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  background: #f5f4ef;
+}
+
+.mitti-review-summary dt {
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.mitti-review-summary dd {
+  font-weight: 700;
+  color: #175345;
+}
+
+.mitti-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.mitti-upload-grid form {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(23, 83, 69, 0.14);
+  border-radius: 0.8rem;
+}
+
+.mitti-validation-results {
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 800px) {
+  .mitti-inspection-card,
+  .mitti-upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mitti-progress-list,
+  .mitti-review-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .mitti-progress-list,
+  .mitti-review-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Mutable client outputs in the inspection backoffice. */
 .legacy-output-fields {
   margin: 1rem 0;

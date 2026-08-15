@@ -1,0 +1,18 @@
+{
+  "audit_id":"audit_completed_001",
+  "name":"Rodinný dom – syntetická kontrola",
+  "completed":true,
+  "completed_at":"2026-08-12T10:30:00Z",
+  "modified_at":"2026-08-12T11:00:00Z",
+  "template_id":"template_doktorhaus",
+  "site":{"name":"Testovacia lokalita A"},
+  "owner":{"name":"Testovací inšpektor"},
+  "inspection_items":[
+    {"item_id":"q_roof","type":"yes_no","section":"Strecha","question":"Sú viditeľné poškodené časti krytiny?","answer":true,"note":"Na okraji chýba krycí prvok.","media":[{"media_id":"media_photo_1","media_type":"image","content_type":"image/jpeg","filename":"../../strecha.jpg"},{"media_id":"media_photo_2","media_type":"image","content_type":"image/png","filename":"strecha-2.png"}]},
+    {"item_id":"q_drainage","type":"multiple_choice","section":"Exteriér","question":"Stav odvedenia vody","answer":["risk"],"media":[{"media_id":"media_photo_3","media_type":"image","content_type":"image/webp","filename":"zvod.webp"}]},
+    {"item_id":"q_note","type":"note","section":"Exteriér","question":"Poznámka","note":"Zvody sú ukončené pri objekte."},
+    {"item_id":"q_measurement","type":"numeric","section":"Pivnica","question":"Orientačná hodnota vlhkosti","numeric_value":72,"unit":"WME"},
+    {"item_id":"q_video","type":"text","section":"Krov","question":"Video detailu krovu","answer":"priložené","media":[{"media_id":"media_video_1","media_type":"video","content_type":"video/mp4","filename":"detail.mp4"}]},
+    {"item_id":"q_unknown","type":"laser_cloud","section":"Krov","question":"Nepodporovaný typ","answer":"raw zostáva zachovaný"}
+  ]
+}

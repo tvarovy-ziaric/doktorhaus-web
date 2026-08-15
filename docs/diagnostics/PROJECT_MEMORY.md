@@ -144,7 +144,7 @@ Preto sa odkladajú funkcie, ktoré nie sú potrebné pre prvé produkčné prí
 
 - live AI chat v backoffice;
 - client-facing AI chat;
-- plná SafetyCulture API automatizácia;
+- plná webhooková SafetyCulture/Mitti automatizácia; manuálny shadow API pull do rovnakého canonical draft workflow je povolený;
 - komplexné workflow automation nad externými službami;
 - automatický PDF generator;
 - sofistikované reportové cache alebo analytické vrstvy.

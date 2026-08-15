@@ -111,6 +111,7 @@ jobs:
             api/diagnostics-appendix.php
             api/diagnostics-outputs.php
             api/diagnostics-output-media.php
+            api/diagnostics-ingest-admin.php
             api/diagnostics.config.example.php
             tools/test_diagnostics_access.php
             tools/test_diagnostics_client_projection.php
@@ -118,6 +119,7 @@ jobs:
             tools/test_diagnostics_delivery_fixture.php
             tools/test_diagnostics_photo_complete_fixture.php
             tools/test_diagnostics_storage.php
+            tools/test_diagnostics_ingest.php
           )
           for file in "${php_files[@]}"; do
             php -l "$file"
@@ -134,6 +136,13 @@ jobs:
             -d display_errors=1 \
             -d error_reporting=-1 \
             tools/test_diagnostics_storage.php
+
+      - name: Test Mitti shadow ingest pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -d display_errors=1 -d error_reporting=-1 tools/test_diagnostics_ingest.php
+          bash tools/test_diagnostics_ingest_http.sh
 
       - name: Test diagnostics client access security
         shell: bash

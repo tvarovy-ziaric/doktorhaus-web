@@ -1,0 +1,32 @@
+{
+  "issues":[{
+    "source_observation_ids":["__OBS_ROOF__"],
+    "title":"Lokálny nedostatok strešného okraja",
+    "category":"roof",
+    "affected_areas":["Strešný okraj"],
+    "summary":"Zdroj uvádza chýbajúci krycí prvok na okraji strechy.",
+    "interpretation":"Detail môže znižovať ochranu okrajovej časti; rozsah zostáva neoverený.",
+    "severity":"S2",
+    "severity_rationale":"Ide o lokálny viditeľný nedostatok bez potvrdeného zatekania.",
+    "likelihood":"L5",
+    "likelihood_subject":"Prítomnosť chýbajúceho prvku uvedená v zdroji.",
+    "likelihood_subject_kind":"observed_condition",
+    "likelihood_rationale":"Zdrojová odpoveď a poznámka jav priamo zaznamenávajú.",
+    "urgency":"U3",
+    "urgency_rationale":"Detail je vhodné preveriť a naplánovať v najbližšom období.",
+    "priority":"P3",
+    "priority_rationale":"Krok treba zaradiť do plánu, no zdroj nepreukazuje bezprostredné ohrozenie.",
+    "confidence":"medium",
+    "deterioration_rate":"unknown",
+    "deterioration_rationale":"Chýba časové porovnanie.",
+    "short_term_risk":{"level":"low","description":"Do overenia môže detail lokálne prepúšťať vodu.","horizon":"do troch mesiacov"},
+    "long_term_risk":{"level":"moderate","description":"Dlhý odklad môže rozšíriť lokálne poškodenie.","horizon":"viac než 12 mesiacov"},
+    "hypotheses":[{"statement":"Okrajový detail môže byť lokálne netesný.","mechanism":"Voda môže vstupovať cez nechránený detail.","confidence":"low","rationale":"Chýbajúci prvok je zdokumentovaný, tesnosť nebola skúšaná.","missing_information":["Stav podkladových vrstiev"]}],
+    "missing_information":["Nie je overený stav podkladových vrstiev."],
+    "limitations":["Strecha nebola odkrytá."],
+    "impacts":{"safety":{"level":"none","description":"Zdroj neuvádza bezprostredné ohrozenie osôb.","confidence":"low"},"structural":{"level":"unknown","description":"Nosný dopad nebol overený.","confidence":"low"},"moisture":{"level":"moderate","description":"Detail môže lokálne zvyšovať vstup vody.","confidence":"low"},"health":{"level":"unknown","description":"Zdravotný dopad nebol hodnotený.","confidence":"low"},"durability":{"level":"moderate","description":"Odklad môže znižovať trvanlivosť detailu.","confidence":"low"},"usability":{"level":"none","description":"Zdroj neuvádza obmedzenie používania.","confidence":"medium"},"financial":{"level":"unknown","description":"Cena ani rozsah opravy nie sú známe.","confidence":"low"}},
+    "cost_estimate_reason":"Rozsah odkrytia a opravy nebol určený."
+  }],
+  "verifications":[{"source_observation_ids":["__OBS_ROOF__"],"method":"Kontrola strešného okraja z bezpečného prístupu.","purpose":"Overiť rozsah a skladbu detailu.","verification_type":"inspection","specialty":"roofer"}],
+  "recommendations":[{"source_observation_ids":["__OBS_ROOF__"],"type":"VERIFY","title":"Preveriť strešný okraj","description":"Kvalifikovaný pokrývač má preveriť detail a určiť potrebnú úpravu.","rationale":"Rozsah skrytého detailu nie je zo zdroja známy.","target_timeframe":"Približne do troch mesiacov.","specialty":"roofer","acceptance_or_follow_up":"Zdokumentovať stav a návrh úpravy.","conditional":false}]
+}

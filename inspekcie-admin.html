@@ -40,6 +40,50 @@
     </div>
   </section>
 
+  <section class="container section-tight mitti-ingest-admin" id="mitti-ingest-admin">
+    <div class="section-heading">
+      <p class="eyebrow">Mitti — nová inšpekcia</p>
+      <h2>Vytvoriť diagnostický draft z ukončenej inšpekcie</h2>
+      <p>
+        Načítajte nedávno ukončené inšpekcie a vyberte spracovanie. Import vytvorí iba
+        pracovný inspection a diagnostický draft; schválenie ani publikovanie nespúšťa.
+      </p>
+    </div>
+    <div class="admin-list-actions">
+      <button class="btn primary" id="mitti-load-btn" type="button">Načítať ukončené inšpekcie</button>
+      <p class="form-status" id="mitti-status" role="status">Použije sa Admin PIN z formulára nižšie.</p>
+    </div>
+    <div class="mitti-inspection-list" id="mitti-inspection-list" aria-live="polite"></div>
+    <div class="mitti-progress-panel" id="mitti-progress-panel" hidden>
+      <h3>Spracovanie diagnostického draftu</h3>
+      <ol class="mitti-progress-list" id="mitti-progress-list">
+        <li>Načítavam inspection</li>
+        <li>Načítavam médiá</li>
+        <li>Normalizujem zdrojové dáta</li>
+        <li>Vytváram diagnostický draft</li>
+        <li>Validujem</li>
+        <li>Pripravené na kontrolu</li>
+      </ol>
+    </div>
+    <div class="mitti-review-panel" id="mitti-review-panel" hidden>
+      <p class="eyebrow">Diagnostický draft pripravený</p>
+      <h3>Pripravené na ľudskú kontrolu</h3>
+      <dl class="mitti-review-summary" id="mitti-review-summary"></dl>
+      <div class="form-actions">
+        <button class="btn" type="button" data-mitti-download="inspection">Stiahnuť inspection.json</button>
+        <button class="btn" type="button" data-mitti-download="diagnosis">Stiahnuť diagnosis.json</button>
+        <button class="btn" type="button" data-mitti-download="pricing" hidden>Stiahnuť pricing.json</button>
+        <button class="btn primary" type="button" id="mitti-validate-btn">Validate</button>
+      </div>
+      <div class="mitti-upload-grid">
+        <form data-mitti-upload="inspection"><label>Nahrať upravený inspection.json <input type="file" name="draft" accept="application/json,.json" required></label><button class="btn" type="submit">Nahrať inspection.json</button></form>
+        <form data-mitti-upload="diagnosis"><label>Nahrať upravený diagnosis.json <input type="file" name="draft" accept="application/json,.json" required></label><button class="btn" type="submit">Nahrať diagnosis.json</button></form>
+        <form data-mitti-upload="pricing" hidden><label>Nahrať upravený pricing.json <input type="file" name="draft" accept="application/json,.json" required></label><button class="btn" type="submit">Nahrať pricing.json</button></form>
+      </div>
+      <div class="mitti-validation-results" id="mitti-validation-results" role="status"></div>
+    </div>
+  </section>
+
   <section class="container admin-layout">
     <form class="admin-form" id="inspection-form">
       <input type="hidden" name="id" id="inspection-id">
@@ -240,12 +284,22 @@
   const clientOutputPdfForm = document.getElementById("client-output-pdf-form");
   const clientOutputLinkForm = document.getElementById("client-output-link-form");
   const clientOutputGalleryForm = document.getElementById("client-output-gallery-form");
+  const mittiLoadBtn = document.getElementById("mitti-load-btn");
+  const mittiStatus = document.getElementById("mitti-status");
+  const mittiInspectionList = document.getElementById("mitti-inspection-list");
+  const mittiProgressPanel = document.getElementById("mitti-progress-panel");
+  const mittiProgressItems = Array.from(document.querySelectorAll("#mitti-progress-list li"));
+  const mittiReviewPanel = document.getElementById("mitti-review-panel");
+  const mittiReviewSummary = document.getElementById("mitti-review-summary");
+  const mittiValidationResults = document.getElementById("mitti-validation-results");
+  const mittiValidateBtn = document.getElementById("mitti-validate-btn");
   let inspections = [];
   let availableDiagnostics = [];
   let activeDiagnosticsInspectionId = "";
   let activeClientOutputInspectionId = "";
   let clientOutputDocument = {revision: 0, outputs: []};
   let clientOutputObjectUrls = [];
+  let mittiJob = null;
 
   function setStatus(message, isError = false) {
     statusEl.textContent = message;
@@ -284,6 +338,155 @@
       throw error;
     }
     return result;
+  }
+
+  function setMittiStatus(message, isError = false) {
+    mittiStatus.textContent = message;
+    mittiStatus.classList.toggle("is-error", isError);
+  }
+
+  async function mittiApi(action, values = {}, file = null) {
+    let response;
+    if (file) {
+      const body = new FormData();
+      body.append("action", action);
+      body.append("adminPin", adminPin());
+      Object.entries(values).forEach(([key, value]) => body.append(key, String(value)));
+      body.append("draft", file);
+      response = await fetch("api/diagnostics-ingest-admin.php", {method: "POST", body, cache: "no-store"});
+    } else {
+      response = await fetch("api/diagnostics-ingest-admin.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: JSON.stringify(Object.assign({action, adminPin: adminPin()}, values)),
+        cache: "no-store"
+      });
+    }
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      const error = new Error(result?.error || "Mitti spracovanie sa nepodarilo.");
+      error.result = result;
+      throw error;
+    }
+    return result;
+  }
+
+  function setMittiProgress(step) {
+    mittiProgressPanel.hidden = false;
+    mittiProgressItems.forEach((item, index) => {
+      item.classList.toggle("is-complete", index < step);
+      item.classList.toggle("is-active", index === step);
+    });
+  }
+
+  function formatMittiDate(value) {
+    if (!value) return "dátum neuvedený";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("sk-SK", {dateStyle: "medium", timeStyle: "short"}).format(date);
+  }
+
+  function renderMittiInspections(items) {
+    mittiInspectionList.replaceChildren();
+    if (!items.length) {
+      const empty = document.createElement("p");
+      empty.className = "form-status";
+      empty.textContent = "Za posledných 30 dní sa nenašla ukončená inšpekcia.";
+      mittiInspectionList.append(empty);
+      return;
+    }
+    items.forEach(item => {
+      const card = document.createElement("article");
+      card.className = "mitti-inspection-card";
+      const info = document.createElement("div");
+      const meta = document.createElement("div");
+      meta.className = "admin-post-meta";
+      [formatMittiDate(item.completedAt), item.location || "bez lokality", item.template || "template neuvedená", item.inspector || "inšpektor neuvedený"].forEach(value => {
+        const badge = document.createElement("span");
+        badge.textContent = value;
+        meta.append(badge);
+      });
+      const title = document.createElement("h3");
+      title.textContent = item.title || "Ukončená inšpekcia";
+      const modified = document.createElement("p");
+      modified.textContent = `Naposledy upravené: ${formatMittiDate(item.modifiedAt)}`;
+      info.append(meta, title, modified);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn primary";
+      button.textContent = "Spracovať";
+      button.dataset.mittiProcess = item.sourceInspectionId;
+      card.append(info, button);
+      mittiInspectionList.append(card);
+    });
+  }
+
+  function renderMittiReview(summary) {
+    const labels = {
+      observations: "Observations", evidence: "Evidence", photos: "Fotografie",
+      videosPending: "Videá pending", issues: "Issues", warnings: "Warnings",
+      validationErrors: "Validation errors"
+    };
+    mittiReviewSummary.replaceChildren();
+    Object.entries(labels).forEach(([key, label]) => {
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const value = document.createElement("dd");
+      value.textContent = String(summary[key] ?? 0);
+      mittiReviewSummary.append(term, value);
+    });
+    mittiReviewPanel.hidden = false;
+  }
+
+  async function refreshMittiStatus() {
+    if (!mittiJob?.jobId) return;
+    const result = await mittiApi("status", {jobId: mittiJob.jobId});
+    mittiJob = result.job;
+    renderMittiReview(result.summary || {});
+  }
+
+  async function processMittiInspection(sourceInspectionId, button) {
+    button.disabled = true;
+    mittiReviewPanel.hidden = true;
+    mittiValidationResults.replaceChildren();
+    try {
+      setMittiProgress(0);
+      setMittiStatus("Načítavam zdrojovú inšpekciu…");
+      let result = await mittiApi("start-import", {sourceInspectionId});
+      mittiJob = result.job;
+      setMittiProgress(1);
+      setMittiStatus("Načítavam originálne médiá…");
+      let mediaDone = false;
+      for (let batch = 0; batch < 40 && !mediaDone; batch += 1) {
+        result = await mittiApi("download-media-batch", {jobId: mittiJob.jobId, batchSize: 7});
+        mittiJob = result.job;
+        mediaDone = result.done === true;
+        const progress = mittiJob.progress || {};
+        setMittiStatus(`Médiá: ${progress.mediaDownloaded || 0} / ${progress.mediaTotal || 0}; pending: ${progress.mediaPending || 0}`);
+      }
+      if (!mediaDone) throw new Error("Sťahovanie médií prekročilo bezpečný počet dávok.");
+      setMittiProgress(2);
+      setMittiStatus("Normalizujem zdrojové dáta…");
+      result = await mittiApi("normalize", {jobId: mittiJob.jobId});
+      mittiJob = result.job;
+      setMittiProgress(3);
+      setMittiStatus("Vytváram diagnostický draft…");
+      result = await mittiApi("generate-diagnosis", {jobId: mittiJob.jobId});
+      mittiJob = result.job;
+      setMittiProgress(4);
+      setMittiStatus("Validujem draft…");
+      result = await mittiApi("validate", {jobId: mittiJob.jobId});
+      mittiJob = result.job;
+      if (!result.ok) throw Object.assign(new Error("Draft obsahuje validačné chyby."), {result});
+      setMittiProgress(6);
+      await refreshMittiStatus();
+      setMittiStatus("Pripravené na ľudskú kontrolu.");
+    } catch (error) {
+      setMittiStatus(error.message, true);
+      const errors = error.result?.details?.errors || error.result?.errors || [];
+      mittiValidationResults.textContent = errors.map(item => `${item.path || "$"}: ${item.message || item.code}`).join("\n");
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function setClientOutputStatus(message, isError = false) {
@@ -988,6 +1191,96 @@
       }
     } catch (error) {
       setClientOutputStatus(error.message, true);
+    }
+  });
+
+  mittiLoadBtn.addEventListener("click", async () => {
+    if (!adminPin()) {
+      setMittiStatus("Najprv zadajte Admin PIN v hlavnom formulári.", true);
+      form.elements.adminPin.focus();
+      return;
+    }
+    mittiLoadBtn.disabled = true;
+    setMittiStatus("Načítavam ukončené inšpekcie…");
+    try {
+      const connection = await mittiApi("connection-status");
+      if (!connection.connection?.enabled) throw new Error("Mitti ingest je vypnutý.");
+      if (!connection.connection?.mittiConfigured) throw new Error("Na serveri chýba Mitti API konfigurácia.");
+      const result = await mittiApi("list-completed");
+      renderMittiInspections(result.items || []);
+      setMittiStatus(`Načítané ukončené inšpekcie: ${(result.items || []).length}.`);
+    } catch (error) {
+      setMittiStatus(error.message, true);
+    } finally {
+      mittiLoadBtn.disabled = false;
+    }
+  });
+
+  mittiInspectionList.addEventListener("click", event => {
+    const button = event.target.closest("[data-mitti-process]");
+    if (button) processMittiInspection(button.dataset.mittiProcess, button);
+  });
+
+  document.querySelectorAll("[data-mitti-download]").forEach(button => {
+    button.addEventListener("click", async () => {
+      if (!mittiJob?.jobId) return;
+      const type = button.dataset.mittiDownload;
+      const response = await fetch("api/diagnostics-ingest-admin.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        body: JSON.stringify({action: "download-draft", adminPin: adminPin(), jobId: mittiJob.jobId, type}),
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null);
+        setMittiStatus(failure?.error || "Draft sa nepodarilo stiahnuť.", true);
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${type}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  });
+
+  document.querySelectorAll("[data-mitti-upload]").forEach(uploadForm => {
+    uploadForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const file = uploadForm.elements.draft.files?.[0];
+      if (!file || !mittiJob?.jobId) return;
+      try {
+        const result = await mittiApi("upload-draft", {
+          jobId: mittiJob.jobId,
+          type: uploadForm.dataset.mittiUpload,
+          storageRevision: mittiJob.storageRevision
+        }, file);
+        mittiJob = result.job;
+        uploadForm.reset();
+        await refreshMittiStatus();
+        setMittiStatus("Upravený JSON je uložený ako nová draft revision.");
+      } catch (error) {
+        setMittiStatus(error.message, true);
+        const errors = error.result?.details?.errors || [];
+        mittiValidationResults.textContent = errors.map(item => `${item.path || "$"}: ${item.message || item.code}`).join("\n");
+      }
+    });
+  });
+
+  mittiValidateBtn.addEventListener("click", async () => {
+    if (!mittiJob?.jobId) return;
+    try {
+      const result = await mittiApi("validate", {jobId: mittiJob.jobId});
+      mittiJob = result.job;
+      const messages = [...(result.errors || []), ...(result.warnings || [])];
+      mittiValidationResults.textContent = messages.length
+        ? messages.map(item => `${item.path || "$"}: ${item.message || item.code}`).join("\n")
+        : "Schema a runtime domain kontrola: PASS.";
+      await refreshMittiStatus();
+      setMittiStatus(result.ok ? "Pripravené na ľudskú kontrolu." : "Draft obsahuje validačné chyby.", !result.ok);
+    } catch (error) {
+      setMittiStatus(error.message, true);
     }
   });
 

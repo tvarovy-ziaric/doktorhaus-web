@@ -1,0 +1,7 @@
+{
+  "id":"template_doktorhaus",
+  "sections":[
+    {"id":"section_roof","type":"section","title":"Strecha","items":[{"id":"q_roof","type":"yes_no","label":"Sú viditeľné poškodené časti krytiny?"}]},
+    {"id":"section_exterior","type":"section","title":"Exteriér","items":[{"id":"q_drainage","type":"multiple_choice","label":"Stav odvedenia vody","options":[{"id":"ok","label":"Bez viditeľného nedostatku"},{"id":"risk","label":"Vyžaduje kontrolu"}]}]}
+  ]
+}

@@ -167,6 +167,22 @@ Aktuálny kód pozná iba `draft`, `ready`, `sent`. `ready` dnes zároveň gener
 
 `SafetyCulture completed → API/webhook → raw inspection data + media → diagnostic draft → inspector QA → publish`
 
+### Aktuálne dve vstupné cesty
+
+**CURRENT MANUAL PATH** zostáva bez zmeny:
+
+`SafetyCulture/Mitti PDF alebo manuálny zdroj → existujúca normalizácia → canonical draft → human QA → rovnaký downstream`
+
+**NEW SHADOW PATH** je paralelný server-side pull:
+
+`Mitti API completed inspection → immutable raw snapshot + originálne médiá → deterministický inspection.json → structured LLM diagnosis candidate → deterministický diagnosis.json → validation → human QA → rovnaký downstream`
+
+Administrátor vedome načíta zoznam ukončených inšpekcií a spustí spracovanie. Browser orchestruje krátke dávkové requesty na server; Mitti ani OpenAI secret nikdy nedostane. Rovnaký source snapshot je idempotentný a raw payload sa neprepisuje. Zmenený source vytvorí novú import revision. Ak canonical draft po importe upravil človek, re-import zlyhá stavom `human review required` namiesto silent overwrite.
+
+Režimy `off`, `shadow` a `active` sú konfiguračné. V tejto etape `shadow` aj `active` končia na stave `Pripravené na ľudskú kontrolu`. Ingest nikdy nevytvorí `APPROVE`, immutable package, publish, PIN, grant ani email. Report-level pricing sa nevytvára bez samostatného overeného pricing generátora; jeho absencia neblokuje zdrojový ani diagnostický draft.
+
+Webhook je budúca vstupná brána. Ak pribudne, musí volať ten istý ingest orchestrator a zachovať rovnakú idempotency, raw-storage a human-QA hranicu; aktuálna implementácia webhook neobsahuje.
+
 ### Ingest
 
 - Webhook sa autentifikuje a overí integritu podľa možností SafetyCulture.

@@ -1,0 +1,7 @@
+{
+  "audits": [
+    {"audit_id":"audit_completed_001","name":"Rodinný dom – syntetická kontrola","completed":true,"completed_at":"2026-08-12T10:30:00Z","modified_at":"2026-08-12T11:00:00Z","template_id":"template_doktorhaus","template_name":"DoktorHaus kontrola","site":{"name":"Testovacia lokalita A"},"owner":{"name":"Testovací inšpektor"}},
+    {"audit_id":"audit_completed_002","name":"Byt – syntetická kontrola","status":"completed","date_completed":"2026-08-10T09:00:00Z","modified_at":"2026-08-10T09:30:00Z","template_id":"template_doktorhaus","template_name":"DoktorHaus kontrola","site":{"name":"Testovacia lokalita B"},"owner":{"name":"Testovací inšpektor"}},
+    {"audit_id":"audit_incomplete_003","name":"Rozpracovaná inšpekcia","completed":false,"status":"in_progress","modified_at":"2026-08-13T09:30:00Z","template_id":"template_doktorhaus"}
+  ]
+}
