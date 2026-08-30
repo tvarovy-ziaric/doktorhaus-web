@@ -85,7 +85,8 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
-          FTP_PROTOCOL: ${{ inputs.protocol || 'ftps' }}
+          # Websupport-compatible explicit TLS mode used by the production FTP endpoint.
+          FTP_PROTOCOL: ${{ inputs.protocol || 'ftps-legacy' }}
           FTP_PORT: ${{ inputs.port || '21' }}
         run: |
           set -euo pipefail
