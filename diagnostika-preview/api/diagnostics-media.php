@@ -9,6 +9,7 @@ if (!in_array($method, ['GET', 'HEAD'], true)) {
     dh_preview_fail(405, 'Method not allowed.');
 }
 dh_preview_require_owner();
+session_write_close();
 $query = dh_preview_query_exact(['preview', 'evidence']);
 $previewId = $query['preview'];
 $evidenceId = $query['evidence'];
@@ -66,7 +67,6 @@ header('Vary: Cookie');
 header('Content-Length: ' . $size);
 header('Content-Disposition: inline; filename="doktorhaus-' . $evidenceId . '.' . $extensions[$contentType] . '"');
 http_response_code(200);
-session_write_close();
 if ($method === 'HEAD') {
     exit;
 }

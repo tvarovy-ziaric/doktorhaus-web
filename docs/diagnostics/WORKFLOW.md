@@ -238,6 +238,8 @@ Klientská tlač je zobrazenie publikovanej verzie v prehliadači. Nie je novou 
 
 Po ľudskom schválení sa zostaví a overí immutable published package. Voliteľné client companion artefakty sú súčasťou rovnakého manifestu a nesmú meniť source observations, diagnosis ani pricing. Produkčný kód a private package sa nasadzujú oddelene; runtime `data/inspections.json` sa nepripravuje naslepo mimo servera.
 
+Owner pracovný priestor môže po výslovnom `APPROVE` prijať pre-approved produkčný ZIP cez samostatný CSRF a owner-session chránený endpoint. Endpoint nevytvára schválenie ani nemení obsah: bezpečne rozbalí balík mimo webrootu, uplatní limity proti ZIP bomb/path traversal/symlinkom a odovzdá ho existujúcemu `DiagnosticsStorage::installPublishedPackage()`. Serverový verifier musí pred atomickou inštaláciou potvrdiť published stav, approver metadata, identity, úplnosť, deklarované súbory a hashe. Opakované nahratie je úspešné iba vtedy, ak ide o bitovo identický manifest už nainštalovanej verzie; odlišný obsah sa nikdy neprepíše.
+
 Po nahratí package administrátor na existujúcej `ready|sent` inspection zadá report ID a verziu a vykoná `activate-diagnostics`. Grant použije už vydaný klientsky PIN a klient pokračuje tokom `inspekcie.html → PIN → diagnostics session → inspekcia.html` bez druhého PINu.
 
 Administrátor môže pri naviazanej `ready|sent` inšpekcii spustiť auditovaný náhľad klienta. Endpoint overí Admin PIN, aktívny grant a immutable package binding, potom vytvorí rovnakú klientsku session bez volania client PIN flow. Ide iba o náhľad existujúceho publikovaného stavu, nie o publish alebo alternatívne prihlásenie klienta.

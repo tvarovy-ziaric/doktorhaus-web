@@ -1,5 +1,21 @@
 # Runtime úložisko diagnostiky
 
+## Owner preview preflight a obnova
+
+Owner preview používa výhradne podadresár `tmp/owner-previews` pod nakonfigurovaným privátnym `DIAGNOSTICS_STORAGE_ROOT`. Pred uploadom vykoná autentifikovaný preflight: overí bezpečné umiestnenie mimo webrootu, zapisovateľnosť reálnym skúšobným zápisom a dostupnú kapacitu. Tesne pred extrakciou ZIP-u server zopakuje kontrolu s požiadavkou zodpovedajúcou validovanej rozbalenej veľkosti plus bezpečnostnej rezerve.
+
+Owner PHP session používa file handler v samostatnom podadresári `tmp/owner-preview-sessions` toho istého privátneho rootu. Runtime ho vytvorí s reštriktívnymi oprávneniami, overí, že nejde o symlink a že je zapisovateľný; nefunkčný session adresár nemá fallback do webrootu. Ak hosting automaticky spustí inú PHP session, owner runtime ju najprv bezpečne zapíše a zavrie a až potom otvorí vlastnú pomenovanú session v privátnom adresári. Po autentifikácii a CSRF kontrole sa session zapíše a lock uvoľní ešte pred storage probe a validáciou alebo extrakciou ZIP-u, aby dlhý upload neblokoval ďalšie owner požiadavky.
+
+Runtime výslovne zapína cookie transport a po otvorení aj po regenerácii session odošle `Secure`, `HttpOnly`, `SameSite=Strict` cookie s cestou obmedzenou na `/diagnostika-preview/`. Tým nie je vydanie owner cookie závislé od predvoleného `session.use_cookies` nastavenia zdieľaného hostingu.
+
+Owner vstupný bod kanonizuje opakované lomky v URL na presnú cestu `/diagnostika-preview/` a frontend používa root-absolute API cesty. Je to súčasť session hranice: cookie obmedzená na bezpečný path sa pri požiadavke na `//diagnostika-preview/...` podľa pravidiel prehliadača neposiela.
+
+Autentifikovaný preflight hlási aj dostupnosť PHP rozšírení ZipArchive a Fileinfo; chýbajúca schopnosť zastaví upload ešte pred odoslaním balíka. Kontrolované interné validačné výnimky sa ownerovi vracajú iba ako sanitizovaný stabilný `validationCode`, bez filesystem cesty, obsahu balíka alebo stack trace.
+
+Položka zdrojovej fotodokumentácie vyžaduje identitu zdroja, nie však umelo vytvorenú stranu PDF. `source_pdf_page` a `provenance_source_page` sú voliteľné pre fotografie dodané priamo ako obrazové súbory; ak sú prítomné, musia byť kladné celé čísla.
+
+Ak kapacitu nemožno bezpečne overiť alebo je nedostatočná, server odpovie `507` a nič nepublikuje. Neexistuje fallback do verejného webrootu. Staging sa pri každom neúspechu odstráni a už existujúci preview sa neprepisuje. Po úspešnom atomickom publikovaní sa mimo webrootu atomicky aktualizuje minimálny `latest-preview.json`; neobsahuje diagnostický obsah ani filesystem cestu a umožňuje obnoviť odkaz po strate owner session. Pri migrácii zo staršej verzie bez pointera smie runtime prehľadať iba validné priame `pvw_<opaque-id>` adresáre pod preview rootom, overiť ich vlastné `preview-meta.json` a ponúknuť najnovší platný záznam.
+
 ## Stav a hranica
 
 Krok 3 zavádza izolovanú PHP vrstvu pre pracovné diagnostické JSON dokumenty a nemenné balíky publikovaných reportov. Implementácia je v `api/lib/diagnostics/`, nepoužíva framework, Composer ani databázu a nie je napojená na existujúci klientsky alebo administrátorský endpoint.
@@ -180,6 +196,8 @@ Destination root musí byť privátny a vlastnený aplikáciou. Knižnica kontro
 10. atomický `rename()` stagingu na finálny, dovtedy neexistujúci adresár.
 
 Pri chybe sa staging bezpečne odstráni a finálny adresár nevznikne. Druhá inštalácia rovnakej verzie zlyhá s `STORAGE_ALREADY_EXISTS`; knižnica neposkytuje overwrite ani update API pre publikovaný snapshot. Doplnenie obsahu vytvára novú verziu, napríklad 1.1 alebo 2.0.
+
+Owner upload wrapper v `diagnostika-preview/api/publish.php` je iba autorizovaná transportná vrstva k tejto metóde. Vyžaduje HTTPS, owner session, same-origin POST a CSRF; ZIP rozbaľuje do náhodného privátneho stagingu s limitom počtu a veľkosti položiek, odmieta traversal, absolútne cesty, protokoly, duplicity a symlinky a po každom výsledku staging odstráni. Wrapper nevkladá `approved_by`, `approved_at` ani `published_at` a nemá update/overwrite vetvu. Úspech a kontrolované odmietnutie zapisuje do privátneho owner-publish auditu bez PINu, filesystem cesty alebo klientskych dát.
 
 ## Interné čítanie
 

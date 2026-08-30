@@ -5,6 +5,8 @@ const DH_PREVIEW_SESSION_NAME = 'DH_PREVIEWSESSID';
 const DH_PREVIEW_SESSION_IDLE = 3600;
 const DH_PREVIEW_SESSION_ABSOLUTE = 28800;
 const DH_PREVIEW_ID_PATTERN = '/^pvw_[0-9a-f]{32}$/D';
+const DH_PREVIEW_MAX_ZIP_BYTES = 67108864;
+const DH_PREVIEW_STORAGE_RESERVE_BYTES = 16777216;
 
 function dh_preview_is_list(array $value): bool
 {
@@ -142,6 +144,7 @@ function dh_preview_config(): array
         'owner_pin' => $ownerPin,
         'storage_root' => $storageReal,
         'preview_root' => $storageReal . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'owner-previews',
+        'session_root' => $storageReal . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'owner-preview-sessions',
     ];
     return $cached;
 }
@@ -157,11 +160,191 @@ function dh_preview_ensure_private_directory(string $path): void
     @chmod($path, 0700);
 }
 
+function dh_preview_storage_probe(int $requiredBytes = 0): array
+{
+    if ($requiredBytes < 0) {
+        throw new RuntimeException('Invalid storage requirement.');
+    }
+    $config = dh_preview_config();
+    $previewRoot = $config['preview_root'];
+    dh_preview_ensure_private_directory($previewRoot);
+    $rootReal = realpath($previewRoot);
+    if ($rootReal === false || !is_dir($rootReal) || is_link($rootReal) || !is_writable($rootReal)) {
+        throw new RuntimeException('Private preview storage is not writable.');
+    }
+
+    $probePath = $rootReal . DIRECTORY_SEPARATOR . '.storage-probe-' . bin2hex(random_bytes(16));
+    $probe = @fopen($probePath, 'xb');
+    if ($probe === false) {
+        throw new RuntimeException('Private preview storage write test failed.');
+    }
+    $probePayload = random_bytes(4096);
+    $written = @fwrite($probe, $probePayload);
+    $flushed = @fflush($probe);
+    fclose($probe);
+    $removed = @unlink($probePath);
+    if ($written !== strlen($probePayload) || !$flushed || !$removed) {
+        @unlink($probePath);
+        throw new RuntimeException('Private preview storage write test failed.');
+    }
+
+    $free = @disk_free_space($rootReal);
+    $capacityKnown = is_float($free) || is_int($free);
+    $availableBytes = $capacityKnown ? max(0, (int)$free) : null;
+    $sufficient = $requiredBytes === 0
+        ? true
+        : ($capacityKnown && $availableBytes >= $requiredBytes);
+    return [
+        'writable' => true,
+        'capacity_known' => $capacityKnown,
+        'available_bytes' => $availableBytes,
+        'required_bytes' => $requiredBytes,
+        'sufficient' => $sufficient,
+    ];
+}
+
+function dh_preview_latest_pointer_path(): string
+{
+    $config = dh_preview_config();
+    return $config['preview_root'] . DIRECTORY_SEPARATOR . 'latest-preview.json';
+}
+
+function dh_preview_latest_id(): ?string
+{
+    try {
+        $config = dh_preview_config();
+    } catch (RuntimeException $error) {
+        return null;
+    }
+    $rootReal = realpath($config['preview_root']);
+    if ($rootReal === false || !is_dir($rootReal) || is_link($rootReal)) {
+        return null;
+    }
+    $path = $rootReal . DIRECTORY_SEPARATOR . 'latest-preview.json';
+    if (is_file($path) && !is_link($path) && filesize($path) <= 2048) {
+        try {
+            $pointer = json_decode((string)file_get_contents($path), true, 16, JSON_THROW_ON_ERROR);
+        } catch (JsonException $error) {
+            $pointer = null;
+        }
+        $previewId = is_array($pointer) ? ($pointer['preview_id'] ?? null) : null;
+        if (is_string($previewId) && dh_preview_valid_id($previewId)) {
+            $previewReal = realpath($rootReal . DIRECTORY_SEPARATOR . $previewId);
+            if ($previewReal !== false && is_dir($previewReal) && !is_link($previewReal)
+                && dirname($previewReal) === $rootReal) {
+                return $previewId;
+            }
+        }
+    }
+
+    $items = scandir($rootReal);
+    if (!is_array($items)) {
+        return null;
+    }
+    $latestId = null;
+    $latestTime = 0;
+    foreach ($items as $item) {
+        if (!is_string($item) || !dh_preview_valid_id($item)) {
+            continue;
+        }
+        $previewReal = realpath($rootReal . DIRECTORY_SEPARATOR . $item);
+        if ($previewReal === false || !is_dir($previewReal) || is_link($previewReal)
+            || dirname($previewReal) !== $rootReal) {
+            continue;
+        }
+        $metaPath = $previewReal . DIRECTORY_SEPARATOR . 'preview-meta.json';
+        if (!is_file($metaPath) || is_link($metaPath) || filesize($metaPath) > 65536) {
+            continue;
+        }
+        try {
+            $meta = json_decode((string)file_get_contents($metaPath), true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException $error) {
+            continue;
+        }
+        if (!is_array($meta) || ($meta['preview_id'] ?? null) !== $item) {
+            continue;
+        }
+        $createdAt = is_string($meta['created_at'] ?? null) ? strtotime($meta['created_at']) : false;
+        $candidateTime = $createdAt !== false ? $createdAt : (int)filemtime($metaPath);
+        if ($candidateTime >= $latestTime) {
+            $latestTime = $candidateTime;
+            $latestId = $item;
+        }
+    }
+    return $latestId;
+}
+
+function dh_preview_write_latest_pointer(string $previewId, string $bundleSha256): void
+{
+    if (!dh_preview_valid_id($previewId) || preg_match('/^[0-9a-f]{64}$/D', $bundleSha256) !== 1) {
+        throw new RuntimeException('Invalid latest preview pointer.');
+    }
+    $config = dh_preview_config();
+    dh_preview_ensure_private_directory($config['preview_root']);
+    $path = dh_preview_latest_pointer_path();
+    $temporary = $config['preview_root'] . DIRECTORY_SEPARATOR . '.latest-' . bin2hex(random_bytes(16));
+    $payload = json_encode([
+        'preview_id' => $previewId,
+        'bundle_sha256' => $bundleSha256,
+        'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
+    ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+    $handle = @fopen($temporary, 'xb');
+    if ($handle === false || @fwrite($handle, $payload) !== strlen($payload) || !@fflush($handle)) {
+        if (is_resource($handle)) {
+            fclose($handle);
+        }
+        @unlink($temporary);
+        throw new RuntimeException('Latest preview pointer could not be written.');
+    }
+    fclose($handle);
+    @chmod($temporary, 0600);
+    if (!@rename($temporary, $path)) {
+        @unlink($temporary);
+        throw new RuntimeException('Latest preview pointer could not be published.');
+    }
+    @chmod($path, 0600);
+}
+
+function dh_preview_send_session_cookie(): void
+{
+    $sessionId = session_id();
+    if ($sessionId === '' || !setcookie(DH_PREVIEW_SESSION_NAME, $sessionId, [
+        'expires' => 0,
+        'path' => '/diagnostika-preview/',
+        'secure' => !dh_preview_is_local_test(),
+        'httponly' => true,
+        'samesite' => 'Strict',
+    ])) {
+        throw new RuntimeException('Owner session cookie could not be sent.');
+    }
+}
+
 function dh_preview_start_session(): void
 {
     dh_preview_require_https();
+    $config = dh_preview_config();
+    $sessionRoot = $config['session_root'];
+    dh_preview_ensure_private_directory($sessionRoot);
+    $sessionReal = realpath($sessionRoot);
+    if ($sessionReal === false || !is_dir($sessionReal) || is_link($sessionReal) || !is_writable($sessionReal)) {
+        throw new RuntimeException('Owner session storage is unavailable.');
+    }
     if (session_status() === PHP_SESSION_ACTIVE) {
-        return;
+        $activePath = session_save_path();
+        $activeReal = $activePath !== '' ? realpath($activePath) : false;
+        if (session_name() === DH_PREVIEW_SESSION_NAME && $activeReal === $sessionReal) {
+            dh_preview_send_session_cookie();
+            return;
+        }
+        if (!session_write_close()) {
+            throw new RuntimeException('An automatically started PHP session could not be released.');
+        }
+    }
+    if (ini_set('session.save_handler', 'files') === false
+        || ini_set('session.save_path', $sessionReal) === false
+        || ini_set('session.gc_maxlifetime', (string)DH_PREVIEW_SESSION_ABSOLUTE) === false
+        || ini_set('session.use_cookies', '1') === false) {
+        throw new RuntimeException('Owner session storage could not be configured.');
     }
     session_name(DH_PREVIEW_SESSION_NAME);
     session_set_cookie_params([
@@ -177,6 +360,7 @@ function dh_preview_start_session(): void
     if (!session_start()) {
         throw new RuntimeException('Owner session is unavailable.');
     }
+    dh_preview_send_session_cookie();
 }
 
 function dh_preview_destroy_session(): void
@@ -213,9 +397,19 @@ function dh_preview_owner_authenticated(): bool
 
 function dh_preview_require_owner(): void
 {
+    $cookiePresent = isset($_COOKIE[DH_PREVIEW_SESSION_NAME])
+        && is_string($_COOKIE[DH_PREVIEW_SESSION_NAME])
+        && $_COOKIE[DH_PREVIEW_SESSION_NAME] !== '';
     dh_preview_start_session();
     if (!dh_preview_owner_authenticated()) {
-        dh_preview_fail(401, 'Owner authentication required.');
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        dh_preview_json(401, [
+            'ok' => false,
+            'error' => 'Owner authentication required.',
+            'code' => $cookiePresent ? 'OWNER_SESSION_STATE_MISSING' : 'OWNER_SESSION_COOKIE_MISSING',
+        ]);
     }
 }
 

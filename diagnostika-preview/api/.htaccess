@@ -1,5 +1,5 @@
 Options -Indexes
 
-<FilesMatch "^(?!auth\.php$|upload\.php$|report\.php$|appendix\.php$|diagnostics-media\.php$).+\.php$">
+<FilesMatch "^(?!auth\.php$|storage\.php$|upload\.php$|publish\.php$|report\.php$|appendix\.php$|diagnostics-media\.php$).+\.php$">
   Require all denied
 </FilesMatch>

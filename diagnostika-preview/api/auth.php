@@ -12,13 +12,17 @@ try {
 $method = (string)($_SERVER['REQUEST_METHOD'] ?? '');
 if ($method === 'GET') {
     if (!dh_preview_owner_authenticated()) {
+        session_write_close();
         dh_preview_json(200, ['ok' => true, 'authenticated' => false]);
     }
+    $csrfToken = dh_preview_csrf_token();
+    $latestPreviewId = dh_preview_latest_id();
+    session_write_close();
     dh_preview_json(200, [
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => dh_preview_csrf_token(),
-        'latestPreviewId' => is_string($_SESSION['latest_preview_id'] ?? null) ? $_SESSION['latest_preview_id'] : null,
+        'csrfToken' => $csrfToken,
+        'latestPreviewId' => $latestPreviewId,
     ]);
 }
 
@@ -55,18 +59,28 @@ if ($action === 'login') {
     } catch (RuntimeException $error) {
         dh_preview_fail(503, 'Owner login protection is unavailable.');
     }
-    session_regenerate_id(true);
+    if (!session_regenerate_id(true)) {
+        dh_preview_fail(503, 'Owner session could not be rotated.');
+    }
+    try {
+        dh_preview_send_session_cookie();
+    } catch (RuntimeException $error) {
+        dh_preview_fail(503, 'Owner session cookie is unavailable.');
+    }
     $_SESSION = [
         'owner_authenticated' => true,
         'owner_created_at' => time(),
         'owner_last_seen_at' => time(),
         'owner_csrf' => bin2hex(random_bytes(32)),
     ];
+    $csrfToken = $_SESSION['owner_csrf'];
+    $latestPreviewId = dh_preview_latest_id();
+    session_write_close();
     dh_preview_json(200, [
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => $_SESSION['owner_csrf'],
-        'latestPreviewId' => null,
+        'csrfToken' => $csrfToken,
+        'latestPreviewId' => $latestPreviewId,
     ]);
 }
 

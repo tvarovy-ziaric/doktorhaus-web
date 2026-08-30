@@ -60,6 +60,12 @@
   }
 }
 
+.dh-preview-divider {
+  margin: 2rem 0 1.5rem;
+  border: 0;
+  border-top: 1px solid #d9dfdb;
+}
+
 @media print {
   .dh-preview-banner { position: static; }
 }

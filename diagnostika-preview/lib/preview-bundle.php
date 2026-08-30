@@ -7,9 +7,13 @@ final class DhPreviewBundleException extends RuntimeException
 {
 }
 
+final class DhPreviewStorageException extends RuntimeException
+{
+}
+
 final class DhPreviewBundleInstaller
 {
-    private const MAX_ZIP_BYTES = 64 * 1024 * 1024;
+    private const MAX_ZIP_BYTES = DH_PREVIEW_MAX_ZIP_BYTES;
     private const MAX_UNCOMPRESSED_BYTES = 128 * 1024 * 1024;
     private const MAX_ENTRY_BYTES = 16 * 1024 * 1024;
     private const MAX_JSON_BYTES = 4 * 1024 * 1024;
@@ -45,6 +49,19 @@ final class DhPreviewBundleInstaller
             $appendix = self::decodeObject($appendixRaw, 'source documentation appendix');
             $validated = self::validateBundle($manifest, $client, $appendix, $manifestRaw, $clientRaw, $appendixRaw, $entryMap);
 
+            $requiredStorageBytes = DH_PREVIEW_STORAGE_RESERVE_BYTES;
+            foreach (array_keys($validated['file_hashes']) as $declaredPath) {
+                $requiredStorageBytes += (int)$entryMap[$declaredPath]['size'];
+            }
+            try {
+                $storage = dh_preview_storage_probe($requiredStorageBytes);
+            } catch (RuntimeException $error) {
+                throw new DhPreviewStorageException('Private preview storage is unavailable.');
+            }
+            if (!$storage['sufficient']) {
+                throw new DhPreviewStorageException('Private preview storage has insufficient free space.');
+            }
+
             $config = dh_preview_config();
             $previewRoot = $config['preview_root'];
             dh_preview_ensure_private_directory($previewRoot);
@@ -55,30 +72,32 @@ final class DhPreviewBundleInstaller
                 throw new DhPreviewBundleException('Could not allocate preview storage.');
             }
             dh_preview_ensure_private_directory($stagingDirectory);
+            $published = false;
             try {
                 self::extractValidated($zip, $entryMap, $validated['file_hashes'], $stagingDirectory);
+                $bundleSha256 = hash_file('sha256', $zipPath);
+                if (!is_string($bundleSha256)) {
+                    throw new DhPreviewBundleException('Bundle hash could not be calculated.');
+                }
                 $meta = [
                     'preview_id' => $previewId,
                     'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
-                    'bundle_sha256' => hash_file('sha256', $zipPath),
+                    'bundle_sha256' => $bundleSha256,
                     'report_id' => $manifest['report_id'],
                     'report_version_id' => $manifest['report_version_id'],
                     'inspection_id' => $manifest['inspection_id'],
-                    'counts' => [
-                        'media' => 71,
-                        'linked_evidence' => 53,
-                        'source_documentation_appendix' => 18,
-                        'videos_pending' => 5,
-                    ],
+                    'counts' => $validated['counts'],
                     'files' => $validated['file_hashes'],
                 ];
                 self::writeMeta($stagingDirectory . DIRECTORY_SEPARATOR . 'preview-meta.json', $meta);
                 if (!rename($stagingDirectory, $finalDirectory)) {
                     throw new DhPreviewBundleException('Could not publish private preview storage.');
                 }
+                $published = true;
                 @chmod($finalDirectory, 0700);
+                dh_preview_write_latest_pointer($previewId, $bundleSha256);
             } catch (Throwable $error) {
-                self::removeTree($stagingDirectory);
+                self::removeTree($published ? $finalDirectory : $stagingDirectory);
                 throw $error;
             }
             return $meta;
@@ -218,10 +237,18 @@ final class DhPreviewBundleInstaller
             throw new DhPreviewBundleException('Preview manifest identity is invalid.');
         }
         self::assertFileDescriptor($manifest['client_report'] ?? null, self::CLIENT_PATH, hash('sha256', $clientRaw), null);
-        self::assertFileDescriptor($manifest['source_documentation_appendix'] ?? null, self::APPENDIX_PATH, hash('sha256', $appendixRaw), 18);
+        $appendixPhotoCount = is_array($appendix['items'] ?? null) && dh_preview_is_list($appendix['items'])
+            ? count($appendix['items'])
+            : null;
+        self::assertFileDescriptor(
+            $manifest['source_documentation_appendix'] ?? null,
+            self::APPENDIX_PATH,
+            hash('sha256', $appendixRaw),
+            $appendixPhotoCount
+        );
 
-        if (!is_array($manifest['media']) || !dh_preview_is_list($manifest['media']) || count($manifest['media']) !== 71) {
-            throw new DhPreviewBundleException('Preview manifest must declare exactly 71 media files.');
+        if (!is_array($manifest['media']) || !dh_preview_is_list($manifest['media'])) {
+            throw new DhPreviewBundleException('Preview manifest media must be a list.');
         }
         $mediaById = [];
         $fileHashes = [
@@ -255,10 +282,6 @@ final class DhPreviewBundleInstaller
             $fileHashes[$path] = $sha256;
             $placementCounts[$placement]++;
         }
-        if ($placementCounts !== ['linked_evidence' => 53, 'source_documentation_appendix' => 18]) {
-            throw new DhPreviewBundleException('Preview media placement split must be 53 linked and 18 appendix photos.');
-        }
-
         $expectedEntries = array_fill_keys(array_keys($fileHashes), true);
         if (isset($entries['media/'])) {
             $expectedEntries['media/'] = true;
@@ -270,7 +293,15 @@ final class DhPreviewBundleInstaller
         self::validateClientReport($client, $mediaById, $manifest);
         self::validateAppendix($appendix, $mediaById, $manifest);
         self::validateMissingVideos($manifest['missing_media']);
-        return ['file_hashes' => $fileHashes];
+        return [
+            'file_hashes' => $fileHashes,
+            'counts' => [
+                'media' => count($mediaById),
+                'linked_evidence' => $placementCounts['linked_evidence'],
+                'source_documentation_appendix' => $placementCounts['source_documentation_appendix'],
+                'videos_pending' => count($manifest['missing_media']),
+            ],
+        ];
     }
 
     private static function assertFileDescriptor($descriptor, string $path, string $sha256, ?int $photoCount): void
@@ -323,8 +354,8 @@ final class DhPreviewBundleInstaller
             }
         }
         sort($manifestLinked);
-        if (count($linkedIds) !== 53 || $linkedIds !== $manifestLinked) {
-            throw new DhPreviewBundleException('Client report linked media do not match the 53 approved manifest records.');
+        if ($linkedIds !== $manifestLinked) {
+            throw new DhPreviewBundleException('Client report linked media do not match the manifest records.');
         }
         foreach ($client['issues'] as $issue) {
             if (!is_array($issue) || dh_preview_is_list($issue) || !self::validId($issue['id'] ?? null, 'issue')
@@ -397,8 +428,9 @@ final class DhPreviewBundleInstaller
             || ($appendix['report_id'] ?? '') !== $manifest['report_id']
             || ($appendix['report_version_id'] ?? '') !== $manifest['report_version_id']
             || ($appendix['inspection_id'] ?? '') !== $manifest['inspection_id']
-            || ($appendix['photo_count'] ?? null) !== 18 || !is_array($appendix['items'] ?? null)
-            || !dh_preview_is_list($appendix['items']) || count($appendix['items']) !== 18) {
+            || !is_array($appendix['items'] ?? null) || !dh_preview_is_list($appendix['items'])
+            || !is_int($appendix['photo_count'] ?? null)
+            || $appendix['photo_count'] !== count($appendix['items'])) {
             throw new DhPreviewBundleException('Source documentation appendix contract is invalid.');
         }
         $analyticKeys = array_fill_keys([
@@ -413,8 +445,14 @@ final class DhPreviewBundleInstaller
             }
             self::assertExactKeys($item, [
                 'evidence_id', 'display_code', 'source_caption', 'media_reference', 'media_url', 'content_type',
-                'source_identity', 'source_pdf_page', 'provenance_source_page', 'order',
-            ], ['source_section', 'source_location']);
+                'source_identity', 'order',
+            ], ['source_section', 'source_location', 'source_pdf_page', 'provenance_source_page']);
+            foreach (['source_pdf_page', 'provenance_source_page'] as $pageField) {
+                if (array_key_exists($pageField, $item)
+                    && (!is_int($item[$pageField]) || $item[$pageField] < 1)) {
+                    throw new DhPreviewBundleException('Source documentation page reference is invalid.');
+                }
+            }
             foreach (array_keys($item) as $key) {
                 if (isset($analyticKeys[$key])) {
                     throw new DhPreviewBundleException('Source documentation must not contain analytic links.');
@@ -430,15 +468,24 @@ final class DhPreviewBundleInstaller
             }
             $appendixIds[$id] = true;
         }
-        if (count($appendixIds) !== 18) {
-            throw new DhPreviewBundleException('Source documentation appendix must contain 18 unique photos.');
+        $manifestAppendixIds = [];
+        foreach ($mediaById as $id => $media) {
+            if ($media['placement_kind'] === 'source_documentation_appendix') {
+                $manifestAppendixIds[] = $id;
+            }
+        }
+        sort($manifestAppendixIds);
+        $validatedAppendixIds = array_keys($appendixIds);
+        sort($validatedAppendixIds);
+        if ($validatedAppendixIds !== $manifestAppendixIds) {
+            throw new DhPreviewBundleException('Source documentation media do not match the manifest records.');
         }
     }
 
     private static function validateMissingVideos($items): void
     {
-        if (!is_array($items) || !dh_preview_is_list($items) || count($items) !== 5) {
-            throw new DhPreviewBundleException('Preview bundle must disclose exactly five pending videos.');
+        if (!is_array($items) || !dh_preview_is_list($items)) {
+            throw new DhPreviewBundleException('Pending media must be a list.');
         }
         foreach ($items as $item) {
             if (!is_array($item) || dh_preview_is_list($item)) {

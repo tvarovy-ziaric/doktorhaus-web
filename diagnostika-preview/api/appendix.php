@@ -8,6 +8,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     dh_preview_fail(405, 'Method not allowed.');
 }
 dh_preview_require_owner();
+session_write_close();
 $query = dh_preview_query_exact(['preview']);
 $directory = dh_preview_directory($query['preview']);
 
@@ -31,5 +32,4 @@ try {
 dh_preview_security_headers();
 header('Vary: Cookie');
 http_response_code(200);
-session_write_close();
 echo $body;
